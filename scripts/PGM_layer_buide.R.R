@@ -1,8 +1,8 @@
 
-#' @title Cost-effectiveness of conservation actions in Amazon
-#' @description scrip to build exploratory variables from 
+#' @title Cost-benefit of conservation actions in Amazon
+#' @description script to build exploratory variables from 
 #' land use - land cover, secondary forest, edge, 
-#' degradation (logguin and fire), temperature, precipitation, 
+#' degradation (loggin and fire), temperature, precipitation, 
 #' elevation and distances to road and water body
 #' in Paragominas municipality - PA;
 #' this set of exploratory variables is used in fit 
@@ -81,7 +81,7 @@ names(pgm.sfage) <- c("PGM.SFage.2010", "PGM.SFage.2020")
 #checking
 #pgm.sfage
 #plot(pgm.sfage)
-#range(values(pgm.sfage[["PGM.SFage.2010"]]))
+#range(values(pgm.sfage[["PGM.SFage.2010"]]), na.rm = T)
 
 values(pgm.sfage)[values(pgm.sfage) <= 0] = NA
 
@@ -102,77 +102,31 @@ pgm.sfage_resampled <- resample(pgm.sfage, pgm.lulc, method='ngb')
 ## Conversion of rasters into same extent
 #stm.sfage_resampled <- resample(stm.sfage, stm.lulc, method='bilinear')
 
-# fire from mapbiomas fogo collection 1 [2010 and 2020]
-# [PGM] paragominas
-pgm.fire <- stack(c("rasters/PGM/input/pgm-2010-fire-mapbiomas-brazil-collection-10.tif",
-                    "rasters/PGM/input/pgm-2020-fire-mapbiomas-brazil-collection-10.tif"))
-names(pgm.fire) <- c("PGM.Fire.2010", "PGM.Fire.2020")
-#checking
-#pgm.fire
-#plot(pgm.fire)
-#range(values(pgm.fire[["PGM.Fire.2010"]]))
+# time since degradation 2010 data from RAS 
+# quantitative comparison of manual inspection of satellite images
+# and field observations done by two observers (TG and SN)
+# see RAS environmental explanatory variable guideline document for details
+# 2020 data from DETER
+# 
+pgm.degrad.2010 <- raster("rasters/PGM/input/pgm-2010-deg_tsince0_150m.grd")
 
-values(pgm.fire)[values(pgm.fire) <= 0] = NA
-
-# Conversion of rasters into same extent
-pgm.fire_resampled <- resample(pgm.fire, pgm.lulc, method='ngb')
-
-## [STM] santarem
-#stm.fire <- stack(c("rasters/STM/input/stm-2010-fire-mapbiomas-brazil-collection-10.tif",
-#                    "rasters/STM/input/stm-2020-fire-mapbiomas-brazil-collection-10.tif"))
-#names(stm.fire) <- c("STM.Fire.2010", "STM.Fire.2020")
-##checking
-##stm.fire
-##plot(stm.fire)
-##range(values(stm.fire[["STM.Fire.2010"]]))
-#
-#values(stm.fire)[values(stm.fire) <= 0] = NA
-#
-## Conversion of rasters into same extent
-#stm.fire_resampled <- resample(stm.fire, stm.lulc, method='bilinear')
-
-# degradation data from INPE 
-# [load_degrad() function in datazoom.amazonia for 2010 and 
-# deter for 2020]
-# [PGM] paragominas
-pgm.degrad.2010.shp <- readOGR(dsn = "rasters/PGM/input", layer = "pgm-2010-degrad-inpe") #reading shapefile
-pgm.degrad.2010 <- rasterize(pgm.degrad.2010.shp, pgm.lulc[[1]], field=1) #rasterizing
-
-pgm.degrad.2020.shp <- readOGR(dsn = "rasters/PGM/input", layer = "pgm-2020-degrad-deter-inpe") #reading shapefile
-pgm.degrad.2020 <- rasterize(pgm.degrad.2020.shp, pgm.lulc[[1]], field=1) #rasterizing
-
-pgm.degrad <- stack(pgm.degrad.2010,pgm.degrad.2020) # stack
-names(pgm.degrad) <- c("PGM.Degrad.2010", "PGM.Degrad.2020")
-
-rm(list=ls()[ls() %in% c("pgm.degrad.2010.shp", "pgm.degrad.2010", "pgm.degrad.2020.shp", "pgm.degrad.2020")]) #keeping only raster stack
+names(pgm.degrad.2010) <- c("PGM.Degrad.2010")
 
 #checking
-#pgm.degrad
-#plot(pgm.degrad)
-#unique(values(pgm.degrad[["PGM.Degrad.2010"]]))
+#pgm.degrad.2010
+#plot(pgm.degrad.2010)
+#range(values(pgm.degrad.2010), na.rm=T)
+
+values(pgm.degrad.2010)[values(pgm.degrad.2010) <= 0] = NA
 
 # Conversion of rasters into same extent
-pgm.degrad_resampled <- resample(pgm.degrad, pgm.lulc, method='ngb')
+pgm.degrad.2010.latlong <- projectRaster(pgm.degrad.2010, crs = "+proj=longlat +datum=WGS84 +no_defs")
+pgm.degrad.2010_resampled <- resample(pgm.degrad.2010.latlong, pgm.lulc, method='ngb')
+
+
 
 ## [STM] santarem
-#stm.degrad.2010.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2010-degrad-inpe") #reading shapefile
-#stm.degrad.2010 <- rasterize(stm.degrad.2010.shp, stm.lulc[[1]], field=1) #rasterizing
-#
-#stm.degrad.2020.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2020-degrad-deter-inpe") #reading shapefile
-#stm.degrad.2020 <- rasterize(stm.degrad.2020.shp, stm.lulc[[1]], field=1) #rasterizing
-#
-#stm.degrad <- stack(stm.degrad.2010,stm.degrad.2020) # stack
-#names(stm.degrad) <- c("STM.Degrad.2010", "STM.Degrad.2020")
-#
-#rm(list=ls()[ls() %in% c("stm.degrad.2010.shp", "stm.degrad.2010", "stm.degrad.2020.shp", "stm.degrad.2020")]) #keeping only raster stack
-#
-##checking
-##stm.degrad
-##plot(stm.degrad)
-##unique(values(stm.degrad[["STM.Degrad.2010"]]))
-#
-## Conversion of rasters into same extent
-#stm.degrad_resampled <- resample(stm.degrad, stm.lulc, method='bilinear')
+
 
 ## roads [???]
 ## [PGM] paragominas
