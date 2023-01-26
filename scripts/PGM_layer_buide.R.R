@@ -86,7 +86,12 @@ names(pgm.sfage) <- c("PGM.SFage.2010", "PGM.SFage.2020")
 values(pgm.sfage)[values(pgm.sfage) <= 0] = NA
 
 # Conversion of rasters into same extent
-pgm.sfage_resampled <- resample(pgm.sfage, pgm.lulc, method='ngb')
+pgm.sfage.resampled <- resample(pgm.sfage, pgm.lulc, method='ngb')
+
+rm(list=ls()[!ls() %in% c("pgm.lulc", "pgm.sfage.resampled")]) #keeping only raster stack
+gc()
+#
+
 
 ## [STM] santarem
 #stm.sfage <- stack(c("rasters/STM/input/stm-2010-sfage-mapbiomas-brazil-collection-60.tif",
@@ -121,12 +126,76 @@ values(pgm.degrad.2010)[values(pgm.degrad.2010) <= 0] = NA
 
 # Conversion of rasters into same extent
 pgm.degrad.2010.latlong <- projectRaster(pgm.degrad.2010, crs = "+proj=longlat +datum=WGS84 +no_defs")
-pgm.degrad.2010_resampled <- resample(pgm.degrad.2010.latlong, pgm.lulc, method='ngb')
+pgm.degrad.2010.resampled <- resample(pgm.degrad.2010.latlong, pgm.lulc, method='ngb')
+
+
+# calculating time since degradation for 2020
+pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
+br.deter <- readOGR(dsn = "rasters/PGM/input", layer = "deter_public")
+pgm.deter <- crop(br.deter, extent(pgm.shp))
+#checking
+#pgm.deter
+#plot(pgm.deter)
+#sort(unique(pgm.deter$VIEW_DATE))
+
+
+
+
+
+
+pgm.degrad.temp <- pgm.degrad.2010.resampled
+pgm.degrad.temp <- pgm.degrad.temp+5
+#pgm.degrad.temp[pgm.degrad.temp<24] <- 1
+#pgm.degrad.temp[pgm.degrad.temp>=24] <- 0
+
+
+pgm.deter.yearx <- pgm.deter[grep("2016", pgm.deter$VIEW_DATE),]
+pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
+pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
+
+pgm.degrad.temp <- pgm.degrad.temp+1
+pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
+
+
+cat("> year", i, "done! <")
+
+
+
+
+
+
+
+
+
+
+rm(list=ls()[!ls() %in% c("pgm.lulc", "pgm.sfage.resampled")]) #keeping only raster stack
+gc()
+
+
+
 
 
 
 ## [STM] santarem
-
+#stm.degrad.2010.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2010-degrad-inpe") #reading shapefile
+#stm.degrad.2010 <- rasterize(stm.degrad.2010.shp, stm.lulc[[1]], field=1) #rasterizing
+#
+#stm.degrad.2020.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2020-degrad-deter-inpe") #reading shapefile
+#stm.degrad.2020 <- rasterize(stm.degrad.2020.shp, stm.lulc[[1]], field=1) #rasterizing
+#
+#stm.degrad <- stack(stm.degrad.2010,stm.degrad.2020) # stack
+#names(stm.degrad) <- c("STM.Degrad.2010", "STM.Degrad.2020")
+#
+#rm(list=ls()[ls() %in% c("stm.degrad.2010.shp", "stm.degrad.2010", "stm.degrad.2020.shp", "stm.degrad.2020")]) #keeping only raster stack
+#
+##checking
+##stm.degrad
+##plot(stm.degrad)
+##unique(values(stm.degrad[["STM.Degrad.2010"]]))
+#
+## Conversion of rasters into same extent
+#stm.degrad_resampled <- resample(stm.degrad, stm.lulc, method='bilinear')
 
 ## roads [???]
 ## [PGM] paragominas
