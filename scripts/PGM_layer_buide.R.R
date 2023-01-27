@@ -24,6 +24,9 @@ library(scales)
 
 #### importing input rasters ####
 
+# shapefile paragominas
+pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
+
 # land use land cover from mapbiomas collection 7 [2010 and 2020]
 # [PGM] paragominas
 pgm.lulc <- stack(c("rasters/PGM/input/pgm-2010-lulc-mapbiomas-brazil-collection-70.tif",
@@ -50,27 +53,19 @@ values(pgm.lulc)[values(pgm.lulc) <= 0] = NA
 # 41 == Other Temporary Crops == Farming
 # 48 == Other Perennial Crops == Farming
 
-## [STM] santarem
-#stm.lulc <- stack(c("rasters/STM/input/stm-2010-lulc-mapbiomas-brazil-collection-70.tif",
-#                    "rasters/STM/input/stm-2020-lulc-mapbiomas-brazil-collection-70.tif"))
-#names(stm.lulc) <- c("STM.LULC.2010", "STM.LULC.2020")
-##checking
-##stm.lulc
-##plot(stm.lulc)
-##sort(unique(values(stm.lulc[["STM.LULC.2010"]])))
+# isolating forest class pixels
+pgm.lulc.2010.forest.class <- pgm.lulc[["PGM.LULC.2010"]]
+pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class==3] <- 1
+pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class>1] <- NA
+
+pgm.lulc.2020.forest.class <- pgm.lulc[["PGM.LULC.2020"]]
+pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class==3] <- 1
+pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class>1] <- NA
+
 #
-#values(stm.lulc)[values(stm.lulc) <= 0] = NA
-## land ues land cover pixel values and codes
-## 0  == NA
-## 3  == Forest Formation      == Forest
-## 4  == Savanna Formation     == Forest
-## 11 == Wetland               == Non Forest Natural Formation
-## 12 == Grassland             == Non Forest Natural Formation
-## 15 == Pasture               == Farming
-## 24 == Urban Area            == Non vegetated area
-## 33 == River, Lake and Ocean == Water
-## 39 == Soybean               == Farming
-## 41 == Other Temporary Crops == Farming
+#
+
+
 
 # secondary forest age from Silva Jr. et al 2020  [2010 and 2020]
 # [DOI: 10.1038/s41597-020-00600-4]
@@ -78,34 +73,21 @@ values(pgm.lulc)[values(pgm.lulc) <= 0] = NA
 pgm.sfage <- stack(c("rasters/PGM/input/pgm-2010-sfage-mapbiomas-brazil-collection-60.tif",
                       "rasters/PGM/input/pgm-2020-sfage-mapbiomas-brazil-collection-60.tif"))
 names(pgm.sfage) <- c("PGM.SFage.2010", "PGM.SFage.2020")
+
 #checking
 #pgm.sfage
 #plot(pgm.sfage)
 #range(values(pgm.sfage[["PGM.SFage.2010"]]), na.rm = T)
 
-values(pgm.sfage)[values(pgm.sfage) <= 0] = NA
+pgm.sfage <- mask(pgm.sfage, pgm.shp)
 
 # Conversion of rasters into same extent
-pgm.sfage.resampled <- resample(pgm.sfage, pgm.lulc, method='ngb')
+pgm.sfage <- resample(pgm.sfage, pgm.lulc, method='ngb')
 
-rm(list=ls()[!ls() %in% c("pgm.lulc", "pgm.sfage.resampled")]) #keeping only raster stack
-gc()
+#
 #
 
 
-## [STM] santarem
-#stm.sfage <- stack(c("rasters/STM/input/stm-2010-sfage-mapbiomas-brazil-collection-60.tif",
-#                     "rasters/STM/input/stm-2020-sfage-mapbiomas-brazil-collection-60.tif"))
-#names(stm.sfage) <- c("STM.SFage.2010", "STM.SFage.2020")
-##checking
-##stm.sfage
-##plot(stm.sfage)
-##range(values(stm.sfage[["STM.SFage.2010"]]))
-#
-#values(stm.sfage)[values(stm.sfage) <= 0] = NA
-#
-## Conversion of rasters into same extent
-#stm.sfage_resampled <- resample(stm.sfage, stm.lulc, method='bilinear')
 
 # time since degradation 2010 data from RAS 
 # quantitative comparison of manual inspection of satellite images
@@ -122,34 +104,24 @@ names(pgm.degrad.2010) <- c("PGM.Degrad.2010")
 #plot(pgm.degrad.2010)
 #range(values(pgm.degrad.2010), na.rm=T)
 
-values(pgm.degrad.2010)[values(pgm.degrad.2010) <= 0] = NA
-
 # Conversion of rasters into same extent
-pgm.degrad.2010.latlong <- projectRaster(pgm.degrad.2010, crs = "+proj=longlat +datum=WGS84 +no_defs")
-pgm.degrad.2010.resampled <- resample(pgm.degrad.2010.latlong, pgm.lulc, method='ngb')
+pgm.degrad.2010 <- projectRaster(pgm.degrad.2010, crs = "+proj=longlat +datum=WGS84 +no_defs")
+pgm.degrad.2010 <- resample(pgm.degrad.2010, pgm.lulc, method='ngb')
 
 
 # calculating time since degradation for 2020
-pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
-br.deter <- readOGR(dsn = "rasters/PGM/input", layer = "deter_public")
-pgm.deter <- crop(br.deter, extent(pgm.shp))
-#checking
-#pgm.deter
-#plot(pgm.deter)
-#sort(unique(pgm.deter$VIEW_DATE))
+pgm.degrad.temp <- pgm.degrad.2010
 
 
+# deter data between 2011 and 2015
+library(datazoom.amazonia)
 
+deter.2011.15 <- load_degrad(dataset = "degrad", raw_data = T, time_period = 2011:2015)
 
+deter.yearx <- pgm.deter.2011.15[[1]] #1=2011; 5=2015
+deter.yearx <- sf:::as_Spatial(deter.yearx$geometry)
+pgm.deter.yearx <- crop(deter.yearx, extent(pgm.shp))
 
-
-pgm.degrad.temp <- pgm.degrad.2010.resampled
-pgm.degrad.temp <- pgm.degrad.temp+5
-#pgm.degrad.temp[pgm.degrad.temp<24] <- 1
-#pgm.degrad.temp[pgm.degrad.temp>=24] <- 0
-
-
-pgm.deter.yearx <- pgm.deter[grep("2016", pgm.deter$VIEW_DATE),]
 pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
 pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
 pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
@@ -158,59 +130,44 @@ pgm.degrad.temp <- pgm.degrad.temp+1
 pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
 
 
-cat("> year", i, "done! <")
+#plot(pgm.degrad.temp)
+#plot(pgm.deter.yearx, add=T)
+
+
+# deter data between 2016 and 2020
+deter.2016.20 <- readOGR(dsn = "rasters/PGM/input", layer = "deter_public")
+pgm.deter.2016.20 <- crop(deter.2016.20, extent(pgm.shp))
+
+
+pgm.deter.yearx <- pgm.deter.2016.20[grep("2020", pgm.deter.2016.20$VIEW_DATE),]
+pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
+pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
+
+pgm.degrad.temp <- pgm.degrad.temp+1
+pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
+
+
+#cat("> year", i, "done! <")
 
 
 
+pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2020.forest.class)
+
+pgm.degrad.2020 <- pgm.degrad.temp
+
+names(pgm.degrad.2020) <- "PGM.Degrad.2020"
+
+pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
 
 
 
-
-
-
-
-rm(list=ls()[!ls() %in% c("pgm.lulc", "pgm.sfage.resampled")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc", "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "pgm.sfage", "pgm.degrad")]) #keeping only raster stack
 gc()
 
+#
+#
 
-
-
-
-
-## [STM] santarem
-#stm.degrad.2010.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2010-degrad-inpe") #reading shapefile
-#stm.degrad.2010 <- rasterize(stm.degrad.2010.shp, stm.lulc[[1]], field=1) #rasterizing
-#
-#stm.degrad.2020.shp <- readOGR(dsn = "rasters/STM/input", layer = "stm-2020-degrad-deter-inpe") #reading shapefile
-#stm.degrad.2020 <- rasterize(stm.degrad.2020.shp, stm.lulc[[1]], field=1) #rasterizing
-#
-#stm.degrad <- stack(stm.degrad.2010,stm.degrad.2020) # stack
-#names(stm.degrad) <- c("STM.Degrad.2010", "STM.Degrad.2020")
-#
-#rm(list=ls()[ls() %in% c("stm.degrad.2010.shp", "stm.degrad.2010", "stm.degrad.2020.shp", "stm.degrad.2020")]) #keeping only raster stack
-#
-##checking
-##stm.degrad
-##plot(stm.degrad)
-##unique(values(stm.degrad[["STM.Degrad.2010"]]))
-#
-## Conversion of rasters into same extent
-#stm.degrad_resampled <- resample(stm.degrad, stm.lulc, method='bilinear')
-
-## roads [???]
-## [PGM] paragominas
-#pgm.road <- readOGR()
-#
-##checking
-#pgm.road
-#plot(pgm.road)
-#
-### [STM] santarem
-##stm.road <- readOGR()
-##
-###checking
-##stm.road
-##plot(stm.road)
 
 
 # function to make sure all raster are fully stacked
@@ -221,18 +178,13 @@ gc()
 #  return(mask)
 #}
 
-# stacking by location by year
-pgm.2010 <- stack(pgm.lulc[[1]], pgm.sfage_resampled[[1]], pgm.fire_resampled[[1]], pgm.degrad_resampled[[1]])
+# stacking by year
+pgm.2010 <- stack(pgm.lulc[[1]], pgm.sfage[[1]], pgm.degrad[[1]])
 #pgm.2010 <- stack(mask(pgm.2010, intersect_mask(pgm.2010)))
 
-pgm.2020 <- stack(pgm.lulc[[2]], pgm.sfage_resampled[[2]], pgm.fire_resampled[[2]], pgm.degrad_resampled[[2]])
+pgm.2020 <- stack(pgm.lulc[[2]], pgm.sfage_resampled[[2]], pgm.degrad[[2]])
 #pgm.2020 <- stack(mask(pgm.2020, intersect_mask(pgm.2020)))
 
-#stm.2010 <- stack(stm.lulc[[1]], stm.sfage_resampled[[1]], stm.fire_resampled[[1]], stm.degrad_resampled[[1]])
-##stm.2010 <- stack(mask(stm.2010, intersect_mask(stm.2010)))
-#
-#stm.2020 <- stack(stm.lulc[[2]], stm.sfage_resampled[[2]], stm.fire_resampled[[2]], stm.degrad_resampled[[2]])
-##stm.2020 <- stack(mask(stm.2020, intersect_mask(stm.2020)))
 
 rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
 gc()
