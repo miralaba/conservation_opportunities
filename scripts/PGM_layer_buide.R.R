@@ -81,8 +81,34 @@ names(pgm.sfage) <- c("PGM.SFage.2010", "PGM.SFage.2020")
 
 pgm.sfage <- mask(pgm.sfage, pgm.shp)
 
+values(pgm.sfage)[values(pgm.sfage) <= 0] = NA
+
 # Conversion of rasters into same extent
 pgm.sfage <- resample(pgm.sfage, pgm.lulc, method='ngb')
+
+# isolating secondary forest class pixels
+pgm.sfage.2010.all.class <- pgm.sfage[["PGM.SFage.2010"]]
+pgm.sfage.2010.all.class[!is.na(pgm.sfage.2010.all.class)] <- 1
+
+pgm.sfage.2010.t2.class <- pgm.sfage[["PGM.SFage.2010"]]
+pgm.sfage.2010.t2.class[pgm.sfage.2010.all.class < 2] <- 0
+pgm.sfage.2010.t2.class[pgm.sfage.2010.all.class >= 2] <- 1
+
+pgm.sfage.2010.t10.class <- pgm.sfage[["PGM.SFage.2010"]]
+pgm.sfage.2010.t10.class[pgm.sfage.2010.all.class < 10] <- 0
+pgm.sfage.2010.t10.class[pgm.sfage.2010.all.class >= 10] <- 1
+
+
+pgm.sfage.2020.all.class <- pgm.sfage[["PGM.SFage.2020"]]
+pgm.sfage.2020.all.class[!is.na(pgm.sfage.2020.all.class)] <- 1
+
+pgm.sfage.2020.t2.class <- pgm.sfage[["PGM.SFage.2020"]]
+pgm.sfage.2020.t2.class[pgm.sfage.2020.all.class < 2] <- 0
+pgm.sfage.2020.t2.class[pgm.sfage.2020.all.class >= 2] <- 1
+
+pgm.sfage.2020.t10.class <- pgm.sfage[["PGM.SFage.2020"]]
+pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class < 10] <- 0
+pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class >= 10] <- 1
 
 #
 #
@@ -118,16 +144,21 @@ library(datazoom.amazonia)
 
 deter.2011.15 <- load_degrad(dataset = "degrad", raw_data = T, time_period = 2011:2015)
 
-deter.yearx <- pgm.deter.2011.15[[1]] #1=2011; 5=2015
-deter.yearx <- sf:::as_Spatial(deter.yearx$geometry)
-pgm.deter.yearx <- crop(deter.yearx, extent(pgm.shp))
-
-pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
-pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
-pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
-
-pgm.degrad.temp <- pgm.degrad.temp+1
-pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
+for (year in 1:5) {   #1=2011; 5=2015
+  
+  deter.yearx <- deter.2011.15[[year]] 
+  deter.yearx <- sf:::as_Spatial(deter.yearx$geometry)
+  pgm.deter.yearx <- crop(deter.yearx, extent(pgm.shp))
+  
+  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
+  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
+  
+  pgm.degrad.temp <- pgm.degrad.temp+1
+  pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
+  
+  cat("\n> year", year, "done! <\n")
+}
 
 
 #plot(pgm.degrad.temp)
@@ -138,17 +169,18 @@ pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
 deter.2016.20 <- readOGR(dsn = "rasters/PGM/input", layer = "deter_public")
 pgm.deter.2016.20 <- crop(deter.2016.20, extent(pgm.shp))
 
-
-pgm.deter.yearx <- pgm.deter.2016.20[grep("2020", pgm.deter.2016.20$VIEW_DATE),]
-pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
-pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
-pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
-
-pgm.degrad.temp <- pgm.degrad.temp+1
-pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
-
-
-#cat("> year", i, "done! <")
+for (year in 2016:2020) {
+  
+  pgm.deter.yearx <- pgm.deter.2016.20[grep(year, pgm.deter.2016.20$VIEW_DATE),]
+  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc[[1]], field=999)
+  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.shp)
+  
+  pgm.degrad.temp <- pgm.degrad.temp+1
+  pgm.degrad.temp[get("pgm.deter.yearx")[] == 999] <- 0
+  
+  cat("\n> year", year, "done! <\n")
+}
 
 
 
@@ -160,10 +192,20 @@ names(pgm.degrad.2020) <- "PGM.Degrad.2020"
 
 pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
 
+#checking
+#pgm.degrad
+#plot(pgm.degrad)
+#range(values(pgm.degrad[["PGM.Degrad.2010"]]), na.rm=T)
 
+pgm.degrad[["PGM.Degrad.2010"]][pgm.degrad[["PGM.Degrad.2010"]]>23] <- NA
+pgm.degrad[["PGM.Degrad.2020"]][pgm.degrad[["PGM.Degrad.2020"]]>33] <- NA
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc", "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "pgm.sfage", "pgm.degrad")]) #keeping only raster stack
-gc()
+# isolating degraded forest class pixels
+pgm.degrad.2010.forest.class <- pgm.degrad[["PGM.Degrad.2010"]]
+pgm.degrad.2010.forest.class[!is.na(pgm.degrad.2010.forest.class)] <- 1
+
+pgm.degrad.2020.forest.class <- pgm.degrad[["PGM.Degrad.2020"]]
+pgm.degrad.2020.forest.class[!is.na(pgm.degrad.2020.forest.class)] <- 1
 
 #
 #
@@ -182,42 +224,36 @@ gc()
 pgm.2010 <- stack(pgm.lulc[[1]], pgm.sfage[[1]], pgm.degrad[[1]])
 #pgm.2010 <- stack(mask(pgm.2010, intersect_mask(pgm.2010)))
 
-pgm.2020 <- stack(pgm.lulc[[2]], pgm.sfage_resampled[[2]], pgm.degrad[[2]])
+pgm.2020 <- stack(pgm.lulc[[2]], pgm.sfage[[2]], pgm.degrad[[2]])
 #pgm.2020 <- stack(mask(pgm.2020, intersect_mask(pgm.2020)))
 
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
 gc()
 #
+
+
+
+#######################################################################################################################
 
 #### setting explanatory variables ####
 # [UPF] undisturbed primary forest -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
 # this variable includes all forest pixels in LULC raster (value == 3)
 # excluding those with age < 25 in 2010 SF raster or age < 35 in 2020 SF raster
-# excluding pixels with fire
 # excluding pixels degraded
 
+dir.create("rasters/PGM/2010", recursive = T)
+dir.create("rasters/PGM/2020", recursive = T)
+
+
 # paragominas 2010
-#names(pgm.2010)
 
-# isolating forest class pixels
-pgm.2010.forest.class <- pgm.2010[["PGM.LULC.2010"]]
-pgm.2010.forest.class[pgm.2010.forest.class==3] <- 1
-pgm.2010.forest.class[pgm.2010.forest.class>1] <- 0
-##cheking
-#pgm.2010.forest.class
-#plot(pgm.2010.forest.class)
-
-# isolating SF < 25 years old
-pgm.2010.SFless25 <- pgm.2010[["PGM.SFage.2010"]]
-pgm.2010.SFless25[pgm.2010.SFless25<25] <- 1
-pgm.2010.SFless25[pgm.2010.SFless25==25] <- 0
-##cheking
-#pgm.2010.SFless25
-#plot(pgm.2010.SFless25)
-
-# excluding areas with SF > 25, with fire and degraded
-UPF2010<-sum(pgm.2010.forest.class, pgm.2010.SFless25, pgm.2010[["PGM.Fire.2010"]], pgm.2010[["PGM.Degrad.2010"]], na.rm = T)
+UPF2010<-sum(pgm.lulc.2010.forest.class, pgm.sfage.2010.all.class, pgm.degrad.2010.forest.class, na.rm = T)
 UPF2010[UPF2010>1]<-0
 ##cheking
 #unique(UPF2010[])
@@ -232,6 +268,7 @@ UPF2010.px <- focal(UPF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(UPF2010.px)<-"UPFpx"
 UPF2010.px[is.nan(UPF2010.px)] <- 0
+UPF2010.px <- mask(UPF2010.px, pgm.shp)
 
 #saving
 writeRaster(UPF2010.px, "rasters/PGM/2010/UPFpx.tif", format="GTiff", overwrite=T)
@@ -245,35 +282,23 @@ UPF2010.ls <- focal(UPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(UPF2010.ls)<-"UPFls"
 UPF2010.ls[is.nan(UPF2010.ls)] <- 0
+UPF2010.ls <- mask(UPF2010.ls, pgm.shp)
 
 #saving
 writeRaster(UPF2010.ls, "rasters/PGM/2010/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
 gc()
 #
 
 # paragominas 2020
-#names(pgm.2020)
 
-# isolating forest class pixels
-pgm.2020.forest.class <- pgm.2020[["PGM.LULC.2020"]]
-pgm.2020.forest.class[pgm.2020.forest.class==3] <- 1
-pgm.2020.forest.class[pgm.2020.forest.class>1] <- 0
-##cheking
-#pgm.2020.forest.class
-#plot(pgm.2020.forest.class)
-
-# isolating SF < 35 years old
-pgm.2020.SFless25 <- pgm.2020[["PGM.SFage.2020"]]
-pgm.2020.SFless25[pgm.2020.SFless25<35] <- 1
-pgm.2020.SFless25[pgm.2020.SFless25>=35] <- 0
-##cheking
-#pgm.2020.SFless25
-#plot(pgm.2020.SFless25)
-
-# excluding areas with SF > 35, with fire and degraded
-UPF2020<-sum(pgm.2020.forest.class, pgm.2020.SFless25, pgm.2020[["PGM.Fire.2020"]], pgm.2020[["PGM.Degrad.2020"]], na.rm = T)
+UPF2020<-sum(pgm.lulc.2020.forest.class, pgm.sfage.2020.all.class, pgm.degrad.2020.forest.class, na.rm = T)
 UPF2020[UPF2020>1]<-0
 ##cheking
 #UPF2020
@@ -288,6 +313,7 @@ UPF2020.px <- focal(UPF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(UPF2020.px)<-"UPFpx"
 UPF2020.px[is.nan(UPF2020.px)] <- 0
+UPF2020.px <- mask(UPF2020.px, pgm.shp)
 
 #saving
 writeRaster(UPF2020.px, "rasters/PGM/2020/UPFpx.tif", format="GTiff", overwrite=T)
@@ -301,13 +327,23 @@ UPF2020.ls <- focal(UPF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(UPF2020.ls)<-"UPFls"
 UPF2020.ls[is.nan(UPF2020.ls)] <- 0
+UPF2020.ls <- mask(UPF2020.ls, pgm.shp)
 
 #saving
 writeRaster(UPF2020.ls, "rasters/PGM/2020/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
 gc()
 #
+
+# paragominas 2020
+
+
 
 #
 
