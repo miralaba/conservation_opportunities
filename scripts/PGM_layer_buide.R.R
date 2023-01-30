@@ -31,7 +31,7 @@ pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
 # [PGM] paragominas
 pgm.lulc <- stack(c("rasters/PGM/input/pgm-2010-lulc-mapbiomas-brazil-collection-70.tif",
                     "rasters/PGM/input/pgm-2020-lulc-mapbiomas-brazil-collection-70.tif"))
-names(pgm.lulc) <- c("PGM.LULC.2010", "PGM.LULC.2020")
+names(pgm.lulc) <- c("pgm.lulc.2010real", "pgm.lulc.2020real")
 #checking
 #pgm.lulc
 #plot(pgm.lulc)
@@ -54,11 +54,11 @@ values(pgm.lulc)[values(pgm.lulc) <= 0] = NA
 # 48 == Other Perennial Crops == Farming
 
 # isolating forest class pixels
-pgm.lulc.2010.forest.class <- pgm.lulc[["PGM.LULC.2010"]]
+pgm.lulc.2010.forest.class <- pgm.lulc[["pgm.lulc.2010real"]]
 pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class==3] <- 1
 pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class>1] <- NA
 
-pgm.lulc.2020.forest.class <- pgm.lulc[["PGM.LULC.2020"]]
+pgm.lulc.2020.forest.class <- pgm.lulc[["pgm.lulc.2020real"]]
 pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class==3] <- 1
 pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class>1] <- NA
 
@@ -72,41 +72,39 @@ pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class>1] <- NA
 # [PGM] paragominas
 pgm.sfage <- stack(c("rasters/PGM/input/pgm-2010-sfage-mapbiomas-brazil-collection-60.tif",
                       "rasters/PGM/input/pgm-2020-sfage-mapbiomas-brazil-collection-60.tif"))
-names(pgm.sfage) <- c("PGM.SFage.2010", "PGM.SFage.2020")
+names(pgm.sfage) <- c("pgm.sfage.2010real", "pgm.sfage.2020real")
 
 #checking
 #pgm.sfage
 #plot(pgm.sfage)
-#range(values(pgm.sfage[["PGM.SFage.2010"]]), na.rm = T)
-
-pgm.sfage <- mask(pgm.sfage, pgm.shp)
-
-values(pgm.sfage)[values(pgm.sfage) <= 0] = NA
+#range(values(pgm.sfage[["pgm.sfage.2010real"]]), na.rm = T)
 
 # Conversion of rasters into same extent
 pgm.sfage <- resample(pgm.sfage, pgm.lulc, method='ngb')
 
-# isolating secondary forest class pixels
-pgm.sfage.2010.all.class <- pgm.sfage[["PGM.SFage.2010"]]
-pgm.sfage.2010.all.class[!is.na(pgm.sfage.2010.all.class)] <- 1
+# isolating all secondary forest class pixels
+pgm.sfage.2010.all.class <- pgm.sfage[["pgm.sfage.2010real"]]
+pgm.sfage.2010.all.class[pgm.sfage.2010.all.class > 0] <- 1
 
-pgm.sfage.2010.t2.class <- pgm.sfage[["PGM.SFage.2010"]]
+# isolating secondary forest with more than two years old
+pgm.sfage.2010.t2.class <- pgm.sfage[["pgm.sfage.2010real"]]
 pgm.sfage.2010.t2.class[pgm.sfage.2010.all.class < 2] <- 0
 pgm.sfage.2010.t2.class[pgm.sfage.2010.all.class >= 2] <- 1
 
-pgm.sfage.2010.t10.class <- pgm.sfage[["PGM.SFage.2010"]]
+# isolating secondary forest with more than ten years old
+pgm.sfage.2010.t10.class <- pgm.sfage[["pgm.sfage.2010real"]]
 pgm.sfage.2010.t10.class[pgm.sfage.2010.all.class < 10] <- 0
 pgm.sfage.2010.t10.class[pgm.sfage.2010.all.class >= 10] <- 1
 
+#
+pgm.sfage.2020.all.class <- pgm.sfage[["pgm.sfage.2020real"]]
+pgm.sfage.2020.all.class[pgm.sfage.2020.all.class > 0] <- 1
 
-pgm.sfage.2020.all.class <- pgm.sfage[["PGM.SFage.2020"]]
-pgm.sfage.2020.all.class[!is.na(pgm.sfage.2020.all.class)] <- 1
-
-pgm.sfage.2020.t2.class <- pgm.sfage[["PGM.SFage.2020"]]
+pgm.sfage.2020.t2.class <- pgm.sfage[["pgm.sfage.2020real"]]
 pgm.sfage.2020.t2.class[pgm.sfage.2020.all.class < 2] <- 0
 pgm.sfage.2020.t2.class[pgm.sfage.2020.all.class >= 2] <- 1
 
-pgm.sfage.2020.t10.class <- pgm.sfage[["PGM.SFage.2020"]]
+pgm.sfage.2020.t10.class <- pgm.sfage[["pgm.sfage.2020real"]]
 pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class < 10] <- 0
 pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class >= 10] <- 1
 
@@ -123,7 +121,7 @@ pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class >= 10] <- 1
 # 
 pgm.degrad.2010 <- raster("rasters/PGM/input/pgm-2010-deg_tsince0_150m.grd")
 
-names(pgm.degrad.2010) <- c("PGM.Degrad.2010")
+names(pgm.degrad.2010) <- c("pgm.degrad.2010real")
 
 #checking
 #pgm.degrad.2010
@@ -169,6 +167,8 @@ for (year in 1:5) {   #1=2011; 5=2015
 deter.2016.20 <- readOGR(dsn = "rasters/PGM/input", layer = "deter_public")
 pgm.deter.2016.20 <- crop(deter.2016.20, extent(pgm.shp))
 
+rm(deter.2016.20)
+
 for (year in 2016:2020) {
   
   pgm.deter.yearx <- pgm.deter.2016.20[grep(year, pgm.deter.2016.20$VIEW_DATE),]
@@ -188,7 +188,7 @@ pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2020.forest.class)
 
 pgm.degrad.2020 <- pgm.degrad.temp
 
-names(pgm.degrad.2020) <- "PGM.Degrad.2020"
+names(pgm.degrad.2020) <- "pgm.degrad.2020real"
 
 pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
 
@@ -197,15 +197,23 @@ pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
 #plot(pgm.degrad)
 #range(values(pgm.degrad[["PGM.Degrad.2010"]]), na.rm=T)
 
-pgm.degrad[["PGM.Degrad.2010"]][pgm.degrad[["PGM.Degrad.2010"]]>23] <- NA
-pgm.degrad[["PGM.Degrad.2020"]][pgm.degrad[["PGM.Degrad.2020"]]>33] <- NA
+#removing undegraded forest
+pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>23] <- NA
+pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>33] <- NA
 
 # isolating degraded forest class pixels
-pgm.degrad.2010.forest.class <- pgm.degrad[["PGM.Degrad.2010"]]
+pgm.degrad.2010.forest.class <- pgm.degrad[["pgm.degrad.2010real"]]
 pgm.degrad.2010.forest.class[!is.na(pgm.degrad.2010.forest.class)] <- 1
+pgm.degrad.2010.forest.class<-sum(pgm.lulc.2010.forest.class, pgm.degrad.2010.forest.class, na.rm=T)
+pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class<2]<-0
+pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class==2]<-1
 
-pgm.degrad.2020.forest.class <- pgm.degrad[["PGM.Degrad.2020"]]
+pgm.degrad.2020.forest.class <- pgm.degrad[["pgm.degrad.2020real"]]
 pgm.degrad.2020.forest.class[!is.na(pgm.degrad.2020.forest.class)] <- 1
+pgm.degrad.2020.forest.class<-sum(pgm.lulc.2020.forest.class, pgm.degrad.2020.forest.class, na.rm=T)
+pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class<2]<-0
+pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class==2]<-1
+
 
 #
 #
@@ -247,12 +255,17 @@ gc()
 # excluding those with age < 25 in 2010 SF raster or age < 35 in 2020 SF raster
 # excluding pixels degraded
 
-dir.create("rasters/PGM/2010", recursive = T)
-dir.create("rasters/PGM/2020", recursive = T)
+dir.create("rasters/PGM/2010_real", recursive = T)
+dir.create("rasters/PGM/2020_real", recursive = T)
+dir.create("rasters/PGM/2020_avoiddeforest", recursive = T)
+dir.create("rasters/PGM/2020_avoiddegrad", recursive = T)
+dir.create("rasters/PGM/2020_avoidboth", recursive = T)
+dir.create("rasters/PGM/2020_restor_wo_avoid", recursive = T)
+dir.create("rasters/PGM/2020_restor_n_avoid", recursive = T)
 
 
-# paragominas 2010
 
+# scenario 2010
 UPF2010<-sum(pgm.lulc.2010.forest.class, pgm.sfage.2010.all.class, pgm.degrad.2010.forest.class, na.rm = T)
 UPF2010[UPF2010>1]<-0
 ##cheking
@@ -271,7 +284,10 @@ UPF2010.px[is.nan(UPF2010.px)] <- 0
 UPF2010.px <- mask(UPF2010.px, pgm.shp)
 
 #saving
-writeRaster(UPF2010.px, "rasters/PGM/2010/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.px, "rasters/PGM/2010_real/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.px, "rasters/PGM/2020_avoiddegrad/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.px, "rasters/PGM/2020_avoidboth/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.px, "rasters/PGM/2020_restor_n_avoid/UPFpx.tif", format="GTiff", overwrite=T)
 
 # mean upf cover in landscape scale (1050m)
 UPF2010.ls <- focal(UPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -285,19 +301,22 @@ UPF2010.ls[is.nan(UPF2010.ls)] <- 0
 UPF2010.ls <- mask(UPF2010.ls, pgm.shp)
 
 #saving
-writeRaster(UPF2010.ls, "rasters/PGM/2010/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.ls, "rasters/PGM/2010_real/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.ls, "rasters/PGM/2020_avoiddegrad/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.ls, "rasters/PGM/2020_avoidboth/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.ls, "rasters/PGM/2020_restor_n_avoid/UPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
                           "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
                           "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
                           "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
                           "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
+                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "UPF2010")]) #keeping only raster stack
 gc()
 #
 
-# paragominas 2020
-
+# scenario 2020
 UPF2020<-sum(pgm.lulc.2020.forest.class, pgm.sfage.2020.all.class, pgm.degrad.2020.forest.class, na.rm = T)
 UPF2020[UPF2020>1]<-0
 ##cheking
@@ -316,7 +335,9 @@ UPF2020.px[is.nan(UPF2020.px)] <- 0
 UPF2020.px <- mask(UPF2020.px, pgm.shp)
 
 #saving
-writeRaster(UPF2020.px, "rasters/PGM/2020/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.px, "rasters/PGM/2020_real/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.px, "rasters/PGM/2020_avoiddeforest/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.px, "rasters/PGM/2020_restor_wo_avoid/UPFpx.tif", format="GTiff", overwrite=T)
 
 # mean upf cover in landscape scale (1050m)
 UPF2020.ls <- focal(UPF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -330,44 +351,30 @@ UPF2020.ls[is.nan(UPF2020.ls)] <- 0
 UPF2020.ls <- mask(UPF2020.ls, pgm.shp)
 
 #saving
-writeRaster(UPF2020.ls, "rasters/PGM/2020/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.ls, "rasters/PGM/2020_real/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.ls, "rasters/PGM/2020_avoiddeforest/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020.ls, "rasters/PGM/2020_restor_wo_avoid/UPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
                           "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
                           "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
                           "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
                           "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
+                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "UPF2010", "UPF2020")]) #keeping only raster stack
 gc()
 #
 
-# paragominas 2020
 
 
-
-#
+#######################################################################################################################
 
 # [DPF] degraded primary forest -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
 # this variable includes forest pixels in LULC raster (value == 3)
 # which overlaps with pixels with fire (burned) and/or pixels degraded (burned and logged / logged)
 
-# paragominas 2010
-#names(pgm.2010)
-
-# isolating forest class pixels
-pgm.2010.forest.class <- pgm.2010[["PGM.LULC.2010"]]
-pgm.2010.forest.class[pgm.2010.forest.class==3] <- 1
-pgm.2010.forest.class[pgm.2010.forest.class>1] <- 0
-##cheking
-#pgm.2010.forest.class
-#plot(pgm.2010.forest.class)
-
-# forested areas with fire and/or degraded
-DPF2010<-sum(pgm.2010.forest.class, pgm.2010[["PGM.Fire.2010"]], pgm.2010[["PGM.Degrad.2010"]], na.rm = T)
-DPF2010[DPF2010<=1]<-0
-DPF2010[DPF2010>1]<-1
-##cheking
-#DPF2010
+# scenario 2010
+DPF2010 <- pgm.degrad.2010.forest.class
 #plot(DPF2010)
 
 # mean dpf cover in pixel scale (150m)
@@ -379,9 +386,13 @@ DPF2010.px <- focal(DPF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(DPF2010.px)<-"DPFpx"
 DPF2010.px[is.nan(DPF2010.px)] <- 0
+DPF2010.px <- mask(DPF2010.px, pgm.shp)
 
 #saving
-writeRaster(DPF2010.px, "rasters/PGM/2010/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.px, "rasters/PGM/2010_real/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.px, "rasters/PGM/2020_avoiddegrad/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.px, "rasters/PGM/2020_avoidboth/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.px, "rasters/PGM/2020_restor_n_avoid/DPFpx.tif", format="GTiff", overwrite=T)
 
 # mean dpf cover in landscape scale (1050m)
 DPF2010.ls <- focal(DPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -392,31 +403,27 @@ DPF2010.ls <- focal(DPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(DPF2010.ls)<-"DPFls"
 DPF2010.ls[is.nan(DPF2010.ls)] <- 0
+DPF2010.ls <- mask(DPF2010.ls, pgm.shp)
 
 #saving
-writeRaster(DPF2010.ls, "rasters/PGM/2010/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.ls, "rasters/PGM/2010_real/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.ls, "rasters/PGM/2020_avoiddegrad/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.ls, "rasters/PGM/2020_avoidboth/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.ls, "rasters/PGM/2020_restor_n_avoid/DPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "pgm.degrad.2020.forest.class",
+                          "UPF2010", "UPF2020")])
+
 gc()
 #
 
-# paragominas 2020
-#names(pgm.2020)
-
-# isolating forest class pixels
-pgm.2020.forest.class <- pgm.2020[["PGM.LULC.2020"]]
-pgm.2020.forest.class[pgm.2020.forest.class==3] <- 1
-pgm.2020.forest.class[pgm.2020.forest.class>1] <- 0
-##cheking
-#pgm.2020.forest.class
-#plot(pgm.2020.forest.class)
-
-# forested areas with fire and/or degraded
-DPF2020<-sum(pgm.2020.forest.class, pgm.2020[["PGM.Fire.2020"]], pgm.2020[["PGM.Degrad.2020"]], na.rm = T)
-DPF2020[DPF2020<=1]<-0
-DPF2020[DPF2020>1]<-1
-##cheking
-#DPF2020
+# scenario 2020
+DPF2020 <- pgm.degrad.2020.forest.class
 #plot(DPF2020)
 
 # mean dpf cover in pixel scale (150m)
@@ -428,9 +435,12 @@ DPF2020.px <- focal(DPF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(DPF2020.px)<-"DPFpx"
 DPF2020.px[is.nan(DPF2020.px)] <- 0
+DPF2020.px <- mask(DPF2020.px, pgm.shp)
 
 #saving
-writeRaster(DPF2020.px, "rasters/PGM/2020/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.px, "rasters/PGM/2020_real/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.px, "rasters/PGM/2020_avoiddeforest/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.px, "rasters/PGM/2020_restor_wo_avoid/DPFpx.tif", format="GTiff", overwrite=T)
 
 # mean dpf cover in landscape scale (1050m)
 DPF2020.ls <- focal(DPF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -441,29 +451,178 @@ DPF2020.ls <- focal(DPF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(DPF2020.ls)<-"DPFls"
 DPF2020.ls[is.nan(DPF2020.ls)] <- 0
+DPF2020.ls <- mask(DPF2020.ls, pgm.shp)
 
 #saving
-writeRaster(DPF2020.ls, "rasters/PGM/2020/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.ls, "rasters/PGM/2020_real/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.ls, "rasters/PGM/2020_avoiddeforest/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.ls, "rasters/PGM/2020_restor_wo_avoid/DPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020")])
+
 gc()
 #
 
+
+
+#######################################################################################################################
+
+# [TSD] time since degradation -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
+# this variable is the mean time since a degradation event
+
+# scenario 2010
+TSD2010 <- pgm.2010[["pgm.degrad.2010real"]]
+#plot(TSD2010)
+
+# mean tsd cover in pixel scale (150m)
+TSD2010.px <- focal(TSD2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#TSD2010.px
+#anyNA(TSD2010.px[])
+#plot(TSD2010.px)
+
+names(TSD2010.px)<-"TSDpx"
+TSD2010.px[is.nan(TSD2010.px)] <- 0
+TSD2010.px <- mask(TSD2010.px, pgm.shp)
+
+#saving
+writeRaster(TSD2010.px, "rasters/PGM/2010_real/TSDpx.tif", format="GTiff", overwrite=T)
+
+# mean tsd cover in landscape scale (1050m)
+TSD2010.ls <- focal(TSD2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#TSD2010.ls
+#anyNA(TSD2010.ls[])
+#plot(TSD2010.ls)
+
+names(TSD2010.ls)<-"TSDls"
+TSD2010.ls[is.nan(TSD2010.ls)] <- 0
+TSD2010.ls <- mask(TSD2010.ls, pgm.shp)
+
+#saving
+writeRaster(TSD2010.ls, "rasters/PGM/2010_real/TSDls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010")])
+
+gc()
 #
+
+# scenario 2020 -- avoid degradation
+TSD2010.recovery10 <- pgm.2010[["pgm.degrad.2010real"]]
+TSD2010.recovery10 <- calc(TSD2010.recovery10, fun=function(x){ifelse(is.na(x), x, x+10)})
+#plot(TSD2010.recovery10)
+
+# mean dpf cover in pixel scale (150m)
+TSD2010.recovery10.px <- focal(TSD2010.recovery10, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#TSD2010.recovery10.px
+#anyNA(TSD2010.recovery10.px[])
+#plot(TSD2010.recovery10.px)
+
+names(TSD2010.recovery10.px)<-"TSDpx"
+TSD2010.recovery10.px[is.nan(TSD2010.recovery10.px)] <- 0
+TSD2010.recovery10.px <- mask(TSD2010.recovery10.px, pgm.shp)
+
+#saving
+writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_avoiddegrad/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_avoidboth/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_restor_n_avoid/TSDpx.tif", format="GTiff", overwrite=T)
+
+# mean dpf cover in landscape scale (1050m)
+TSD2010.recovery10.ls <- focal(TSD2010.recovery10, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#TSD2010.recovery10.ls
+#anyNA(TSD2010.recovery10.ls[])
+#plot(TSD2010.recovery10.ls)
+
+names(TSD2010.recovery10.ls)<-"TSDls"
+TSD2010.recovery10.ls[is.nan(TSD2010.recovery10.ls)] <- 0
+TSD2010.recovery10.ls <- mask(TSD2010.recovery10.ls, pgm.shp)
+
+#saving
+writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoiddegrad/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoidboth/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_restor_n_avoid/TSDls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2010.recovery10")])
+
+gc()
+#
+
+# scenario 2020
+TSD2020 <- pgm.2020[["pgm.degrad.2020real"]]
+#plot(TSD2020)
+
+# mean tsd cover in pixel scale (150m)
+TSD2020.px <- focal(TSD2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#TSD2020.px
+#anyNA(TSD2020.px[])
+#plot(TSD2020.px)
+
+names(TSD2020.px)<-"TSDpx"
+TSD2020.px[is.nan(TSD2020.px)] <- 0
+TSD2020.px <- mask(TSD2020.px, pgm.shp)
+
+#saving
+writeRaster(TSD2020.px, "rasters/PGM/2020_real/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.px, "rasters/PGM/2020_avoiddeforest/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.px, "rasters/PGM/2020_restor_wo_avoid/TSDpx.tif", format="GTiff", overwrite=T)
+
+# mean tsd cover in landscape scale (1050m)
+TSD2020.ls <- focal(TSD2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#TSD2020.ls
+#anyNA(TSD2020.ls[])
+#plot(TSD2020.ls)
+
+names(TSD2020.ls)<-"TSDls"
+TSD2020.ls[is.nan(TSD2020.ls)] <- 0
+TSD2020.ls <- mask(TSD2020.ls, pgm.shp)
+
+#saving
+writeRaster(TSD2020.ls, "rasters/PGM/2020_real/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.ls, "rasters/PGM/2020_avoiddeforest/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.ls, "rasters/PGM/2020_restor_wo_avoid/TSDls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
+gc()
+#
+
+
+
+#######################################################################################################################
 
 # [SF] secondary forest -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
 # this variable includes forest pixels in SFage raster
 # which has less than 25 years for 2010 or less than 35 for 2020
 
-# paragominas 2010
-#names(pgm.2010)
-
-# isolating SF < 25 years old
-SF2010 <- pgm.2010[["PGM.SFage.2010"]]
-SF2010[SF2010<25] <- 1
-SF2010[SF2010>=25] <- 0
-##cheking
-#SF2010
+# scenario 2010
+SF2010 <- pgm.sfage.2010.all.class
 #plot(SF2010)
 
 # mean sf cover in pixel scale (150m)
@@ -475,9 +634,12 @@ SF2010.px <- focal(SF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(SF2010.px)<-"SFpx"
 SF2010.px[is.nan(SF2010.px)] <- 0
+SF2010.px <- mask(SF2010.px, pgm.shp)
 
 #saving
-writeRaster(SF2010.px, "rasters/PGM/2010/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.px, "rasters/PGM/2010_real/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.px, "rasters/PGM/2020_avoiddeforest/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.px, "rasters/PGM/2020_avoidboth/SFpx.tif", format="GTiff", overwrite=T)
 
 # mean sf cover in landscape scale (1050m)
 SF2010.ls <- focal(SF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -488,23 +650,26 @@ SF2010.ls <- focal(SF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(SF2010.ls)<-"SFls"
 SF2010.ls[is.nan(SF2010.ls)] <- 0
+SF2010.ls <- mask(SF2010.ls, pgm.shp)
 
 #saving
-writeRaster(SF2010.ls, "rasters/PGM/2010/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.ls, "rasters/PGM/2010_real/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.ls, "rasters/PGM/2020_avoiddeforest/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.ls, "rasters/PGM/2020_avoidboth/SFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "SF2010", "pgm.sfage.2020.all.class",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
 gc()
 #
 
-# paragominas 2020
-#names(pgm.2020)
-
-# isolating SF < 35 years old
-SF2020 <- pgm.2020[["PGM.SFage.2020"]]
-SF2020[SF2020<35] <- 1
-SF2020[SF2020>=35] <- 0
-##cheking
-#SF2020
+# scenario 2020
+SF2020 <- pgm.sfage.2020.all.class
 #plot(SF2020)
 
 # mean sf cover in pixel scale (150m)
@@ -516,9 +681,11 @@ SF2020.px <- focal(SF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 
 names(SF2020.px)<-"SFpx"
 SF2020.px[is.nan(SF2020.px)] <- 0
+SF2020.px <- mask(SF2020.px, pgm.shp)
 
 #saving
-writeRaster(SF2020.px, "rasters/PGM/2020/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2020.px, "rasters/PGM/2020_real/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2020.px, "rasters/PGM/2020_avoiddegrad/SFpx.tif", format="GTiff", overwrite=T)
 
 # mean sf cover in landscape scale (1050m)
 SF2020.ls <- focal(SF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -529,121 +696,199 @@ SF2020.ls <- focal(SF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 
 names(SF2020.ls)<-"SFls"
 SF2020.ls[is.nan(SF2020.ls)] <- 0
+SF2020.ls <- mask(SF2020.ls, pgm.shp)
 
 #saving
-writeRaster(SF2020.ls, "rasters/PGM/2020/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2020.ls, "rasters/PGM/2020_real/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2020.ls, "rasters/PGM/2020_avoiddegrad/SFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "SF2010", "SF2020",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
 gc()
 #
 
+# scenario -- restoration
+
+
+
+
+
+
+
+
+
+
+
+
+
 #
 
-# [F1] Forest type 1 or Mature forest -- pixel: 5x5 (150m)
-# this variable includes forest pixels in LULC raster
-# including degraded forest and secondary forest older than 10 years
 
-# paragominas 2010
-#names(pgm.2010)
 
-# isolating forest class pixels
-pgm.2010.forest.class <- pgm.2010[["PGM.LULC.2010"]]
-pgm.2010.forest.class[pgm.2010.forest.class==3] <- 1
-pgm.2010.forest.class[pgm.2010.forest.class>1] <- 0
+#######################################################################################################################
+
+# [SFage] secondary forest age -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
+# this variable is the mean age of secondary forest
+
+# scenario 2010
+SFage2010 <- pgm.2010[["pgm.sfage.2010real"]]
+#plot(SFage2010)
+
+# mean sf age in pixel scale (150m)
+SFage2010.px <- focal(SFage2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 ##cheking
-#pgm.2010.forest.class
-#plot(pgm.2010.forest.class)
+#SFage2010.px
+#anyNA(SFage2010.px[])
+#plot(SFage2010.px)
 
-# isolating SF <= 10 years old
-pgm.2010.SFold <- pgm.2010[["PGM.SFage.2010"]]
-pgm.2010.SFold[pgm.2010.SFold<=10] <- 1
-pgm.2010.SFold[pgm.2010.SFold>10] <- 0
-##cheking
-#pgm.2010.SFold
-#plot(pgm.2010.SFold)
-
-# excluding areas with SF <= 10
-MF2010<-sum(pgm.2010.forest.class, pgm.2010.SFold, na.rm = T)
-MF2010[MF2010>1]<-0
-##cheking
-#MF2010
-#plot(MF2010)
-
-## including areas with fire and degraded
-#MF2010<-sum(MF2010, pgm.2010[["PGM.Fire.2010"]], pgm.2010[["PGM.Degrad.2010"]], na.rm = T)
-#MF2010[MF2010>=1]<-1
-###cheking
-##MF2010
-##plot(MF2010)
-
-# mean mature forest cover in pixel scale (150m)
-MF2010.px <- focal(MF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
-##cheking
-#MF2010.px
-#anyNA(MF2010.px[])
-#plot(MF2010.px)
-
-names(MF2010.px)<-"MFpx"
-MF2010.px[is.nan(MF2010.px)] <- 0
+names(SFage2010.px)<-"SFagepx"
+SFage2010.px[is.nan(SFage2010.px)] <- 0
+SFage2010.px <- mask(SFage2010.px, pgm.shp)
 
 #saving
-writeRaster(MF2010.px, "rasters/PGM/2010/MFpx.tif", format="GTiff")
+writeRaster(SFage2010.px, "rasters/PGM/2010_real/SFagepx.tif", format="GTiff")
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+# mean sf age in landscape scale (1050m)
+SFage2010.ls <- focal(SFage2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#SFage2010.ls
+#anyNA(SFage2010.ls[])
+#plot(SFage2010.ls)
+
+names(SFage2010.ls)<-"SFagels"
+SFage2010.ls[is.nan(SFage2010.ls)] <- 0
+SFage2010.ls <- mask(SFage2010.ls, pgm.shp)
+
+#saving
+writeRaster(SFage2010.ls, "rasters/PGM/2010_real/SFagels.tif", format="GTiff")
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "SF2010", "SF2020", "SFage2010",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
 gc()
 #
 
-# paragominas 2020
-#names(pgm.2020)
+# scenario 2020 -- avoid deforestation
+SFage2010.recovery10 <- pgm.2010[["pgm.sfage.2010real"]]
+SFage2010.recovery10 <- calc(SFage2010.recovery10, fun=function(x){ifelse(is.na(x), x, x+10)})
+#plot(SFage2010.recovery10)
 
-# isolating forest class pixels
-pgm.2020.forest.class <- pgm.2020[["PGM.LULC.2020"]]
-pgm.2020.forest.class[pgm.2020.forest.class==3] <- 1
-pgm.2020.forest.class[pgm.2020.forest.class>1] <- 0
+# mean dpf cover in pixel scale (150m)
+SFage2010.recovery10.px <- focal(SFage2010.recovery10, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
 ##cheking
-#pgm.2020.forest.class
-#plot(pgm.2020.forest.class)
+#SFage2010.recovery10.px
+#anyNA(SFage2010.recovery10.px[])
+#plot(SFage2010.recovery10.px)
 
-# isolating SF <= 10 years old
-pgm.2020.SFold <- pgm.2020[["PGM.SFage.2020"]]
-pgm.2020.SFold[pgm.2020.SFold<=10] <- 1
-pgm.2020.SFold[pgm.2020.SFold>10] <- 0
-##cheking
-#pgm.2020.SFold
-#plot(pgm.2020.SFold)
-
-# excluding areas with SF <= 10
-MF2020<-sum(pgm.2020.forest.class, pgm.2020.SFold, na.rm = T)
-MF2020[MF2020>1]<-0
-##cheking
-#MF2020
-#plot(MF2020)
-
-## including areas with fire and degraded
-#MF2020<-sum(MF2020, pgm.2020[["PGM.Fire.2020"]], pgm.2020[["PGM.Degrad.2020"]], na.rm = T)
-#MF2020[MF2020>=1]<-1
-###cheking
-##MF2020
-##plot(MF2020)
-
-# mean mature forest cover in pixel scale (150m)
-MF2020.px <- focal(MF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
-##cheking
-#MF2020.px
-#anyNA(MF2020.px[])
-#plot(MF2020.px)
-
-names(MF2020.px)<-"MFpx"
-MF2020.px[is.nan(MF2020.px)] <- 0
+names(SFage2010.recovery10.px)<-"SFagepx"
+SFage2010.recovery10.px[is.nan(SFage2010.recovery10.px)] <- 0
+SFage2010.recovery10.px <- mask(SFage2010.recovery10.px, pgm.shp)
 
 #saving
-writeRaster(MF2020.px, "rasters/PGM/2020/MFpx.tif", format="GTiff")
+writeRaster(SFage2010.recovery10.px, "rasters/PGM/2020_avoiddeforest/SFagepx.tif", format="GTiff", overwrite=T)
+writeRaster(SFage2010.recovery10.px, "rasters/PGM/2020_avoidboth/SFagepx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
+# mean dpf cover in landscape scale (1050m)
+SFage2010.recovery10.ls <- focal(SFage2010.recovery10, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#SFage2010.recovery10.ls
+#anyNA(SFage2010.recovery10.ls[])
+#plot(SFage2010.recovery10.ls)
+
+names(SFage2010.recovery10.ls)<-"SFagels"
+SFage2010.recovery10.ls[is.nan(SFage2010.recovery10.ls)] <- 0
+SFage2010.recovery10.ls <- mask(SFage2010.recovery10.ls, pgm.shp)
+
+#saving
+writeRaster(SFage2010.recovery10.ls, "rasters/PGM/2020_avoiddeforest/SFagels.tif", format="GTiff", overwrite=T)
+writeRaster(SFage2010.recovery10.ls, "rasters/PGM/2020_avoidboth/SFagels.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "SF2010", "SF2020", "SFage2010", "SFage2010.recovery10",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
 gc()
 #
 
+# scenario 2020
+SFage2020 <- pgm.2020[["pgm.sfage.2020real"]]
+#plot(SFage2010)
+
+# mean sf age in pixel scale (150m)
+SFage2020.px <- focal(SFage2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#SFage2020.px
+#anyNA(SFage2020.px[])
+#plot(SFage2020.px)
+
+names(SFage2020.px)<-"SFagepx"
+SFage2020.px[is.nan(SFage2020.px)] <- 0
+SFage2020.px <- mask(SFage2020.px, pgm.shp)
+
+#saving
+writeRaster(SFage2020.px, "rasters/PGM/2020_real/SFagepx.tif", format="GTiff")
+writeRaster(SFage2020.px, "rasters/PGM/2020_avoiddegrad/SFagepx.tif", format="GTiff")
+
+# mean sf cover in landscape scale (1050m)
+SFage2020.ls <- focal(SFage2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#SFage2020.ls
+#anyNA(SFage2020.ls[])
+#plot(SFage2020.ls)
+
+names(SFage2020.ls)<-"SFagels"
+SFage2020.ls[is.nan(SFage2020.ls)] <- 0
+SFage2020.ls <- mask(SFage2020.ls, pgm.shp)
+
+#saving
+writeRaster(SFage2020.ls, "rasters/PGM/2020_real/SFagels.tif", format="GTiff")
+writeRaster(SFage2020.ls, "rasters/PGM/2020_avoiddegrad/SFagels.tif", format="GTiff")
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
+                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
+                          "SF2010", "SF2020", "SFage2010", "SFage2020", "SFage2010.recovery10",
+                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
+                          "DPF2010", "DPF2020", "UPF2010", "UPF2020",
+                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
+
+gc()
 #
+
+# scenario -- restoration
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+
+
+
+#######################################################################################################################
 
 # [F3] Forest type 3 or Total forest -- pixel: 5x5 (150m)
 # this variable includes forest pixels in LULC raster
@@ -750,46 +995,59 @@ rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
 gc()
 #
 
-#
 
-# [SFage] secondary forest age -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
-# this variable is the mean age of secondary forest
+
+#######################################################################################################################
+
+# [F1] Forest type 1 or Mature forest -- pixel: 5x5 (150m)
+# this variable includes forest pixels in LULC raster
+# including degraded forest and secondary forest older than 10 years
 
 # paragominas 2010
 #names(pgm.2010)
 
-# isolating SF < 25 years old
-SF2010 <- pgm.2010[["PGM.SFage.2010"]]
-SF2010[SF2010>24] <- NA
+# isolating forest class pixels
+pgm.2010.forest.class <- pgm.2010[["PGM.LULC.2010"]]
+pgm.2010.forest.class[pgm.2010.forest.class==3] <- 1
+pgm.2010.forest.class[pgm.2010.forest.class>1] <- 0
 ##cheking
-#SF2010
-#plot(SF2010)
+#pgm.2010.forest.class
+#plot(pgm.2010.forest.class)
 
-# mean sf age in pixel scale (150m)
-SFage2010.px <- focal(SF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+# isolating SF <= 10 years old
+pgm.2010.SFold <- pgm.2010[["PGM.SFage.2010"]]
+pgm.2010.SFold[pgm.2010.SFold<=10] <- 1
+pgm.2010.SFold[pgm.2010.SFold>10] <- 0
 ##cheking
-#SFage2010.px
-#anyNA(SFage2010.px[])
-#plot(SFage2010.px)
+#pgm.2010.SFold
+#plot(pgm.2010.SFold)
 
-names(SFage2010.px)<-"SFagepx"
-SFage2010.px[is.nan(SFage2010.px)] <- 0
+# excluding areas with SF <= 10
+MF2010<-sum(pgm.2010.forest.class, pgm.2010.SFold, na.rm = T)
+MF2010[MF2010>1]<-0
+##cheking
+#MF2010
+#plot(MF2010)
+
+## including areas with fire and degraded
+#MF2010<-sum(MF2010, pgm.2010[["PGM.Fire.2010"]], pgm.2010[["PGM.Degrad.2010"]], na.rm = T)
+#MF2010[MF2010>=1]<-1
+###cheking
+##MF2010
+##plot(MF2010)
+
+# mean mature forest cover in pixel scale (150m)
+MF2010.px <- focal(MF2010, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#MF2010.px
+#anyNA(MF2010.px[])
+#plot(MF2010.px)
+
+names(MF2010.px)<-"MFpx"
+MF2010.px[is.nan(MF2010.px)] <- 0
 
 #saving
-writeRaster(SFage2010.px, "rasters/PGM/2010/SFagepx.tif", format="GTiff")
-
-# mean sf age in landscape scale (1050m)
-SFage2010.ls <- focal(SF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
-##cheking
-#SFage2010.ls
-#anyNA(SFage2010.ls[])
-#plot(SFage2010.ls)
-
-names(SFage2010.ls)<-"SFagels"
-SFage2010.ls[is.nan(SFage2010.ls)] <- 0
-
-#saving
-writeRaster(SFage2010.ls, "rasters/PGM/2010/SFagels.tif", format="GTiff")
+writeRaster(MF2010.px, "rasters/PGM/2010/MFpx.tif", format="GTiff")
 
 rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
 gc()
@@ -798,45 +1056,56 @@ gc()
 # paragominas 2020
 #names(pgm.2020)
 
-# isolating SF < 35 years old
-SF2020 <- pgm.2020[["PGM.SFage.2020"]]
-SF2020[SF2020>34] <- NA
+# isolating forest class pixels
+pgm.2020.forest.class <- pgm.2020[["PGM.LULC.2020"]]
+pgm.2020.forest.class[pgm.2020.forest.class==3] <- 1
+pgm.2020.forest.class[pgm.2020.forest.class>1] <- 0
 ##cheking
-#SF2020
-#plot(SF2020)
+#pgm.2020.forest.class
+#plot(pgm.2020.forest.class)
 
-# mean sf age in pixel scale (150m)
-SFage2020.px <- focal(SF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+# isolating SF <= 10 years old
+pgm.2020.SFold <- pgm.2020[["PGM.SFage.2020"]]
+pgm.2020.SFold[pgm.2020.SFold<=10] <- 1
+pgm.2020.SFold[pgm.2020.SFold>10] <- 0
 ##cheking
-#SFage2020.px
-#anyNA(SFage2020.px[])
-#plot(SFage2020.px)
+#pgm.2020.SFold
+#plot(pgm.2020.SFold)
 
-names(SFage2020.px)<-"SFagepx"
-SFage2020.px[is.nan(SFage2020.px)] <- 0
+# excluding areas with SF <= 10
+MF2020<-sum(pgm.2020.forest.class, pgm.2020.SFold, na.rm = T)
+MF2020[MF2020>1]<-0
+##cheking
+#MF2020
+#plot(MF2020)
+
+## including areas with fire and degraded
+#MF2020<-sum(MF2020, pgm.2020[["PGM.Fire.2020"]], pgm.2020[["PGM.Degrad.2020"]], na.rm = T)
+#MF2020[MF2020>=1]<-1
+###cheking
+##MF2020
+##plot(MF2020)
+
+# mean mature forest cover in pixel scale (150m)
+MF2020.px <- focal(MF2020, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#MF2020.px
+#anyNA(MF2020.px[])
+#plot(MF2020.px)
+
+names(MF2020.px)<-"MFpx"
+MF2020.px[is.nan(MF2020.px)] <- 0
 
 #saving
-writeRaster(SFage2020.px, "rasters/PGM/2020/SFagepx.tif", format="GTiff")
-#
-
-# mean sf cover in landscape scale (1050m)
-SFage2020.ls <- focal(SF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
-##cheking
-#SFage2020.ls
-#anyNA(SFage2020.ls[])
-#plot(SFage2020.ls)
-
-names(SFage2020.ls)<-"SFagels"
-SFage2020.ls[is.nan(SFage2020.ls)] <- 0
-
-#saving
-writeRaster(SFage2020.ls, "rasters/PGM/2020/SFagels.tif", format="GTiff")
+writeRaster(MF2020.px, "rasters/PGM/2020/MFpx.tif", format="GTiff")
 
 rm(list=ls()[!ls() %in% c("pgm.2010", "pgm.2020")]) #keeping only raster stack
 gc()
 #
 
-#
+
+
+##############################################################################################################################################################################################################################################
 
 # [edgedist] distance to forest edge
 # this variable is the mean distance of F1 to the edge
