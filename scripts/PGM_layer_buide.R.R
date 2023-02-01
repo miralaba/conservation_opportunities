@@ -112,6 +112,34 @@ values(candidate.areas.slope)[is.na(values(candidate.areas.slope))] = 0
 candidate.areas.slope <- mask(candidate.areas.slope, pgm.shp)
 #plot(candidate.areas.slope)
 
+
+
+deforest.pts <- rasterToPoints(pgm.lulc.2010.forest.class, spatial=TRUE)
+deforest.core <- deforest.pts[deforest.pts$pgm.lulc.2010real == "1",]
+
+deforest.dist <- rasterDistance(deforest.pts, deforest.core, reference = candidate.areas.total, scale=TRUE)
+values(deforest.dist)[values(deforest.dist) == 0] = NA
+values(deforest.dist)[values(deforest.dist) > 0.1] = NA
+values(deforest.dist)[values(deforest.dist) <= 0.1] = 1
+#plot(deforest.dist)
+
+candidate.areas.forest <- candidate.areas.total
+candidate.areas.forest <- mask(candidate.areas.forest, deforest.dist)
+values(candidate.areas.forest)[is.na(values(candidate.areas.forest))] = 0
+candidate.areas.forest <- mask(candidate.areas.forest, pgm.shp)
+#plot(candidate.areas.forest)
+
+
+candidate.areas.final <- sum(candidate.areas.water,candidate.areas.slope,candidate.areas.forest)
+values(candidate.areas.final)[values(candidate.areas.final) >= 1] = 1
+#plot(candidate.areas.final)
+
+rm(list=ls()[ls() %in% c("dist.river", "candidate.areas.water", "elevation", "slope", "candidate.areas.slope",
+                         "deforest.pts", "deforest.core", "deforest.dist", "candidate.areas.forest",
+                         "candidate.areas.total")]) #keeping only raster stack
+gc()
+
+
 #
 #
 
