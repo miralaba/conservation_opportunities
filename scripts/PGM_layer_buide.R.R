@@ -67,6 +67,56 @@ pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class>1] <- NA
 
 
 
+#candidate areas for restoration scenarios
+
+#isolating deforestation class pixels (crops, pasture)
+
+deforestatio.class.list <- c(15,39,41,48)
+
+candidate.areas.total <- pgm.2010[[1]]
+
+values(candidate.areas.total)[values(candidate.areas.total) %in% deforestatio.class.list] = 1
+values(candidate.areas.total)[values(candidate.areas.total) > 1] = 0
+names(candidate.areas.total) <- "restoration.candidate.areas"
+#plot(candidate.areas.total)
+
+#select pixels based on proximity to water (<500m), slope (>25°) and proximity to forest (<1000m)
+
+dist.river <- raster("rasters/PGM/2010_real/dist_river_pgm.tif")
+values(dist.river)[values(dist.river) <= 500] = 1
+values(dist.river)[values(dist.river) > 500] = NA
+dist.river <- projectRaster(dist.river, crs = "+proj=longlat +datum=WGS84 +no_defs")
+dist.river <- resample(dist.river, candidate.areas.water, method='ngb')
+#plot(dist.river)
+
+candidate.areas.water <- candidate.areas.total
+candidate.areas.water <- mask(candidate.areas.water, dist.river)
+values(candidate.areas.water)[is.na(values(candidate.areas.water))] = 0
+candidate.areas.water <- mask(candidate.areas.water, pgm.shp)
+#plot(candidate.areas.water)
+
+
+
+elevation <- raster("rasters/PGM/2010_real/elevation_pgm.tif")
+#plot(elevation)
+slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)
+values(slope)[values(slope) < 25] = NA
+values(slope)[values(slope) >= 25] = 1
+slope <- projectRaster(slope, crs = "+proj=longlat +datum=WGS84 +no_defs")
+slope <- resample(slope, candidate.areas.slope, method='ngb')
+#plot(slope)
+
+candidate.areas.slope <- candidate.areas.total
+candidate.areas.slope <- mask(candidate.areas.slope, slope)
+values(candidate.areas.slope)[is.na(values(candidate.areas.slope))] = 0
+candidate.areas.slope <- mask(candidate.areas.slope, pgm.shp)
+#plot(candidate.areas.slope)
+
+#
+#
+
+
+
 # time since degradation 2010 data from RAS 
 # quantitative comparison of manual inspection of satellite images
 # and field observations done by two observers (TG and SN)
