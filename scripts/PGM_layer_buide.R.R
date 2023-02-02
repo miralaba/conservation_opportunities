@@ -86,7 +86,7 @@ dist.river <- raster("rasters/PGM/2010_real/dist_river_pgm.tif")
 values(dist.river)[values(dist.river) <= 500] = 1
 values(dist.river)[values(dist.river) > 500] = NA
 dist.river <- projectRaster(dist.river, crs = "+proj=longlat +datum=WGS84 +no_defs")
-dist.river <- resample(dist.river, candidate.areas.water, method='ngb')
+dist.river <- resample(dist.river, candidate.areas.total, method='ngb')
 #plot(dist.river)
 
 candidate.areas.water <- candidate.areas.total
@@ -103,7 +103,7 @@ slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)
 values(slope)[values(slope) < 25] = NA
 values(slope)[values(slope) >= 25] = 1
 slope <- projectRaster(slope, crs = "+proj=longlat +datum=WGS84 +no_defs")
-slope <- resample(slope, candidate.areas.slope, method='ngb')
+slope <- resample(slope, candidate.areas.total, method='ngb')
 #plot(slope)
 
 candidate.areas.slope <- candidate.areas.total
@@ -138,6 +138,152 @@ rm(list=ls()[ls() %in% c("dist.river", "candidate.areas.water", "elevation", "sl
                          "deforest.pts", "deforest.core", "deforest.dist", "candidate.areas.forest",
                          "candidate.areas.total")]) #keeping only raster stack
 gc()
+
+
+#select rural properties with less than 50% of forest cover in 2010
+
+#import rural properties shapefiles and data from SISCAR
+#https://www.car.gov.br/publico/municipios/downloads
+pgm.car <- readOGR(dsn = "rasters/PGM/input", layer = "CAR-IR-FF_Paragominas_AREA_IMOVEL")
+#head(pgm.car@data)
+#plot(pgm.car)
+
+
+#calculate forest cover in each property and select properties with <50%
+
+pgm.car@data$FOREST_COVER <- NA
+j=nrow(pgm.car@data)
+for (i in pgm.car$COD_IMOVEL) {
+  
+  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
+  forest.cover <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
+  forest.cover <- mask(forest.cover, rural.property)
+  pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER"] <- tapply(area(forest.cover), forest.cover[], sum)[2]*100
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+  
+}
+
+
+pgm.car@data$FOREST_COVER_PP <- round(pgm.car@data$FOREST_COVER/pgm.car@data$NUM_AREA, 1)
+
+#select properties
+pgm.car.restoration.candidates <- pgm.car[!is.na(pgm.car$FOREST_COVER_PP),]
+pgm.car.restoration.candidates <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$FOREST_COVER_PP <= 0.5,]
+#head(pgm.car.restoration.candidates@data)
+#plot(pgm.car.restoration.candidates)
+#nrow(pgm.car.restoration.candidates@data)
+
+
+#filter candidate areas for restoration in properties with less than 50% forest cover
+candidate.areas.final.copy <- candidate.areas.final
+candidate.areas.final <- mask(candidate.areas.final, pgm.car.restoration.candidates)
+values(candidate.areas.final)[is.na(values(candidate.areas.final))] = 0
+candidate.areas.final <- mask(candidate.areas.final, pgm.shp)
+
+
+#forest cover increment -- adding the candidate areas to forest cover
+pgm.car.restoration.candidates@data$FOREST_COVER_INCREMENT <- NA
+j=nrow(pgm.car.restoration.candidates@data)
+#i="PA-1505502-39CCE4418D2D487F9AC0FD3045A374CF"
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  forest.cover <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
+  forest.cover <- mask(forest.cover, rural.property)
+  
+  restored.cover <- crop(candidate.areas.final, extent(rural.property))
+  restored.cover <- mask(restored.cover, rural.property)
+  
+  forest.cover.increment <- sum(forest.cover, restored.cover)
+  
+  pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum)[2]*100
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+  
+}
+
+pgm.car.restoration.candidates@data$FOREST_COVER_INCREMENT_PP <- round(pgm.car.restoration.candidates@data$FOREST_COVER_INCREMENT/pgm.car.restoration.candidates@data$NUM_AREA, 1)
+
+
+#select properties with more than 80% forest cover
+pgm.car.restoration.candidates <- pgm.car.restoration.candidates[!is.na(pgm.car.restoration.candidates$FOREST_COVER_INCREMENT_PP),]
+pgm.car.restoration.candidates.m80 <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$FOREST_COVER_INCREMENT_PP > 0.8,]
+#head(pgm.car.restoration.candidates.m80@data)
+#plot(pgm.car.restoration.candidates.m80)
+#nrow(pgm.car.restoration.candidates.m80@data)
+
+
+
+candidate.areas.final.copy <- candidate.areas.final
+j=nrow(pgm.car.restoration.candidates.m80@data)
+#i="PA-1505502-10BE5221CA6E414BAC1F28DC4739CBA4"
+for (i in pgm.car.restoration.candidates.m80$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates.m80[pgm.car.restoration.candidates.m80$COD_IMOVEL==i,]
+  
+  forest.cover <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
+  forest.cover <- mask(forest.cover, rural.property)
+  
+  restored.cover <- crop(candidate.areas.final, extent(rural.property))
+  restored.cover <- mask(restored.cover, rural.property)
+  
+  
+  while (pgm.car.restoration.candidates.m80@data[pgm.car.restoration.candidates.m80@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT_PP"] > 0.8) {
+    
+    restored.cover[restored.cover[]==1] <- sample(c(1,0), size = length(restored.cover[restored.cover[]==1]), replace = T, prob = c(0.9,0.1))
+    forest.cover.increment <- sum(forest.cover, restored.cover)
+    pgm.car.restoration.candidates.m80@data[pgm.car.restoration.candidates.m80@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum)[2]*100
+    pgm.car.restoration.candidates.m80@data$FOREST_COVER_INCREMENT_PP <- round(pgm.car.restoration.candidates.m80@data$FOREST_COVER_INCREMENT/pgm.car.restoration.candidates.m80@data$NUM_AREA, 1)
+    
+  }
+  
+  candidate.areas.final[restored.cover][candidate.areas.final[restored.cover]==0]<-0
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates.m80@data), "properties left<\n")
+  
+}
+
+
+
+#select properties with still less than 80% forest cover
+
+pgm.car.restoration.candidates.l80 <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$FOREST_COVER_INCREMENT_PP < 0.8,]
+#head(pgm.car.restoration.candidates.l80@data)
+#plot(pgm.car.restoration.candidates.l80)
+#nrow(pgm.car.restoration.candidates.l80@data)
+
+
+
+candidate.areas.final.copy <- candidate.areas.final
+j=nrow(pgm.car.restoration.candidates.l80@data)
+#i="PA-1505502-13ACB639A0364B68B5C5602D91FDDA1E"
+for (i in pgm.car.restoration.candidates.l80$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates.l80[pgm.car.restoration.candidates.l80$COD_IMOVEL==i,]
+  
+  forest.cover <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
+  forest.cover <- mask(forest.cover, rural.property)
+  
+  restored.cover <- crop(candidate.areas.final, extent(rural.property))
+  restored.cover <- mask(restored.cover, rural.property)
+  
+  
+  while (pgm.car.restoration.candidates.l80@data[pgm.car.restoration.candidates.l80@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT_PP"] < 0.8) {
+    
+    restored.cover[restored.cover[]==0] <- sample(c(0,1), size = length(restored.cover[restored.cover[]==1]), replace = T, prob = c(0.9,0.1))
+    forest.cover.increment <- sum(forest.cover, restored.cover)
+    pgm.car.restoration.candidates.l80@data[pgm.car.restoration.candidates.l80@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum)[2]*100
+    pgm.car.restoration.candidates.l80@data$FOREST_COVER_INCREMENT_PP <- round(pgm.car.restoration.candidates.l80@data$FOREST_COVER_INCREMENT/pgm.car.restoration.candidates.l80@data$NUM_AREA, 1)
+    
+  }
+  
+  candidate.areas.final[restored.cover][candidate.areas.final[restored.cover]==1]<-1
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates.m80@data), "properties left<\n")
+  
+}
 
 
 #
