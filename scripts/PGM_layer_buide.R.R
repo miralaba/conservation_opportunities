@@ -27,6 +27,11 @@ library(scales)
 # shapefile paragominas
 pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
 
+#
+#
+
+
+
 # land use land cover from mapbiomas collection 7 [2010 and 2020]
 # [PGM] paragominas
 pgm.lulc <- stack(c("rasters/PGM/input/pgm-2010-lulc-mapbiomas-brazil-collection-70.tif",
@@ -71,18 +76,18 @@ pgm.lulc.2020.forest.class[pgm.lulc.2020.forest.class>1] <- NA
 
 #isolating deforestation class pixels (crops, pasture)
 
-deforestatio.class.list <- c(15,39,41,48)
+deforestation.class.list <- c(15,39,41,48)
 
-candidate.areas.total <- pgm.lulc
+candidate.areas.total <- pgm.lulc[["pgm.lulc.2010real"]]
 
-values(candidate.areas.total)[values(candidate.areas.total) %in% deforestatio.class.list] = 1
+values(candidate.areas.total)[values(candidate.areas.total) %in% deforestation.class.list] = 1
 values(candidate.areas.total)[values(candidate.areas.total) > 1] = 0
 names(candidate.areas.total) <- "restoration.candidate.areas"
 #plot(candidate.areas.total)
 
 #select pixels based on proximity to water (<500m), slope (>25°) and proximity to forest (<1000m)
 
-dist.river <- raster("dist_river_pgm.tif")
+dist.river <- raster("rasters/PGM/2010_real/dist_river_pgm.tif")
 values(dist.river)[values(dist.river) <= 500] = 1
 values(dist.river)[values(dist.river) > 500] = NA
 dist.river <- projectRaster(dist.river, crs = "+proj=longlat +datum=WGS84 +no_defs")
@@ -97,7 +102,7 @@ candidate.areas.water <- mask(candidate.areas.water, pgm.shp)
 
 
 
-elevation <- raster("elevation_pgm.tif")
+elevation <- raster("rasters/PGM/2010_real/elevation_pgm.tif")
 #plot(elevation)
 slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)
 values(slope)[values(slope) < 25] = NA
@@ -137,17 +142,11 @@ candidate.areas.final <- sum(candidate.areas.water,candidate.areas.slope,candida
 values(candidate.areas.final)[values(candidate.areas.final) >= 1] = 1
 #plot(candidate.areas.final)
 
-rm(list=ls()[ls() %in% c("dist.river", "candidate.areas.water", "elevation", "slope", "candidate.areas.slope",
-                         "deforest.pts", "deforest.core", "deforest.dist", "candidate.areas.forest",
-                         "candidate.areas.total")]) #keeping only raster stack
-gc()
-
-
 #select rural properties with less than 50% of forest cover in 2010
 
 #import rural properties shapefiles and data from SISCAR
 #https://www.car.gov.br/publico/municipios/downloads
-pgm.car <- readOGR(dsn = ".", layer = "AREA_IMOVEL")
+pgm.car <- readOGR(dsn = "rasters/PGM/input/SHAPE_1505502_CAR_Paragominas", layer = "AREA_IMOVEL")
 #head(pgm.car@data)
 #plot(pgm.car)
 
@@ -221,7 +220,7 @@ pgm.car.restoration.candidates.m80 <- pgm.car.restoration.candidates[pgm.car.res
 
 candidate.areas.final.copy <- candidate.areas.final
 j=nrow(pgm.car.restoration.candidates.m80@data)
-#i="PA-1505502-10BE5221CA6E414BAC1F28DC4739CBA4"
+#i="PA-1505502-75B3625903EB4F6A9C36FF2B97B67282"
 for (i in pgm.car.restoration.candidates.m80$COD_IMOVEL) {
   
   rural.property <- pgm.car.restoration.candidates.m80[pgm.car.restoration.candidates.m80$COD_IMOVEL==i,]
@@ -255,19 +254,24 @@ for (i in pgm.car.restoration.candidates.m80$COD_IMOVEL) {
 pgm.car.restoration.candidates.l80 <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$FOREST_COVER_INCREMENT_PP < 80,]
 
 #properties with geometry problems -- exclude
-exclude <- c("PA-1505502-96F0C6BCAED44ADBBCD438EE67747333",
-             "PA-1505502-6344B8ABA97F47188FC49437CAF5CE27",
-             "PA-1505502-B97842AD547B44CD8FC8AE4A9B320EFB",
-             "PA-1505502-5C865CF92FE9434A9E8B716147B3753A",
-             "PA-1505502-F533313E45BE45AF9B13EDF30A2F3479")
+exclude <- c("PA-1505502-E52590A9031A4B67AD3C4F4AFF462E73", "PA-1505502-011CACBDA2D34B10AD9083F6089BF648",
+             "PA-1505502-4A18BDFF0E3D407F9478AB1601EFF71A", "PA-1505502-461582E49CA240FB82B4180545842E33",
+             "PA-1505502-DFEAB2B557664C6D9F30A3BE6A0ED860", "PA-1505502-96F0C6BCAED44ADBBCD438EE67747333",
+             "PA-1505502-28DECEFD42BF46ECB91D202D82189AF9", "PA-1505502-1E8540456B3B4A9DA93434730C61DEA8",
+             "PA-1505502-B97842AD547B44CD8FC8AE4A9B320EFB", "PA-1505502-6403C1FC323D44BE80C405867921410F",
+             "PA-1505502-B3C59867F0EB48CA8BDBDA4C3BC286DF", "PA-1505502-87EAEADFA1A94AC49823A7B59811B385",
+             "PA-1505502-5C865CF92FE9434A9E8B716147B3753A", "PA-1505502-94651AAF903F487DBC28C0D9783A0255",
+             "PA-1505502-8B47713EF21441BB89CE6A2FAA3AE944", "PA-1505502-F533313E45BE45AF9B13EDF30A2F3479",
+             "PA-1505502-FB027251AC494AECAECD646464AEF521")
+
 pgm.car.restoration.candidates.l80 <- pgm.car.restoration.candidates.l80[-which(pgm.car.restoration.candidates.l80$COD_IMOVEL %in% exclude),]
 #head(pgm.car.restoration.candidates.l80@data)
 #plot(pgm.car.restoration.candidates.l80)
 #nrow(pgm.car.restoration.candidates.l80@data)
 
+candidate.areas.final <- candidate.areas.final.copy
 
-
-candidate.areas.final.copy <- candidate.areas.final
+#candidate.areas.final.copy <- candidate.areas.final
 j=nrow(pgm.car.restoration.candidates.l80@data)
 #i="PA-1505502-8B1A6744B90E42C6BC856664188651AF"
 for (i in pgm.car.restoration.candidates.l80$COD_IMOVEL) {
@@ -299,6 +303,13 @@ for (i in pgm.car.restoration.candidates.l80$COD_IMOVEL) {
 }
 
 candidate.areas.final <- mask(candidate.areas.final, pgm.shp)
+#plot(candidate.areas.final)
+#plot(pgm.car.restoration.candidates)
+#candidate.areas.final <- raster("rasters/PGM/input/restoration_candidate_areas.tif")
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final")]) #keeping only raster stack
+gc()
+
 
 
 #
@@ -390,22 +401,29 @@ pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
 #plot(pgm.degrad)
 #range(values(pgm.degrad[["PGM.Degrad.2010"]]), na.rm=T)
 
-#removing undegraded forest
-pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>23] <- NA
-pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>33] <- NA
+#non-degraded sites will be considered with 300 years following (BIB)
+pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>23] <- 300
+pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>33] <- 300
 
 # isolating degraded forest class pixels
 pgm.degrad.2010.forest.class <- pgm.degrad[["pgm.degrad.2010real"]]
+pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class>23]<-NA
 pgm.degrad.2010.forest.class[!is.na(pgm.degrad.2010.forest.class)] <- 1
 pgm.degrad.2010.forest.class<-sum(pgm.lulc.2010.forest.class, pgm.degrad.2010.forest.class, na.rm=T)
 pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class<2]<-0
 pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class==2]<-1
 
 pgm.degrad.2020.forest.class <- pgm.degrad[["pgm.degrad.2020real"]]
+pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class>33]<-NA
 pgm.degrad.2020.forest.class[!is.na(pgm.degrad.2020.forest.class)] <- 1
 pgm.degrad.2020.forest.class<-sum(pgm.lulc.2020.forest.class, pgm.degrad.2020.forest.class, na.rm=T)
 pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class<2]<-0
 pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class==2]<-1
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
+gc()
+
 
 
 #
@@ -454,6 +472,14 @@ pgm.sfage.2020.t10.class <- pgm.sfage[["pgm.sfage.2020real"]]
 pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class < 10] <- 0
 pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class >= 10] <- 1
 
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "pgm.sfage", "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class",
+                          "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class")]) #keeping only raster stack
+gc()
+
+
+
 #
 #
 
@@ -467,32 +493,7 @@ pgm.sfage.2020.t10.class[pgm.sfage.2020.all.class >= 10] <- 1
 #  return(mask)
 #}
 
-# stacking by year
-pgm.2010 <- stack(pgm.lulc[[1]], pgm.sfage[[1]], pgm.degrad[[1]])
-#pgm.2010 <- stack(mask(pgm.2010, intersect_mask(pgm.2010)))
-
-pgm.2020 <- stack(pgm.lulc[[2]], pgm.sfage[[2]], pgm.degrad[[2]])
-#pgm.2020 <- stack(mask(pgm.2020, intersect_mask(pgm.2020)))
-
-
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class")]) #keeping only raster stack
-gc()
 #
-
-
-
-#######################################################################################################################
-
-#### setting explanatory variables ####
-# [UPF] undisturbed primary forest -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
-# this variable includes all forest pixels in LULC raster (value == 3)
-# excluding those with age < 25 in 2010 SF raster or age < 35 in 2020 SF raster
-# excluding pixels degraded
 
 dir.create("rasters/PGM/2010_real", recursive = T)
 dir.create("rasters/PGM/2020_real", recursive = T)
@@ -503,6 +504,14 @@ dir.create("rasters/PGM/2020_restor_wo_avoid", recursive = T)
 dir.create("rasters/PGM/2020_restor_n_avoid", recursive = T)
 
 
+
+#######################################################################################################################
+
+#### setting explanatory variables ####
+# [UPF] undisturbed primary forest -- pixel: 5x5 (150m); and landscape: 35x35 (1050m)
+# this variable includes all forest pixels in LULC raster (value == 3)
+# excluding those with age < 25 in 2010 SF raster or age < 35 in 2020 SF raster
+# excluding pixels degraded
 
 # scenario 2010
 UPF2010<-sum(pgm.lulc.2010.forest.class, pgm.sfage.2010.all.class, pgm.degrad.2010.forest.class, na.rm = T)
@@ -543,15 +552,17 @@ writeRaster(UPF2010.ls, "rasters/PGM/2010_real/UPFls.tif", format="GTiff", overw
 writeRaster(UPF2010.ls, "rasters/PGM/2020_avoidboth/UPFls.tif", format="GTiff", overwrite=T)
 writeRaster(UPF2010.ls, "rasters/PGM/2020_restor_n_avoid/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "pgm.sfage", "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class",
+                          "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
                           "UPF2010")]) #keeping only raster stack
 gc()
+
+
+
 #
+
 
 # scenario avoid degradation
 UPF.avoiddegrad<-sum(pgm.lulc.2020.forest.class, pgm.sfage.2020.all.class, pgm.degrad.2010.forest.class, na.rm = T)
@@ -588,15 +599,17 @@ UPF.avoiddegrad.ls <- mask(UPF.avoiddegrad.ls, pgm.shp)
 #saving
 writeRaster(UPF.avoiddegrad.ls, "rasters/PGM/2020_avoiddegrad/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "pgm.sfage", "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class",
+                          "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
                           "UPF2010", "UPF.avoiddegrad")]) #keeping only raster stack
 gc()
+
+
+
 #
+
 
 # scenario avoid deforestation
 UPF.avoiddefor<-sum(pgm.lulc.2010.forest.class, pgm.sfage.2010.all.class, pgm.degrad.2020.forest.class, na.rm = T)
@@ -633,15 +646,17 @@ UPF.avoiddefor.ls <- mask(UPF.avoiddefor.ls, pgm.shp)
 #saving
 writeRaster(UPF.avoiddefor.ls, "rasters/PGM/2020_avoiddeforest/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "pgm.sfage", "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class",
+                          "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
                           "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor")]) #keeping only raster stack
 gc()
+
+
+
 #
+
 
 # scenario 2020
 UPF2020<-sum(pgm.lulc.2020.forest.class, pgm.sfage.2020.all.class, pgm.degrad.2020.forest.class, na.rm = T)
@@ -680,16 +695,16 @@ UPF2020.ls <- mask(UPF2020.ls, pgm.shp)
 writeRaster(UPF2020.ls, "rasters/PGM/2020_real/UPFls.tif", format="GTiff", overwrite=T)
 writeRaster(UPF2020.ls, "rasters/PGM/2020_restor_wo_avoid/UPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "pgm.degrad.2010.forest.class", "pgm.degrad.2020.forest.class",
+                          "pgm.sfage", "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class",
+                          "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
                           "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
 gc()
-#
 
+
+
+#
 
 
 #######################################################################################################################
@@ -736,16 +751,16 @@ writeRaster(DPF2010.ls, "rasters/PGM/2020_avoiddegrad/DPFls.tif", format="GTiff"
 writeRaster(DPF2010.ls, "rasters/PGM/2020_avoidboth/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2010.ls, "rasters/PGM/2020_restor_n_avoid/DPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "DPF2010", "pgm.degrad.2020.forest.class",
-                          "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")])
-
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "DPF2010", "pgm.degrad.2020.forest.class", "pgm.sfage", "pgm.sfage.2010.all.class", 
+                          "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", 
+                          "pgm.sfage.2020.t10.class", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
 gc()
+
+
+
 #
+
 
 # scenario 2020
 DPF2020 <- pgm.degrad.2020.forest.class
@@ -783,16 +798,15 @@ writeRaster(DPF2020.ls, "rasters/PGM/2020_real/DPFls.tif", format="GTiff", overw
 writeRaster(DPF2020.ls, "rasters/PGM/2020_avoiddeforest/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2020.ls, "rasters/PGM/2020_restor_wo_avoid/DPFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "DPF2010", "DPF2020", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")])
-
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "DPF2010", "DPF2020", "pgm.sfage", "pgm.sfage.2010.all.class", 
+                          "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", 
+                          "pgm.sfage.2020.t10.class", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
 gc()
-#
 
+
+
+#
 
 
 #######################################################################################################################
@@ -801,7 +815,7 @@ gc()
 # this variable is the mean time since a degradation event
 
 # scenario 2010
-TSD2010 <- pgm.2010[["pgm.degrad.2010real"]]
+TSD2010 <- pgm.degrad[["pgm.degrad.2010real"]]
 #plot(TSD2010)
 
 # mean tsd cover in pixel scale (150m)
@@ -832,20 +846,19 @@ TSD2010.ls <- mask(TSD2010.ls, pgm.shp)
 #saving
 writeRaster(TSD2010.ls, "rasters/PGM/2010_real/TSDls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "DPF2010", "DPF2020", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020",
-                          "TSD2010")])
-
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "pgm.sfage", "pgm.sfage.2010.all.class", 
+                          "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", 
+                          "pgm.sfage.2020.t10.class", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
 gc()
+
+
+
 #
 
+
 # scenario 2020 -- avoid degradation
-TSD2010.recovery10 <- pgm.2010[["pgm.degrad.2010real"]]
-TSD2010.recovery10 <- calc(TSD2010.recovery10, fun=function(x){ifelse(is.na(x), x, x+10)})
+TSD2010.recovery10 <- calc(TSD2010, fun=function(x){ifelse(is.na(x), x, x+10)})
 #plot(TSD2010.recovery10)
 
 # mean dpf cover in pixel scale (150m)
@@ -880,19 +893,19 @@ writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoiddegrad/TSDls.tif", for
 writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoidboth/TSDls.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_restor_n_avoid/TSDls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "DPF2010", "DPF2020", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020",
-                          "TSD2010", "TSD2010.recovery10")])
-
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "pgm.sfage", "pgm.sfage.2010.all.class", 
+                          "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class", "pgm.sfage.2010.t10.class", 
+                          "pgm.sfage.2020.t10.class", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
 gc()
+
+
+
 #
 
+
 # scenario 2020
-TSD2020 <- pgm.2020[["pgm.degrad.2020real"]]
+TSD2020 <- pgm.degrad[["pgm.degrad.2020real"]]
 #plot(TSD2020)
 
 # mean tsd cover in pixel scale (150m)
@@ -927,17 +940,16 @@ writeRaster(TSD2020.ls, "rasters/PGM/2020_real/TSDls.tif", format="GTiff", overw
 writeRaster(TSD2020.ls, "rasters/PGM/2020_avoiddeforest/TSDls.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2020.ls, "rasters/PGM/2020_restor_wo_avoid/TSDls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.2010", "pgm.2020",
-                          "pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class",
-                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class",
-                          "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
-                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class",
-                          "DPF2010", "DPF2020", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020",
-                          "TSD2010", "TSD2020", "TSD2010.recovery10")])
-
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010", "pgm.sfage", 
+                          "pgm.sfage.2010.all.class", "pgm.sfage.2020.all.class", "pgm.sfage.2010.t2.class", "pgm.sfage.2020.t2.class",
+                          "pgm.sfage.2010.t10.class", "pgm.sfage.2020.t10.class", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", 
+                          "UPF2020")]) #keeping only raster stack
 gc()
-#
 
+
+
+#
 
 
 #######################################################################################################################
