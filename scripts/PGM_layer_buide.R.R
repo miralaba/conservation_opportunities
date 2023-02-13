@@ -9,7 +9,6 @@
 #' regional species distribution models 
 
 #### setting working directory ####
-setwd("~/projetos/lancaster/conserv_opportunities_jamesthomson/Rscripts")
 memory.limit(1000000)
 
 ##### loading required packages ####
@@ -86,7 +85,7 @@ names(candidate.areas.total) <- "restoration.candidate.areas"
 
 #select pixels based on proximity to water (<500m), slope (>25°) and proximity to forest (<1000m)
 
-dist.river <- raster("rasters/PGM/2010_real/dist_river_pgm.tif")
+dist.river <- raster("rasters/PGM/2010_real/distriver.tif")
 values(dist.river)[values(dist.river) <= 500] = 1
 values(dist.river)[values(dist.river) > 500] = NA
 dist.river <- projectRaster(dist.river, crs = "+proj=longlat +datum=WGS84 +no_defs")
@@ -101,7 +100,7 @@ candidate.areas.water <- mask(candidate.areas.water, pgm.shp)
 
 
 
-elevation <- raster("rasters/PGM/2010_real/elevation_pgm.tif")
+elevation <- raster("rasters/PGM/2010_real/elevation.tif")
 #plot(elevation)
 slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)
 values(slope)[values(slope) < 45] = NA
@@ -2050,8 +2049,8 @@ edge2010.px[is.nan(edge2010.px)] <- 0
 edge2010.px <- mask(edge2010.px, pgm.shp)
 
 #saving
-writeRaster(edge2010.px, "rasters/PGM/2010_real/edgepx.tif", format="GTiff")
-writeRaster(edge2010.px, "rasters/PGM/2020_avoidboth/edgepx.tif", format="GTiff")
+writeRaster(edge2010.px, "rasters/PGM/2010_real/edgepx.tif", format="GTiff", overwrite=T)
+writeRaster(edge2010.px, "rasters/PGM/2020_avoidboth/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2066,8 +2065,8 @@ edge2010.ls[is.nan(edge2010.ls)] <- 0
 edge2010.ls <- mask(edge2010.ls, pgm.shp)
 
 #saving
-writeRaster(edge2010.px, "rasters/PGM/2010_real/edgels.tif", format="GTiff")
-writeRaster(edge2010.px, "rasters/PGM/2020_avoidboth/edgels.tif", format="GTiff")
+writeRaster(edge2010.px, "rasters/PGM/2010_real/edgels.tif", format="GTiff", overwrite=T)
+writeRaster(edge2010.px, "rasters/PGM/2020_avoidboth/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2109,7 +2108,7 @@ edge2020.px[is.nan(edge2020.px)] <- 0
 edge2020.px <- mask(edge2020.px, pgm.shp)
 
 #saving
-writeRaster(edge2020.px, "rasters/PGM/2020_real/edgepx.tif", format="GTiff")
+writeRaster(edge2020.px, "rasters/PGM/2020_real/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2124,7 +2123,7 @@ edge2020.ls[is.nan(edge2020.ls)] <- 0
 edge2020.ls <- mask(edge2020.ls, pgm.shp)
 
 #saving
-writeRaster(edge2020.ls, "rasters/PGM/2020_real/edgels.tif", format="GTiff")
+writeRaster(edge2020.ls, "rasters/PGM/2020_real/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2166,7 +2165,7 @@ edge.avoiddegrad.px[is.nan(edge.avoiddegrad.px)] <- 0
 edge.avoiddegrad.px <- mask(edge.avoiddegrad.px, pgm.shp)
 
 #saving
-writeRaster(edge.avoiddegrad.px, "rasters/PGM/2020_avoiddegrad/edgepx.tif", format="GTiff")
+writeRaster(edge.avoiddegrad.px, "rasters/PGM/2020_avoiddegrad/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2181,7 +2180,7 @@ edge.avoiddegrad.ls[is.nan(edge.avoiddegrad.ls)] <- 0
 edge.avoiddegrad.ls <- mask(edge.avoiddegrad.ls, pgm.shp)
 
 #saving
-writeRaster(edge.avoiddegrad.ls, "rasters/PGM/2020_avoiddegrad/edgels.tif", format="GTiff")
+writeRaster(edge.avoiddegrad.ls, "rasters/PGM/2020_avoiddegrad/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2223,7 +2222,7 @@ edge.avoiddefor.px[is.nan(edge.avoiddefor.px)] <- 0
 edge.avoiddefor.px <- mask(edge.avoiddefor.px, pgm.shp)
 
 #saving
-writeRaster(edge.avoiddefor.px, "rasters/PGM/2020_avoiddeforest/edgepx.tif", format="GTiff")
+writeRaster(edge.avoiddefor.px, "rasters/PGM/2020_avoiddeforest/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2238,7 +2237,7 @@ edge.avoiddefor.ls[is.nan(edge.avoiddefor.ls)] <- 0
 edge.avoiddefor.ls <- mask(edge.avoiddefor.ls, pgm.shp)
 
 #saving
-writeRaster(edge.avoiddefor.ls, "rasters/PGM/2020_avoiddeforest/edgels.tif", format="GTiff")
+writeRaster(edge.avoiddefor.ls, "rasters/PGM/2020_avoiddeforest/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2280,7 +2279,7 @@ edge.restore10.a.px[is.nan(edge.restore10.a.px)] <- 0
 edge.restore10.a.px <- mask(edge.restore10.a.px, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.a.px, "rasters/PGM/2020_restor_wo_avoid/edgepx.tif", format="GTiff")
+writeRaster(edge.restore10.a.px, "rasters/PGM/2020_restor_wo_avoid/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2295,7 +2294,7 @@ edge.restore10.a.ls[is.nan(edge.restore10.a.ls)] <- 0
 edge.restore10.a.ls <- mask(edge.restore10.a.ls, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.a.ls, "rasters/PGM/2020_restor_wo_avoid/edgels.tif", format="GTiff")
+writeRaster(edge.restore10.a.ls, "rasters/PGM/2020_restor_wo_avoid/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2337,7 +2336,7 @@ edge.restore10.b.px[is.nan(edge.restore10.b.px)] <- 0
 edge.restore10.b.px <- mask(edge.restore10.b.px, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.b.px, "rasters/PGM/2020_restor_n_avoid/edgepx.tif", format="GTiff")
+writeRaster(edge.restore10.b.px, "rasters/PGM/2020_restor_n_avoid/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2352,7 +2351,7 @@ edge.restore10.b.ls[is.nan(edge.restore10.b.ls)] <- 0
 edge.restore10.b.ls <- mask(edge.restore10.b.ls, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.b.ls, "rasters/PGM/2020_restor_n_avoid/edgels.tif", format="GTiff")
+writeRaster(edge.restore10.b.ls, "rasters/PGM/2020_restor_n_avoid/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
                           "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
@@ -2373,4 +2372,195 @@ gc()
 
 
 ##############################################################################################################################################################################################################################################
+
+# [meantemp] annual average temperature from nasa earth observation
+
+# download and save global data
+#urls <- c("https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755469&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-01"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755470&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-02"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755471&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-03"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755472&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-04"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755473&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-05"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755474&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-06"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755475&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-07"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755476&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-08"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755477&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-09"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755478&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-10"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755479&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-11"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755480&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-12"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1784090&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-01"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1785058&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-02"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1785890&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-03"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1786979&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-04"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1794500&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-05"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1795357&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-06"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1796358&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-07"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1797155&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-08"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1799174&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-09"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1799941&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-10"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1800680&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-11"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1801650&cs=rgb&format=TIFF&width=3600&height=1800") #"2020-12"
+#
+#dir.create("rasters/PGM/input/climate")
+
+
+# scenario 2010
+temp.list <- list.files("rasters/PGM/input/climate", "LSTD", full.names = T, recursive = T)
+
+temp2010.list <- grep("2010", temp.list, value = T)
+temp2010 <- stack(temp2010.list)
+#plot(temp2010)
+rm(temp2010.list)
+
+meantemp2010 <- mean(temp2010, na.rm=T)
+pgm.meantemp2010 <- crop(meantemp2010, extent(pgm.lulc.2010.forest.class))
+#plot(pgm.meantemp2010)
+#plot(pgm.shp, add=T)
+
+pgm.meantemp2010 <- resample(pgm.meantemp2010, pgm.lulc.2010.forest.class, method='bilinear')
+pgm.meantemp2010 <- mask(pgm.meantemp2010, pgm.shp)
+#plot(pgm.meantemp2010)
+
+#saving
+writeRaster(pgm.meantemp2010, "rasters/PGM/2010_real/meantemps.tif", format="GTiff", overwrite=T)
+#
+
+# scenario 2020
+temp2020.list <- grep("2020", temp.list, value = T)
+temp2020 <- stack(temp2020.list)
+#plot(temp2020)
+rm(temp2020.list)
+
+meantemp2020 <- mean(temp2020, na.rm=T)
+pgm.meantemp2020 <- crop(meantemp2020, extent(pgm.lulc.2020.forest.class))
+#plot(pgm.meantemp2020)
+#plot(pgm.shp, add=T)
+
+pgm.meantemp2020 <- resample(pgm.meantemp2020, pgm.lulc.2020.forest.class, method='bilinear')
+pgm.meantemp2020 <- mask(pgm.meantemp2020, pgm.shp)
+#plot(pgm.meantemp2020)
+
+#saving
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_real/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddeforest/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddegrad/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoidboth/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_wo_avoid/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoid/meantemps.tif", format="GTiff", overwrite=T)
+#
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
+                          "pgm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
+                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
+                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
+                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
+                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
+                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
+                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
+                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a",
+                          "edge.restore10.b", "pgm.meantemp2010", "pgm.meantemp2020")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+##############################################################################################################################################################################################################################################
+
+# [meanprecip] annual average precipitation from nasa earth observation
+
+# download and save global data
+#urls <- c("https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843747&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-01"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843749&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-02"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843751&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-03"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843755&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-04"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843735&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-05"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843745&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-06"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843753&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-07"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843759&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-08"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843761&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-09"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843763&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-10"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843765&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-11"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843769&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-12"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843983&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-01"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843985&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-02"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843987&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-03"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843989&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-04"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843991&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-05"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843993&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-06"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843995&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-07"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843997&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-08"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843999&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-09"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844001&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-10"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844003&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-11"
+#          "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844005&cs=rgb&format=TIFF&width=3600&height=1800") #"2020-12"
+#
+
+
+# scenario 2010
+precip.list <- list.files("rasters/PGM/input/climate", "GPM", full.names = T, recursive = T)
+
+precip2010.list <- grep("2010", precip.list, value = T)
+precip2010 <- stack(precip2010.list)
+#plot(precip2010)
+rm(precip2010.list)
+
+meanprecip2010 <- mean(precip2010, na.rm=T)
+pgm.meanprecip2010 <- crop(meanprecip2010, extent(pgm.lulc.2010.forest.class))
+#plot(pgm.meanprecip2010)
+#plot(pgm.shp, add=T)
+
+pgm.meanprecip2010 <- resample(pgm.meanprecip2010, pgm.lulc.2010.forest.class, method='bilinear')
+pgm.meanprecip2010 <- mask(pgm.meanprecip2010, pgm.shp)
+#plot(pgm.meanprecip2010)
+
+#saving
+writeRaster(pgm.meanprecip2010, "rasters/PGM/2010_real/meanprecips.tif", format="GTiff", overwrite=T)
+#
+
+# scenario 2020
+precip2020.list <- grep("2020", precip.list, value = T)
+precip2020 <- stack(precip2020.list)
+#plot(precip2020)
+rm(precip2020.list)
+
+meanprecip2020 <- mean(precip2020, na.rm=T)
+pgm.meanprecip2020 <- crop(meanprecip2020, extent(pgm.lulc.2020.forest.class))
+#plot(pgm.meanprecip2020)
+#plot(pgm.shp, add=T)
+
+pgm.meanprecip2020 <- resample(pgm.meanprecip2020, pgm.lulc.2020.forest.class, method='bilinear')
+pgm.meanprecip2020 <- mask(pgm.meanprecip2020, pgm.shp)
+#plot(pgm.meanprecip2020)
+
+#saving
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_real/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddeforest/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddegrad/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoidboth/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_wo_avoid/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid/meanprecips.tif", format="GTiff", overwrite=T)
+#
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc","pgm.lulc.2010.forest.class", "pgm.lulc.2020.forest.class", "candidate.areas.final",
+                          "candidate.areas.final.age", "pgm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
+                          "pgm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
+                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
+                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
+                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
+                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
+                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
+                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
+                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a",
+                          "edge.restore10.b", "pgm.meantemp2010", "pgm.meantemp2020", "pgm.meanprecip2010", "pgm.meanprecip2020")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+
 
