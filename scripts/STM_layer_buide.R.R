@@ -116,7 +116,7 @@ writeRaster(dist.river, "rasters/STM/2020_restor_n_avoid/distriver.tif", format=
 elevation <- raster("rasters/STM/input/elevation_stm.tif")
 elevation <- projectRaster(elevation, crs = "+proj=longlat +datum=WGS84 +no_defs")
 elevation <- resample(elevation, stm.lulc.2010.forest.class, method='bilinear')
-values(elevation)[is.na(values(elevationv))] = 0
+values(elevation)[is.na(values(elevation))] = 0
 elevation <- mask(elevation, stm.shp)
 
 #saving
@@ -213,11 +213,11 @@ mjc.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1504752_Mojui_dos_Campos", lay
 
 stm.car <- rbind(stm.car,btr.car,mjc.car)
 stm.car <- crop(stm.car, extent(stm.shp))
+
+#excluding protected areas
+stm.car <- stm.car[-which(stm.car@data$TIPO_IMOVE=="PCT"),]
 #head(stm.car@data)
 #plot(stm.car, add=T)
-
-#excluindo areas protegidas
-stm.car <- stm.car[-which(stm.car@data$TIPO_IMOVE=="PCT"),]
 
 
 #calculate forest cover in each property and select properties with <50%
@@ -331,15 +331,21 @@ exclude <- c("PA-1506807-FC422C55C19040B49873CD97D3ECCE2E", "PA-1506807-4356813E
              "PA-1506807-27D72F26BD6E4C208A654AC8115184A8", "PA-1506807-F7C55B21072E43578025F3A18198D1A6",
              "PA-1506807-18D6A81C7E27418C8935F50B7DE9C3B3", "PA-1506807-4B368AE2B276467A891EFB3397DFACD3",
              "PA-1506807-B812EB6FA13E4260947F9EBC93CC75D4", "PA-1506807-22B2C3AB789E417F935806F952F2496E",
-             "PA-1501451-997D6B1AC088472F9ACB9E9A6486EA98")
+             "PA-1506807-9B9B5EDCD5D74104B74AA861BDC21940", "PA-1506807-326E42CBC0E14E26AC9BBC709E15E0DE",
+             "PA-1506807-F443F65E87104DA6B87EAF79C06523FB", "PA-1506807-D784B87346DC4B4AB4F7E9E9AC023521",
+             "PA-1506807-929073F5F99A4349B27C76CF953E1454", "PA-1506807-791791E47AFE47698A653D5CDE6E58F1",
+             "PA-1504752-64AD473767E74B778DB2004E40CFEA8A", "PA-1504752-F6B5CB69F58D4B33983A9A109695624F",
+             "PA-1504752-DCEA75322C124C4AA0D1ACF1899F7C31", "PA-1504752-D0B7FE7337FD42C498C56BDC7D913C7F",
+             "PA-1504752-512AAC3322C340F896BA9759220840C9", "PA-1504752-46305A62295848BCB6E870E6BC3E1B75",
+             "PA-1501451-997D6B1AC088472F9ACB9E9A6486EA98", "PA-1506807-DE35C72AFF2343DCB0BCAAB10272DB95")
 
 stm.car.restoration.candidates.l80 <- stm.car.restoration.candidates.l80[-which(stm.car.restoration.candidates.l80$COD_IMOVEL %in% exclude),]
 #head(stm.car.restoration.candidates.l80@data)
 #nrow(stm.car.restoration.candidates.l80@data)
 
-candidate.areas.final <- candidate.areas.final.copy
+#candidate.areas.final <- candidate.areas.final.copy
 
-#candidate.areas.final.copy <- candidate.areas.final
+candidate.areas.final.copy <- candidate.areas.final
 j=nrow(stm.car.restoration.candidates.l80@data)
 #i="PA-1505502-8B1A6744B90E42C6BC856664188651AF"
 for (i in stm.car.restoration.candidates.l80$COD_IMOVEL) {
@@ -437,7 +443,7 @@ for (year in 1:5) {   #1=2011; 5=2015
 
 #plot(stm.degrad.temp)
 #plot(stm.deter.yearx)
-
+#length(stm.deter.yearx[stm.deter.yearx[]==999])
 
 # deter data between 2016 and 2020
 deter.2016.20 <- readOGR(dsn = "rasters/STM/input", layer = "deter_public")
@@ -1263,10 +1269,7 @@ SFage2020.ls <- mask(SFage2020.ls, stm.shp)
 writeRaster(SFage2020.ls, "rasters/STM/2020_real/SFagels.tif", format="GTiff", overwrite=T)
 writeRaster(SFage2020.ls, "rasters/STM/2020_avoiddegrad/SFagels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010", "stm.sfage", "SF2010", 
-                          "SF2010.restore10", "SF2020", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFage2020", "UPF2010",
-                          "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SFage2020.px", "SFage2020.ls")]) #keeping only raster stack
 gc()
 
 
@@ -1310,10 +1313,7 @@ SFAge2010.restore10.ls <- mask(SFAge2010.restore10.ls, stm.shp)
 #saving
 writeRaster(SFAge2010.restore10.ls, "rasters/STM/2020_restor_n_avoid/SFagels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.restore10", "SF2020", "SF2020.restore10", "SFage2010", "SFage2010.recovery10",
-                          "SFAge2010.restore10", "SFage2020", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SFAge2010.restore10.px", "SFAge2010.restore10.ls")]) #keeping only raster stack
 gc()
 
 
@@ -1354,11 +1354,7 @@ SFAge2020.restore10.ls <- mask(SFAge2020.restore10.ls, stm.shp)
 #saving
 writeRaster(SFAge2020.restore10.ls, "rasters/STM/2020_restor_wo_avoid/SFagels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.restore10", "SF2020", "SF2020.restore10", "SFage2010", "SFage2010.recovery10",
-                          "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SFAge2020.restore10.px", "SFAge2020.restore10.ls")]) #keeping only raster stack
 gc()
 
 
@@ -1398,11 +1394,7 @@ TF2010.px <- mask(TF2010.px, stm.shp)
 writeRaster(TF2010.px, "rasters/STM/2010_real/TFpx.tif", format="GTiff", overwrite=T)
 writeRaster(TF2010.px, "rasters/STM/2020_avoidboth/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.restore10", "SFage2010",
-                          "SFage2010.recovery10", "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10", "UPF2010", "UPF.avoiddegrad",
-                          "UPF.avoiddefor", "UPF2020", "TF2010")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF2010.px")]) #keeping only raster stack
 gc()
 
 
@@ -1435,11 +1427,7 @@ TF2020.px <- mask(TF2020.px, stm.shp)
 #saving
 writeRaster(TF2020.px, "rasters/STM/2020_real/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.restore10",
-                          "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10", "UPF2010",
-                          "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020", "TF2010", "TF2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF2020.px")]) #keeping only raster stack
 gc()
 
 
@@ -1468,11 +1456,7 @@ TF.avoiddegrad.px <- mask(TF.avoiddegrad.px, stm.shp)
 #saving
 writeRaster(TF.avoiddegrad.px, "rasters/STM/2020_avoiddegrad/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.restore10",
-                          "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10", "UPF2010",
-                          "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF.avoiddegrad.px")]) #keeping only raster stack
 gc()
 
 
@@ -1501,11 +1485,7 @@ TF.avoiddefor.px <- mask(TF.avoiddefor.px, stm.shp)
 #saving
 writeRaster(TF.avoiddefor.px, "rasters/STM/2020_avoiddeforest/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.restore10",
-                          "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10", "UPF2010",
-                          "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF.avoiddefor.px")]) #keeping only raster stack
 gc()
 
 
@@ -1538,12 +1518,7 @@ TF.restore10.a.px <- mask(TF.restore10.a.px, stm.shp)
 #saving
 writeRaster(TF.restore10.a.px, "rasters/STM/2020_restor_wo_avoid/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.restore10",
-                          "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFage2020", "SFAge2020.restore10",
-                          "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020", "TF2010","TF2020",
-                          "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF.restore10.a.px")]) #keeping only raster stack
 gc()
 
 
@@ -1576,12 +1551,7 @@ TF.restore10.b.px <- mask(TF.restore10.b.px, stm.shp)
 #saving
 writeRaster(TF.restore10.b.px, "rasters/STM/2020_restor_n_avoid/TFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.restore10",
-                          "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFAge2010.restore10.young", "SFage2020",
-                          "SFAge2020.restore10", "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020",
-                          "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("TF.restore10.b.px")]) #keeping only raster stack
 gc()
 
 
@@ -1621,13 +1591,7 @@ MF2010.px <- mask(MF2010.px, stm.shp)
 writeRaster(MF2010.px, "rasters/STM/2010_real/MFpx.tif", format="GTiff", overwrite=T)
 writeRaster(MF2010.px, "rasters/STM/2020_avoidboth/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young", 
-                          "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFAge2010.restore10.young",
-                          "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b",
-                          "MF2010")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF2010.px")]) #keeping only raster stack
 gc()
 
 
@@ -1660,13 +1624,7 @@ MF2020.px <- mask(MF2020.px, stm.shp)
 #saving
 writeRaster(MF2020.px, "rasters/STM/2020_real/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.mature",
-                          "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFAge2010.restore10.young",
-                          "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b",
-                          "MF2010", "MF2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF2020.px")]) #keeping only raster stack
 gc()
 
 
@@ -1695,13 +1653,7 @@ MF.avoiddegrad.px <- mask(MF.avoiddegrad.px, stm.shp)
 #saving
 writeRaster(MF.avoiddegrad.px, "rasters/STM/2020_avoiddegrad/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.mature",
-                          "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFAge2010.restore10.young",
-                          "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b",
-                          "MF2010", "MF2020", "MF.avoiddegrad")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF.avoiddegrad.px")]) #keeping only raster stack
 gc()
 
 
@@ -1730,13 +1682,7 @@ MF.avoiddefor.px <- mask(MF.avoiddefor.px, stm.shp)
 #saving
 writeRaster(MF.avoiddefor.px, "rasters/STM/2020_avoiddeforest/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young", "SF2020.mature",
-                          "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10", "SFAge2010.restore10.young",
-                          "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b",
-                          "MF2010", "MF2020", "MF.avoiddegrad", "MF.avoiddefor")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF.avoiddefor.px")]) #keeping only raster stack
 gc()
 
 
@@ -1769,14 +1715,7 @@ MF.restore10.a.px <- mask(MF.restore10.a.px, stm.shp)
 #saving
 writeRaster(MF.restore10.a.px, "rasters/STM/2020_restor_wo_avoid/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor", "UPF2020", "TF2010", "TF2020", 
-                          "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010", "MF2020", "MF.avoiddegrad", 
-                          "MF.avoiddefor", "MF.restore10.a")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF.restore10.a.px")]) #keeping only raster stack
 gc()
 
 
@@ -1809,14 +1748,7 @@ MF.restore10.b.px <- mask(MF.restore10.b.px, stm.shp)
 #saving
 writeRaster(MF.restore10.b.px, "rasters/STM/2020_restor_n_avoid/MFpx.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("MF.restore10.b.px")]) #keeping only raster stack
 gc()
 
 
@@ -1851,14 +1783,6 @@ edge.dist.2010 <- mask(edge.dist.2010, stm.shp)
 writeRaster(edge.dist.2010, "rasters/STM/2010_real/edgedist.tif", format="GTiff", overwrite=T)
 writeRaster(edge.dist.2010, "rasters/STM/2020_avoidboth/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010")]) #keeping only raster stack
 gc()
 
 
@@ -1886,15 +1810,6 @@ edge.dist.2020 <- mask(edge.dist.2020, stm.shp)
 #saving
 writeRaster(edge.dist.2020, "rasters/STM/2020_real/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020")]) #keeping only raster stack
 gc()
 
 
@@ -1922,15 +1837,6 @@ edge.dist.avoiddegrad <- mask(edge.dist.avoiddegrad, stm.shp)
 #saving
 writeRaster(edge.dist.avoiddegrad, "rasters/STM/2020_avoiddegrad/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad")]) #keeping only raster stack
 gc()
 
 
@@ -1958,15 +1864,6 @@ edge.dist.avoiddefor <- mask(edge.dist.avoiddefor, stm.shp)
 #saving
 writeRaster(edge.dist.avoiddefor, "rasters/STM/2020_avoiddeforest/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor")]) #keeping only raster stack
 gc()
 
 
@@ -1994,15 +1891,6 @@ edge.dist.restore10.a <- mask(edge.dist.restore10.a, stm.shp)
 #saving
 writeRaster(edge.dist.restore10.a, "rasters/STM/2020_restor_wo_avoid/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a")]) #keeping only raster stack
 gc()
 
 
@@ -2030,16 +1918,7 @@ edge.dist.restore10.b <- mask(edge.dist.restore10.b, stm.shp)
 #saving
 writeRaster(edge.dist.restore10.b, "rasters/STM/2020_restor_n_avoid/edgedist.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("pts", "core")]) #keeping only raster stack
 gc()
 
 
@@ -2094,16 +1973,7 @@ edge2010.ls <- mask(edge2010.ls, stm.shp)
 writeRaster(edge2010.px, "rasters/STM/2010_real/edgels.tif", format="GTiff", overwrite=T)
 writeRaster(edge2010.px, "rasters/STM/2020_avoidboth/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge2010.px", "edge2010.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2151,16 +2021,7 @@ edge2020.ls <- mask(edge2020.ls, stm.shp)
 #saving
 writeRaster(edge2020.ls, "rasters/STM/2020_real/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge2020.px", "edge2020.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2208,16 +2069,7 @@ edge.avoiddegrad.ls <- mask(edge.avoiddegrad.ls, stm.shp)
 #saving
 writeRaster(edge.avoiddegrad.ls, "rasters/STM/2020_avoiddegrad/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge.avoiddegrad.px", "edge.avoiddegrad.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2265,16 +2117,7 @@ edge.avoiddefor.ls <- mask(edge.avoiddefor.ls, stm.shp)
 #saving
 writeRaster(edge.avoiddefor.ls, "rasters/STM/2020_avoiddeforest/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge.avoiddefor.px", "edge.avoiddefor.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2322,16 +2165,7 @@ edge.restore10.a.ls <- mask(edge.restore10.a.ls, stm.shp)
 #saving
 writeRaster(edge.restore10.a.ls, "rasters/STM/2020_restor_wo_avoid/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge.restore10.a.px", "edge.restore10.a.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2379,17 +2213,7 @@ edge.restore10.b.ls <- mask(edge.restore10.b.ls, stm.shp)
 #saving
 writeRaster(edge.restore10.b.ls, "rasters/STM/2020_restor_n_avoid/edgels.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a",
-                          "edge.restore10.b")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("edge.restore10.b.px", "edge.restore10.b.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2436,7 +2260,6 @@ temp.list <- list.files("rasters/STM/input/climate", "LSTD", full.names = T, rec
 temp2010.list <- grep("2010", temp.list, value = T)
 temp2010 <- stack(temp2010.list)
 #plot(temp2010)
-rm(temp2010.list)
 
 meantemp2010 <- mean(temp2010, na.rm=T)
 stm.meantemp2010 <- crop(meantemp2010, extent(stm.lulc.2010.forest.class))
@@ -2475,17 +2298,7 @@ writeRaster(stm.meantemp2020, "rasters/STM/2020_restor_wo_avoid/meantemps.tif", 
 writeRaster(stm.meantemp2020, "rasters/STM/2020_restor_n_avoid/meantemps.tif", format="GTiff", overwrite=T)
 #
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a",
-                          "edge.restore10.b", "stm.meantemp2010", "stm.meantemp2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("temp.list", "temp2010.list", "meantemp2010", "temp2020.list", "meantemp2020")]) #keeping only raster stack
 gc()
 
 
@@ -2531,7 +2344,6 @@ precip.list <- list.files("rasters/STM/input/climate", "GPM", full.names = T, re
 precip2010.list <- grep("2010", precip.list, value = T)
 precip2010 <- stack(precip2010.list)
 #plot(precip2010)
-rm(precip2010.list)
 
 meanprecip2010 <- mean(precip2010, na.rm=T)
 stm.meanprecip2010 <- crop(meanprecip2010, extent(stm.lulc.2010.forest.class))
@@ -2570,23 +2382,9 @@ writeRaster(stm.meanprecip2020, "rasters/STM/2020_restor_wo_avoid/meanprecips.ti
 writeRaster(stm.meanprecip2020, "rasters/STM/2020_restor_n_avoid/meanprecips.tif", format="GTiff", overwrite=T)
 #
 
-rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "candidate.areas.final",
-                          "candidate.areas.final.age", "stm.degrad", "DPF2010", "DPF2020", "TSD2010", "TSD2010.recovery10", "TSD2010",
-                          "stm.sfage", "SF2010", "SF2010.young", "SF2010.mature", "SF2010.restore10", "SF2020", "SF2020.young",
-                          "SF2020.mature", "SF2020.restore10", "SFage2010", "SFage2010.recovery10", "SFAge2010.restore10",
-                          "SFAge2010.restore10.young", "SFage2020", "SFAge2020.restore10", "SFAge2020.restore10.young", 
-                          "SFAge2020.restore10.mature", "SFAge2010.restore10.mature", "UPF2010", "UPF.avoiddegrad", "UPF.avoiddefor",
-                          "UPF2020", "TF2010", "TF2020", "TF.avoiddegrad", "TF.avoiddefor", "TF.restore10.a", "TF.restore10.b", "MF2010",
-                          "MF2020", "MF.avoiddegrad", "MF.avoiddefor", "MF.restore10.a", "MF.restore10.b", "edge.dist.2010",
-                          "edge.dist.2020", "edge.dist.avoiddegrad", "edge.dist.avoiddefor", "edge.dist.restore10.a",
-                          "edge.dist.restore10.b", "edge2010", "edge2020", "edge.avoiddegrad", "edge.avoiddefor", "edge.restore10.a",
-                          "edge.restore10.b", "stm.meantemp2010", "stm.meantemp2020", "stm.meanprecip2010", "stm.meanprecip2020")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("precip.list", "precip2010.list", "meanprecip2010", "precip2020.list", "meanprecip2020")]) #keeping only raster stack
 gc()
 
 
 
 #
-
-
-
-
