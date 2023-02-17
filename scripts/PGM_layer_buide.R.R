@@ -19,6 +19,9 @@ library(rgeos)
 library(sf)
 library(spatialEco)
 library(scales)
+library(virtualspecies)
+library(usdm)
+
 
 #### creating directories ####
 dir.create("rasters/PGM/2010_real", recursive = T)
@@ -2365,9 +2368,56 @@ writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_wo_avoid/meanprecips.ti
 writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid/meanprecips.tif", format="GTiff", overwrite=T)
 #
 
-rm(list=ls()[ls() %in% c("precip.list", "precip2010.list", "meanprecip2010", "precip2020.list", "meanprecip2020")]) #keeping only raster stack
+#optional
+#save.image("~/conserv_opportunities_jamesthomson/github_repo/pgm_environment.RData")
+rm(list=ls())
 gc()
 
 
 
 #
+
+
+##############################################################################################################################################################################################################################################
+
+#### detecting multicollinearity between exploratory variables ####
+env.explanatory.var.list <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+
+env.explanatory.var <- stack(env.explanatory.var.list)
+names(env.explanatory.var) <- unlist(strsplit(env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
+##cheking
+#env.explanatory.var
+#plot(env.explanatory.var[[1:10]], nc=2)
+#plot(env.explanatory.var[[11:20]], nc=2)
+
+# visual inspection of aggregation using removeCollinearity() function from virtualspecies package
+correlated.var <- removeCollinearity(env.explanatory.var, multicollinearity.cutoff = 0.7, sample.points = T, nb.points = 999999, method = "pearson", plot = T)
+##cheking
+#correlated.var
+
+# variation inflation factor
+inflated.var <- vifcor(env.explanatory.var, th = 0.7, maxobservations = 999999)
+##cheking
+#inflated.var@results
+#inflated.var@excluded
+
+sel.var.df <- data.frame(rbind(cbind(VAR=inflated.var@results$Variables, VIF=inflated.var@results$VIF),
+                               cbind(VAR=inflated.var@excluded, VIF=NA)))
+
+write.csv(sel.var.df, paste0("rasters/PGM/selected_environmental_explanatory_variables_byVIF.csv", sep=""), row.names = F)
+
+##cheking
+#env.explanatory.var <- env.explanatory.var[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
+#plot(env.explanatory.var)
+
+
+#
+
+rm(list=ls()) #keeping only raster stack
+gc()
+
+
+
+#
+
+
