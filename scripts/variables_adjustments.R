@@ -64,15 +64,13 @@ for (var in names(pgm.env.explanatory.var)) {
 #
 
 
-env.explanatory.var.low <- aggregate(env.explanatory.var, fact=2, fun=mean, na.rm=T)
-
 # visual inspection of aggregation using removeCollinearity() function from virtualspecies package
-correlated.var <- removeCollinearity(env.explanatory.var.low, multicollinearity.cutoff = 0.7, sample.points = T, nb.points = 999999, method = "pearson", plot = T)
+correlated.var <- removeCollinearity(env.explanatory.var, multicollinearity.cutoff = 0.7, sample.points = T, nb.points = 999999, method = "pearson", plot = T)
 ##cheking
 #correlated.var
 
 # variation inflation factor
-inflated.var <- vifcor(env.explanatory.var.low, th = 0.7, maxobservations = 999999)
+inflated.var <- vifcor(env.explanatory.var, th = 0.7, maxobservations = 999999)
 ##cheking
 #inflated.var@results
 #inflated.var@excluded
@@ -103,7 +101,7 @@ gc()
 
 #### import data ####
 ## transect data
-transectdata <- read.csv("data/RAS_transects_environment_all.csv")
+transectdata <- read.csv("data/input/RAS_transects_environment_all.csv")
 #head(transectdata)
 #str(transectdata)
 #summary(transectdata)
@@ -114,7 +112,7 @@ transectdata <- transectdata[!transectdata$Transectcode %in% exclude,]
 
 
 ## birds
-birddata <- read.csv("data/Bird_data_Standard_NM_26022013_Final.csv")
+birddata <- read.csv("data/input/Bird_data_Standard_NM_26022013_Final.csv")
 #head(birddata)
 #str(birddata)
 #summary(birddata)
@@ -128,8 +126,8 @@ names(birddata)[5] <- "Transectcode"
 birddata$Group <- "Birds"
 
 ## trees
-pgm.treedata <- read.csv("data/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
-stm.treedata <- read.csv("data/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
+pgm.treedata <- read.csv("data/input/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
+stm.treedata <- read.csv("data/input/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # include region code
 pgm.treedata$Region <- "PGM"
 stm.treedata$Region <- "STM"
@@ -200,7 +198,8 @@ names(forestdep.spplist) <- c("Binomial", "Nrec")
 
 #
 # filter 2: excluding records to avoid spatial autocorrelation
-
+sppdata.final <- forestdep.sppdata
+sppdata.final <- sppdata.final[-(1:nrow(sppdata.final)),]
 for (i in forestdep.spplist$Binomial) {
   
   # filter one species at a time
@@ -219,20 +218,23 @@ for (i in forestdep.spplist$Binomial) {
                         write.log.file = FALSE)
   
   occur <- thinned_occur[[sample.int(30,1)]]
+  occur$Binomial <- i
   
   forestdep.spplist[forestdep.spplist$Binomial==i,"Nrec"] <- nrow(occur)
+  sppdata.final <- rbind(sppdata.final, occur)
+  
   
   cat("\n>occurences for species", i, "thined<\n")
   
 }
 
 
-## filter 3: excluding species with low records
-forestdep.spplist <- merge(forestdep.spplist, sppdata[,c(6, 5)])
+forestdep.spplist <- left_join(forestdep.spplist, forestdep.sppdata[,c(6, 5)])
 forestdep.spplist <- forestdep.spplist[!duplicated(forestdep.spplist),]
 
-sppdata.final <- sppdata[sppdata$Binomial %in% forestdep.spplist$Binomial,]
-sppdata.final <- sppdata.final[,c(1:4,9,5:8,10,11)]
+sppdata.final <- left_join(sppdata.final, forestdep.sppdata)
+sppdata.final <- sppdata.final[!duplicated(sppdata.final),]
+sppdata.final <- sppdata.final[,c(4:8,3,9,10,1,2,11)]
 ## checking
 #nrow(as.data.frame(table(sppdata.final[sppdata.final$Group=="Trees","Binomial"])))
 #nrow(as.data.frame(table(sppdata.final[sppdata.final$Group=="Birds","Binomial"])))
