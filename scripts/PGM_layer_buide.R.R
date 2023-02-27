@@ -30,7 +30,8 @@ dir.create("rasters/PGM/2020_avoiddeforest", recursive = T)
 dir.create("rasters/PGM/2020_avoiddegrad", recursive = T)
 dir.create("rasters/PGM/2020_avoidboth", recursive = T)
 dir.create("rasters/PGM/2020_restor_wo_avoid", recursive = T)
-dir.create("rasters/PGM/2020_restor_n_avoid", recursive = T)
+dir.create("rasters/PGM/2020_restor_n_avoid_deforest", recursive = T)
+dir.create("rasters/PGM/2020_restor_n_avoid_both", recursive = T)
 
 
 
@@ -98,7 +99,7 @@ writeRaster(dist.road, "rasters/PGM/2020_avoiddeforest/distroad.tif", format="GT
 writeRaster(dist.road, "rasters/PGM/2020_avoiddegrad/distroad.tif", format="GTiff", overwrite=T)
 writeRaster(dist.road, "rasters/PGM/2020_avoidboth/distroad.tif", format="GTiff", overwrite=T)
 writeRaster(dist.road, "rasters/PGM/2020_restor_wo_avoid/distroad.tif", format="GTiff", overwrite=T)
-writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoid/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoid_both/distroad.tif", format="GTiff", overwrite=T)
 
 #
 
@@ -115,7 +116,7 @@ writeRaster(dist.river, "rasters/PGM/2020_avoiddeforest/distriver.tif", format="
 writeRaster(dist.river, "rasters/PGM/2020_avoiddegrad/distriver.tif", format="GTiff", overwrite=T)
 writeRaster(dist.river, "rasters/PGM/2020_avoidboth/distriver.tif", format="GTiff", overwrite=T)
 writeRaster(dist.river, "rasters/PGM/2020_restor_wo_avoid/distriver.tif", format="GTiff", overwrite=T)
-writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoid/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoid_both/distriver.tif", format="GTiff", overwrite=T)
 
 #
 
@@ -132,7 +133,7 @@ writeRaster(elevation, "rasters/PGM/2020_avoiddeforest/elevation.tif", format="G
 writeRaster(elevation, "rasters/PGM/2020_avoiddegrad/elevation.tif", format="GTiff", overwrite=T)
 writeRaster(elevation, "rasters/PGM/2020_avoidboth/elevation.tif", format="GTiff", overwrite=T)
 writeRaster(elevation, "rasters/PGM/2020_restor_wo_avoid/elevation.tif", format="GTiff", overwrite=T)
-writeRaster(elevation, "rasters/PGM/2020_restor_n_avoid/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_n_avoid_both/elevation.tif", format="GTiff", overwrite=T)
 
 #
 
@@ -574,7 +575,7 @@ UPF2010.px <- mask(UPF2010.px, pgm.shp)
 #saving
 writeRaster(UPF2010.px, "rasters/PGM/2010_real/UPFpx.tif", format="GTiff", overwrite=T)
 writeRaster(UPF2010.px, "rasters/PGM/2020_avoidboth/UPFpx.tif", format="GTiff", overwrite=T)
-writeRaster(UPF2010.px, "rasters/PGM/2020_restor_n_avoid/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.px, "rasters/PGM/2020_restor_n_avoid_both/UPFpx.tif", format="GTiff", overwrite=T)
 
 # mean upf cover in landscape scale (1050m)
 UPF2010.ls <- focal(UPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -590,7 +591,7 @@ UPF2010.ls <- mask(UPF2010.ls, pgm.shp)
 #saving
 writeRaster(UPF2010.ls, "rasters/PGM/2010_real/UPFls.tif", format="GTiff", overwrite=T)
 writeRaster(UPF2010.ls, "rasters/PGM/2020_avoidboth/UPFls.tif", format="GTiff", overwrite=T)
-writeRaster(UPF2010.ls, "rasters/PGM/2020_restor_n_avoid/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2010.ls, "rasters/PGM/2020_restor_n_avoid_both/UPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("UPF2010.px", "UPF2010.ls")]) #keeping only raster stack
 gc()
@@ -663,6 +664,7 @@ UPF.avoiddefor.px <- mask(UPF.avoiddefor.px, pgm.shp)
 
 #saving
 writeRaster(UPF.avoiddefor.px, "rasters/PGM/2020_avoiddeforest/UPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(UPF.avoiddefor.px, "rasters/PGM/2020_restor_n_avoid_deforest/UPFpx.tif", format="GTiff", overwrite=T)
 
 # mean upf cover in landscape scale (1050m)
 UPF.avoiddefor.ls <- focal(UPF.avoiddefor, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -677,6 +679,7 @@ UPF.avoiddefor.ls <- mask(UPF.avoiddefor.ls, pgm.shp)
 
 #saving
 writeRaster(UPF.avoiddefor.ls, "rasters/PGM/2020_avoiddeforest/UPFls.tif", format="GTiff", overwrite=T)
+writeRaster(UPF.avoiddefor.ls, "rasters/PGM/2020_restor_n_avoid_deforest/UPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("UPF.avoiddefor.px", "UPF.avoiddefor.ls")]) #keeping only raster stack
 gc()
@@ -756,7 +759,7 @@ DPF2010.px <- mask(DPF2010.px, pgm.shp)
 writeRaster(DPF2010.px, "rasters/PGM/2010_real/DPFpx.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2010.px, "rasters/PGM/2020_avoiddegrad/DPFpx.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2010.px, "rasters/PGM/2020_avoidboth/DPFpx.tif", format="GTiff", overwrite=T)
-writeRaster(DPF2010.px, "rasters/PGM/2020_restor_n_avoid/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.px, "rasters/PGM/2020_restor_n_avoid_both/DPFpx.tif", format="GTiff", overwrite=T)
 
 # mean dpf cover in landscape scale (1050m)
 DPF2010.ls <- focal(DPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -773,7 +776,7 @@ DPF2010.ls <- mask(DPF2010.ls, pgm.shp)
 writeRaster(DPF2010.ls, "rasters/PGM/2010_real/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2010.ls, "rasters/PGM/2020_avoiddegrad/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2010.ls, "rasters/PGM/2020_avoidboth/DPFls.tif", format="GTiff", overwrite=T)
-writeRaster(DPF2010.ls, "rasters/PGM/2020_restor_n_avoid/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2010.ls, "rasters/PGM/2020_restor_n_avoid_both/DPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("pgm.degrad.2010.forest.class", "DPF2010.px", "DPF2010.ls")]) #keeping only raster stack
 gc()
@@ -802,6 +805,7 @@ DPF2020.px <- mask(DPF2020.px, pgm.shp)
 writeRaster(DPF2020.px, "rasters/PGM/2020_real/DPFpx.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2020.px, "rasters/PGM/2020_avoiddeforest/DPFpx.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2020.px, "rasters/PGM/2020_restor_wo_avoid/DPFpx.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.px, "rasters/PGM/2020_restor_n_avoid_deforest/DPFpx.tif", format="GTiff", overwrite=T)
 
 # mean dpf cover in landscape scale (1050m)
 DPF2020.ls <- focal(DPF2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -818,6 +822,7 @@ DPF2020.ls <- mask(DPF2020.ls, pgm.shp)
 writeRaster(DPF2020.ls, "rasters/PGM/2020_real/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2020.ls, "rasters/PGM/2020_avoiddeforest/DPFls.tif", format="GTiff", overwrite=T)
 writeRaster(DPF2020.ls, "rasters/PGM/2020_restor_wo_avoid/DPFls.tif", format="GTiff", overwrite=T)
+writeRaster(DPF2020.ls, "rasters/PGM/2020_restor_n_avoid_deforest/DPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("pgm.degrad.2020.forest.class", "DPF2020.px", "DPF2020.ls")]) #keeping only raster stack
 gc()
@@ -890,7 +895,7 @@ TSD2010.recovery10.px <- mask(TSD2010.recovery10.px, pgm.shp)
 #saving
 writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_avoiddegrad/TSDpx.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_avoidboth/TSDpx.tif", format="GTiff", overwrite=T)
-writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_restor_n_avoid/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.px, "rasters/PGM/2020_restor_n_avoid_both/TSDpx.tif", format="GTiff", overwrite=T)
 
 # mean dpf cover in landscape scale (1050m)
 TSD2010.recovery10.ls <- focal(TSD2010.recovery10, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -906,7 +911,7 @@ TSD2010.recovery10.ls <- mask(TSD2010.recovery10.ls, pgm.shp)
 #saving
 writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoiddegrad/TSDls.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_avoidboth/TSDls.tif", format="GTiff", overwrite=T)
-writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_restor_n_avoid/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2010.recovery10.ls, "rasters/PGM/2020_restor_n_avoid_both/TSDls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("TSD2010.recovery10.px", "TSD2010.recovery10.ls")]) #keeping only raster stack
 gc()
@@ -935,6 +940,7 @@ TSD2020.px <- mask(TSD2020.px, pgm.shp)
 writeRaster(TSD2020.px, "rasters/PGM/2020_real/TSDpx.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2020.px, "rasters/PGM/2020_avoiddeforest/TSDpx.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2020.px, "rasters/PGM/2020_restor_wo_avoid/TSDpx.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.px, "rasters/PGM/2020_restor_n_avoid_deforest/TSDpx.tif", format="GTiff", overwrite=T)
 
 # mean tsd cover in landscape scale (1050m)
 TSD2020.ls <- focal(TSD2020, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -951,6 +957,7 @@ TSD2020.ls <- mask(TSD2020.ls, pgm.shp)
 writeRaster(TSD2020.ls, "rasters/PGM/2020_real/TSDls.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2020.ls, "rasters/PGM/2020_avoiddeforest/TSDls.tif", format="GTiff", overwrite=T)
 writeRaster(TSD2020.ls, "rasters/PGM/2020_restor_wo_avoid/TSDls.tif", format="GTiff", overwrite=T)
+writeRaster(TSD2020.ls, "rasters/PGM/2020_restor_n_avoid_deforest/TSDls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("TSD2020.px", "TSD2020.ls")]) #keeping only raster stack
 gc()
@@ -1069,7 +1076,8 @@ SF2010.restore10.px[is.nan(SF2010.restore10.px)] <- 0
 SF2010.restore10.px <- mask(SF2010.restore10.px, pgm.shp)
 
 #saving
-writeRaster(SF2010.restore10.px, "rasters/PGM/2020_restor_n_avoid/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.restore10.px, "rasters/PGM/2020_restor_n_avoid_deforest/SFpx.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.restore10.px, "rasters/PGM/2020_restor_n_avoid_both/SFpx.tif", format="GTiff", overwrite=T)
 
 # mean sf cover in landscape scale (1050m)
 SF2010.restore10.ls <- focal(SF2010.restore10, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -1083,7 +1091,8 @@ SF2010.restore10.ls[is.nan(SF2010.restore10.ls)] <- 0
 SF2010.restore10.ls <- mask(SF2010.restore10.ls, pgm.shp)
 
 #saving
-writeRaster(SF2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid_deforest/SFls.tif", format="GTiff", overwrite=T)
+writeRaster(SF2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid_both/SFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("SF2010.restore10.px", "SF2010.restore10.ls")]) #keeping only raster stack
 gc()
@@ -1283,7 +1292,8 @@ SFAge2010.restore10.px[is.nan(SFAge2010.restore10.px)] <- 0
 SFAge2010.restore10.px <- mask(SFAge2010.restore10.px, pgm.shp)
 
 #saving
-writeRaster(SFAge2010.restore10.px, "rasters/PGM/2020_restor_n_avoid/SFagepx.tif", format="GTiff", overwrite=T)
+writeRaster(SFAge2010.restore10.px, "rasters/PGM/2020_restor_n_avoid_deforest/SFagepx.tif", format="GTiff", overwrite=T)
+writeRaster(SFAge2010.restore10.px, "rasters/PGM/2020_restor_n_avoid_both/SFagepx.tif", format="GTiff", overwrite=T)
 
 # mean sf cover in landscape scale (1050m)
 SFAge2010.restore10.ls <- focal(SFAge2010.restore10, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
@@ -1297,7 +1307,8 @@ SFAge2010.restore10.ls[is.nan(SFAge2010.restore10.ls)] <- 0
 SFAge2010.restore10.ls <- mask(SFAge2010.restore10.ls, pgm.shp)
 
 #saving
-writeRaster(SFAge2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid/SFagels.tif", format="GTiff", overwrite=T)
+writeRaster(SFAge2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid_deforest/SFagels.tif", format="GTiff", overwrite=T)
+writeRaster(SFAge2010.restore10.ls, "rasters/PGM/2020_restor_n_avoid_both/SFagels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("SFAge2010.restore10.px", "SFAge2010.restore10.ls")]) #keeping only raster stack
 gc()
@@ -1512,12 +1523,12 @@ gc()
 #
 
 
-# scenario restoration and avoid
+# scenario restoration and avoid deforestation
 SFAge2010.restore10.young <- SFAge2010.restore10
 SFAge2010.restore10.young[SFAge2010.restore10.young <= 2] <- 0
 SFAge2010.restore10.young[SFAge2010.restore10.young > 2] <- 1
 
-TF.restore10.b <- sum(UPF2020, DPF2020, SFAge2010.restore10.young, na.rm = T)
+TF.restore10.b <- sum(UPF.avoiddefor, DPF2020, SFAge2010.restore10.young, na.rm = T)
 TF.restore10.b[TF.restore10.b>1] <- 1
 ##cheking
 #TF.restore10.b
@@ -1535,9 +1546,38 @@ TF.restore10.b.px[is.nan(TF.restore10.b.px)] <- 0
 TF.restore10.b.px <- mask(TF.restore10.b.px, pgm.shp)
 
 #saving
-writeRaster(TF.restore10.b.px, "rasters/PGM/2020_restor_n_avoid/TFpx.tif", format="GTiff", overwrite=T)
+writeRaster(TF.restore10.b.px, "rasters/PGM/2020_restor_n_avoid_deforest/TFpx.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("TF.restore10.b.pxv")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+# scenario restoration and avoid both
+TF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.young, na.rm = T)
+TF.restore10.c[TF.restore10.c>1] <- 1
+##cheking
+#TF.restore10.c
+#plot(TF.restore10.c)
+
+# mean upf cover in pixel scale (150m)
+TF.restore10.c.px <- focal(TF.restore10.c, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#TF.restore10.c.px
+#anyNA(TF.restore10.c.px[])
+#plot(TF.restore10.c.px)
+
+names(TF.restore10.c.px)<-"TFpx"
+TF.restore10.c.px[is.nan(TF.restore10.c.px)] <- 0
+TF.restore10.c.px <- mask(TF.restore10.c.px, pgm.shp)
+
+#saving
+writeRaster(TF.restore10.c.px, "rasters/PGM/2020_restor_n_avoid_both/TFpx.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("TF.restore10.c.px")]) #keeping only raster stack
 gc()
 
 
@@ -1709,12 +1749,12 @@ gc()
 #
 
 
-# scenario restoration and avoid
+# scenario restoration and avoid deforestation
 SFAge2010.restore10.mature <- SFAge2010.restore10
 SFAge2010.restore10.mature[SFAge2010.restore10.mature <= 10] <- 0
 SFAge2010.restore10.mature[SFAge2010.restore10.mature > 10] <- 1
 
-MF.restore10.b <- sum(UPF2020, DPF2020, SFAge2010.restore10.mature, na.rm = T)
+MF.restore10.b <- sum(UPF.avoiddefor, DPF2020, SFAge2010.restore10.mature, na.rm = T)
 MF.restore10.b[MF.restore10.b>1] <- 1
 ##cheking
 #MF.restore10.b
@@ -1732,9 +1772,38 @@ MF.restore10.b.px[is.nan(MF.restore10.b.px)] <- 0
 MF.restore10.b.px <- mask(MF.restore10.b.px, pgm.shp)
 
 #saving
-writeRaster(MF.restore10.b.px, "rasters/PGM/2020_restor_n_avoid/MFpx.tif", format="GTiff", overwrite=T)
+writeRaster(MF.restore10.b.px, "rasters/PGM/2020_restor_n_avoid_deforest/MFpx.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("MF.restore10.b.px")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+# scenario restoration and avoid both
+MF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.mature, na.rm = T)
+MF.restore10.c[MF.restore10.c>1] <- 1
+##cheking
+#MF.restore10.c
+#plot(MF.restore10.c)
+
+# mean upf cover in pixel scale (150m)
+MF.restore10.c.px <- focal(MF.restore10.c, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#MF.restore10.c.px
+#anyNA(MF.restore10.c.px[])
+#plot(MF.restore10.c.px)
+
+names(MF.restore10.c.px)<-"MFpx"
+MF.restore10.c.px[is.nan(MF.restore10.c.px)] <- 0
+MF.restore10.c.px <- mask(MF.restore10.c.px, pgm.shp)
+
+#saving
+writeRaster(MF.restore10.c.px, "rasters/PGM/2020_restor_n_avoid_both/MFpx.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("MF.restore10.c.px")]) #keeping only raster stack
 gc()
 
 
@@ -1884,7 +1953,7 @@ gc()
 #
 
 
-# scenario restoration and avoid
+# scenario restoration and avoid deforest
 pts <- rasterToPoints(MF.restore10.b, spatial=TRUE)
 core <- pts[pts$layer == "0",]
 #cheking
@@ -1902,7 +1971,35 @@ edge.dist.restore10.b[is.nan(edge.dist.restore10.b)] <- 0
 edge.dist.restore10.b <- mask(edge.dist.restore10.b, pgm.shp)
 
 #saving
-writeRaster(edge.dist.restore10.b, "rasters/PGM/2020_restor_n_avoid/edgedist.tif", format="GTiff", overwrite=T)
+writeRaster(edge.dist.restore10.b, "rasters/PGM/2020_restor_n_avoid_deforest/edgedist.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("pts", "core")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+# scenario restoration and avoid both
+pts <- rasterToPoints(MF.restore10.c, spatial=TRUE)
+core <- pts[pts$layer == "0",]
+#cheking
+#core
+#plot(core, add=T, col="red")
+
+edge.dist.restore10.c <- rasterDistance(pts, core, reference = MF.restore10.b, scale=TRUE)
+##cheking
+#edge.dist.restore10.b
+#anyNA(edge.dist.restore10.b[])
+#plot(edge.dist.restore10.b)
+
+names(edge.dist.restore10.c)<-"edgedist"
+edge.dist.restore10.c[is.nan(edge.dist.restore10.c)] <- 0
+edge.dist.restore10.c <- mask(edge.dist.restore10.c, pgm.shp)
+
+#saving
+writeRaster(edge.dist.restore10.c, "rasters/PGM/2020_restor_n_avoid_both/edgedist.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("pts", "core")]) #keeping only raster stack
 gc()
@@ -2159,7 +2256,7 @@ gc()
 #
 
 
-# scenario restoration and avoid
+# scenario restoration and avoid deforest
 # marking edge and core areas
 edge.restore10.b <- focal(MF.restore10.b, matrix(1,ncol=3,nrow=3), fun = mean, na.rm = T, pad = T)
 edge.restore10.b <- edge.restore10.b + MF.restore10.b
@@ -2182,7 +2279,7 @@ edge.restore10.b.px[is.nan(edge.restore10.b.px)] <- 0
 edge.restore10.b.px <- mask(edge.restore10.b.px, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.b.px, "rasters/PGM/2020_restor_n_avoid/edgepx.tif", format="GTiff", overwrite=T)
+writeRaster(edge.restore10.b.px, "rasters/PGM/2020_restor_n_avoid_deforest/edgepx.tif", format="GTiff", overwrite=T)
 #
 
 # mean sf cover in landscape scale (1050m)
@@ -2197,9 +2294,57 @@ edge.restore10.b.ls[is.nan(edge.restore10.b.ls)] <- 0
 edge.restore10.b.ls <- mask(edge.restore10.b.ls, pgm.shp)
 
 #saving
-writeRaster(edge.restore10.b.ls, "rasters/PGM/2020_restor_n_avoid/edgels.tif", format="GTiff", overwrite=T)
+writeRaster(edge.restore10.b.ls, "rasters/PGM/2020_restor_n_avoid_deforest/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("edge.restore10.b.px", "edge.restore10.b.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+
+
+# scenario restoration and avoid both
+# marking edge and core areas
+edge.restore10.c <- focal(MF.restore10.c, matrix(1,ncol=3,nrow=3), fun = mean, na.rm = T, pad = T)
+edge.restore10.c <- edge.restore10.c + MF.restore10.c
+edge.restore10.c[edge.restore10.c == 2] <- 0                  # core area
+edge.restore10.c[edge.restore10.c > 0 & edge.restore10.c < 2] <- 1    # edge
+#cheking
+#edge.restore10.c
+#unique(edge.restore10.c[])
+#plot(edge.restore10.c)
+
+# mean edge in pixel scale (150m)
+edge.restore10.c.px <- focal(edge.restore10.c, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
+##cheking
+#edge.restore10.c.px
+#anyNA(edge.restore10.c.px[])
+#plot(edge.restore10.c.px)
+
+names(edge.restore10.c.px)<-"edgepx"
+edge.restore10.c.px[is.nan(edge.restore10.c.px)] <- 0
+edge.restore10.c.px <- mask(edge.restore10.c.px, pgm.shp)
+
+#saving
+writeRaster(edge.restore10.c.px, "rasters/PGM/2020_restor_n_avoid_both/edgepx.tif", format="GTiff", overwrite=T)
+#
+
+# mean sf cover in landscape scale (1050m)
+edge.restore10.c.ls <- focal(edge.restore10.c, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+##cheking
+#edge.restore10.c.ls
+#anyNA(edge.restore10.c.ls[])
+#plot(edge.restore10.c.ls)
+
+names(edge.restore10.c.ls)<-"edgels"
+edge.restore10.c.ls[is.nan(edge.restore10.c.ls)] <- 0
+edge.restore10.c.ls <- mask(edge.restore10.c.ls, pgm.shp)
+
+#saving
+writeRaster(edge.restore10.c.ls, "rasters/PGM/2020_restor_n_avoid_both/edgels.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("edge.restore10.c.px", "edge.restore10.c.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2280,7 +2425,8 @@ writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddeforest/meantemps.tif", fo
 writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddegrad/meantemps.tif", format="GTiff", overwrite=T)
 writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoidboth/meantemps.tif", format="GTiff", overwrite=T)
 writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_wo_avoid/meantemps.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoid/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoid_deforest/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoid_both/meantemps.tif", format="GTiff", overwrite=T)
 #
 
 rm(list=ls()[ls() %in% c("temp.list", "temp2010.list", "meantemp2010", "temp2020.list", "meantemp2020")]) #keeping only raster stack
@@ -2365,7 +2511,8 @@ writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddeforest/meanprecips.tif"
 writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddegrad/meanprecips.tif", format="GTiff", overwrite=T)
 writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoidboth/meanprecips.tif", format="GTiff", overwrite=T)
 writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_wo_avoid/meanprecips.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid_deforest/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid_both/meanprecips.tif", format="GTiff", overwrite=T)
 #
 
 #optional

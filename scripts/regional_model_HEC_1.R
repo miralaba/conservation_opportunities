@@ -29,7 +29,6 @@ pgm.env.explanatory.var <- stack(pgm.env.explanatory.var.list)
 names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
 
 pgm.env.explanatory.var <- pgm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-pgm.env.explanatory.var<-aggregate(pgm.env.explanatory.var,fact=35,fun=mean,na.rm=T); pgm.env.explanatory.var<-stack(pgm.env.explanatory.var)
 ##cheking
 #pgm.env.explanatory.var
 #plot(pgm.env.explanatory.var[[1:10]], nc=2)
@@ -43,7 +42,6 @@ stm.env.explanatory.var <- stack(stm.env.explanatory.var.list)
 names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
 
 stm.env.explanatory.var <- stm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-stm.env.explanatory.var<-aggregate(stm.env.explanatory.var,fact=35,fun=mean,na.rm=T); stm.env.explanatory.var<-stack(stm.env.explanatory.var)
 ##cheking
 #stm.env.explanatory.var
 #plot(stm.env.explanatory.var[[1:10]], nc=2)
@@ -68,6 +66,7 @@ for (var in names(pgm.env.explanatory.var)) {
 
 #response variables
 forestdep.spplist <- read.csv("data/species_summary.csv")
+#forestdep.spplist <- read.csv("models.output/evaluation/updated_species_summary_v1.csv")
 
 sppdata.final <- read.csv("data/presence_records.csv")
 
@@ -87,7 +86,8 @@ dir.create("models.output/maps/PGM/2020_avoiddeforest", recursive = T)
 dir.create("models.output/maps/PGM/2020_avoiddegrad", recursive = T)
 dir.create("models.output/maps/PGM/2020_avoidboth", recursive = T)
 dir.create("models.output/maps/PGM/2020_restor_wo_avoid", recursive = T)
-dir.create("models.output/maps/PGM/2020_restor_n_avoid", recursive = T)
+dir.create("models.output/maps/PGM/2020_restor_n_avoid_deforest", recursive = T)
+dir.create("models.output/maps/PGM/2020_restor_n_avoid_both", recursive = T)
 
 dir.create("models.output/maps/STM", recursive = T)
 dir.create("models.output/maps/STM/2020_real", recursive = T)
@@ -95,7 +95,8 @@ dir.create("models.output/maps/STM/2020_avoiddeforest", recursive = T)
 dir.create("models.output/maps/STM/2020_avoiddegrad", recursive = T)
 dir.create("models.output/maps/STM/2020_avoidboth", recursive = T)
 dir.create("models.output/maps/STM/2020_restor_wo_avoid", recursive = T)
-dir.create("models.output/maps/STM/2020_restor_n_avoid", recursive = T)
+dir.create("models.output/maps/STM/2020_restor_n_avoid_deforest", recursive = T)
+dir.create("models.output/maps/STM/2020_restor_n_avoid_both", recursive = T)
 
 dir.create("models.output/evaluation", recursive = T)
 
@@ -103,8 +104,13 @@ dir.create("models.output/evaluation", recursive = T)
 #i <- as.character(forestdep.spplist$Binomial[1])
 for (i in forestdep.spplist$Binomial) {
   
-  if(forestdep.spplist[forestdep.spplist$Binomial==i, "Done"]==TRUE) next
+  #spliting the job
+  if(forestdep.spplist[forestdep.spplist$Binomial==i, "1"] != TRUE) next
   
+  #checking if model is done
+  if(forestdep.spplist[forestdep.spplist$Binomial==i, "Done"] == TRUE) next
+  
+  #starting modeling procedure
   occur <- sppdata.final[sppdata.final$Binomial==i,]
   
   if(nrow(occur)<5) next
@@ -214,7 +220,7 @@ for (i in forestdep.spplist$Binomial) {
   forestdep.spplist[forestdep.spplist$Binomial==i,"Specificity"] <- paste(round(mean(EMeval[EMeval$Eval.metric=="TSS","Specificity"]),2), "+/-", round(sd(EMeval[EMeval$Eval.metric=="TSS","Specificity"]),2))
   forestdep.spplist[forestdep.spplist$Binomial==i,"Cutoff"] <- paste(round((mean(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2), "+/-", round((sd(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2))
   
-  write.csv(forestdep.spplist, "models.output/evaluation/species_summary_n.csv")
+  write.csv(forestdep.spplist, "models.output/evaluation/updated_species_summary_v1.csv")
   
   if (any(occur$Region=="PGM")) {
     
@@ -225,7 +231,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("pgm.2020real.raster.list")
     
     pgm.2020real <- pgm.2020real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020real<-aggregate(pgm.2020real,fact=35,fun=mean,na.rm=T); pgm.2020real<-stack(pgm.2020real)
     ## checking
     #names(pgm.2020real)
     #plot(pgm.2020real[[12]])
@@ -234,7 +239,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020real <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for real scenario")
+      cat("\n\t> Projecting", m, "for real scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -265,7 +270,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020real.conbywm.bin, paste0("models.output/maps/PGM/2020_real/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df", "env.explanatory.var",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -280,7 +285,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("pgm.2020avoiddegrad.raster.list")
     
     pgm.2020avoiddegrad <- pgm.2020avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020avoiddegrad<-aggregate(pgm.2020avoiddegrad,fact=35,fun=mean,na.rm=T); pgm.2020avoiddegrad<-stack(pgm.2020avoiddegrad)
     ## checking
     #names(pgm.2020avoiddegrad)
     #plot(pgm.2020avoiddegrad[[12]])
@@ -289,7 +293,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoiddegrad <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid degradation scenario")
+      cat("\n\t> Projecting", m, "for avoid degradation scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -320,7 +324,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoiddegrad.conbywm.bin, paste0("models.output/maps/PGM/2020_avoiddegrad/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -335,7 +339,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("pgm.2020avoiddeforest.raster.list")
     
     pgm.2020avoiddeforest <- pgm.2020avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020avoiddeforest<-aggregate(pgm.2020avoiddeforest,fact=35,fun=mean,na.rm=T); pgm.2020avoiddeforest<-stack(pgm.2020avoiddeforest)
     ## checking
     #names(pgm.2020avoiddeforest)
     #plot(pgm.2020avoiddeforest[[12]])
@@ -344,7 +347,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoiddeforest <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid deforestation scenario")
+      cat("\n\t> Projecting", m, "for avoid deforestation scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -375,7 +378,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoiddeforest.conbywm.bin, paste0("models.output/maps/PGM/2020_avoiddeforest/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -390,7 +393,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("pgm.2020avoidboth.raster.list")
     
     pgm.2020avoidboth <- pgm.2020avoidboth[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020avoidboth<-aggregate(pgm.2020avoidboth,fact=35,fun=mean,na.rm=T); pgm.2020avoidboth<-stack(pgm.2020avoidboth)
     ## checking
     #names(pgm.2020avoidboth)
     #plot(pgm.2020avoidboth[[12]])
@@ -399,7 +401,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoidboth <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid both scenario")
+      cat("\n\t> Projecting", m, "for avoid both scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -430,7 +432,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoidboth.conbywm.bin, paste0("models.output/maps/PGM/2020_avoidboth/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -445,7 +447,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("pgm.2020restor_wo_avoid.raster.list")
     
     pgm.2020restor_wo_avoid <- pgm.2020restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020restor_wo_avoid<-aggregate(pgm.2020restor_wo_avoid,fact=35,fun=mean,na.rm=T); pgm.2020restor_wo_avoid<-stack(pgm.2020restor_wo_avoid)
     ## checking
     #names(pgm.2020restor_wo_avoid)
     #plot(pgm.2020restor_wo_avoid[[12]])
@@ -454,7 +455,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020restor_wo_avoid <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for restoration without avoid scenario")
+      cat("\n\t> Projecting", m, "for restoration without avoid scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -485,7 +486,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020restor_wo_avoid.conbywm.bin, paste0("models.output/maps/PGM/2020_restor_wo_avoid/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -493,23 +494,22 @@ for (i in forestdep.spplist$Binomial) {
     
     
     
-    # 2020 restoration and avoid
-    pgm.2020restor_n_avoid.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid/", pattern = ".tif", full.names = T, recursive = T)
-    pgm.2020restor_n_avoid <- stack(pgm.2020restor_n_avoid.raster.list)
-    names(pgm.2020restor_n_avoid) <- unlist(strsplit(pgm.2020restor_n_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
-    rm("pgm.2020restor_n_avoid.raster.list")
+    # 2020 restoration and avoid deforestation
+    pgm.2020restor_n_avoid_deforest.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020restor_n_avoid_deforest <- stack(pgm.2020restor_n_avoid_deforest.raster.list)
+    names(pgm.2020restor_n_avoid_deforest) <- unlist(strsplit(pgm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    rm("pgm.2020restor_n_avoid_deforest.raster.list")
     
-    pgm.2020restor_n_avoid <- pgm.2020restor_n_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    pgm.2020restor_n_avoid<-aggregate(pgm.2020restor_n_avoid,fact=35,fun=mean,na.rm=T); pgm.2020restor_n_avoid<-stack(pgm.2020restor_n_avoid)
+    pgm.2020restor_n_avoid_deforest <- pgm.2020restor_n_avoid_deforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
     ## checking
-    #names(pgm.2020restor_n_avoid)
-    #plot(pgm.2020restor_n_avoid[[12]])
+    #names(pgm.2020restor_n_avoid_deforest)
+    #plot(pgm.2020restor_n_avoid_deforest[[12]])
     #points(SpatialPoints(occur[,c("Longitude", "Latitude")]))
     
-    proj_2020restor_n_avoid <- stack()
+    proj_2020restor_n_avoid_deforest <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "restoration and avoid scenario")
+      cat("\n\t> Projecting", m, "restoration and avoid scenario in pgm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -518,29 +518,83 @@ for (i in forestdep.spplist$Binomial) {
         temp_workdir = mod@model_output_dir
       }
       
-      indivdual_proj_2020restor_n_avoid <- predict(mod, pgm.2020restor_n_avoid, temp_workdir = temp_workdir)
-      names(indivdual_proj_2020restor_n_avoid) <- m
-      proj_2020restor_n_avoid <- addLayer(proj_2020restor_n_avoid, indivdual_proj_2020restor_n_avoid)
+      indivdual_proj_2020restor_n_avoid_deforest <- predict(mod, pgm.2020restor_n_avoid_deforest, temp_workdir = temp_workdir)
+      names(indivdual_proj_2020restor_n_avoid_deforest) <- m
+      proj_2020restor_n_avoid_deforest <- addLayer(proj_2020restor_n_avoid_deforest, indivdual_proj_2020restor_n_avoid_deforest)
       
     }
     
     
     
     # building a consensus map by mean weight
-    proj_2020restor_n_avoid.conbywm <- weighted.mean(proj_2020restor_n_avoid, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
+    proj_2020restor_n_avoid_deforest.conbywm <- weighted.mean(proj_2020restor_n_avoid_deforest, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
     
-    writeRaster(proj_2020restor_n_avoid.conbywm, paste0("models.output/maps/PGM/2020_restor_n_avoid/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+    writeRaster(proj_2020restor_n_avoid_deforest.conbywm, paste0("models.output/maps/PGM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
     
     #cutoff.th <- round((mean(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2)
     #
-    #proj_2020restor_n_avoid.conbywm.bin <- proj_2020restor_n_avoid.conbywm
-    #proj_2020restor_n_avoid.conbywm.bin[proj_2020restor_n_avoid.conbywm.bin>=cutoff.th]<-1
-    #proj_2020restor_n_avoid.conbywm.bin[proj_2020restor_n_avoid.conbywm.bin<cutoff.th]<-0
+    #proj_2020restor_n_avoid_deforest.conbywm.bin <- proj_2020restor_n_avoid_deforest.conbywm
+    #proj_2020restor_n_avoid_deforest.conbywm.bin[proj_2020restor_n_avoid_deforest.conbywm.bin>=cutoff.th]<-1
+    #proj_2020restor_n_avoid_deforest.conbywm.bin[proj_2020restor_n_avoid_deforest.conbywm.bin<cutoff.th]<-0
     #
-    #writeRaster(proj_2020restor_n_avoid.conbywm.bin, paste0("models.output/maps/PGM/2020_restor_n_avoid/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
+    #writeRaster(proj_2020restor_n_avoid_deforest.conbywm.bin, paste0("models.output/maps/PGM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
+                                "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
+                                "chosen.models.from.ev", "chosen.models.from.all.models"))])
+    gc()
+    #
+    
+    
+    
+    # 2020 restoration and avoid both
+    pgm.2020restor_n_avoid_both.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020restor_n_avoid_both <- stack(pgm.2020restor_n_avoid_both.raster.list)
+    names(pgm.2020restor_n_avoid_both) <- unlist(strsplit(pgm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,80,4)]
+    rm("pgm.2020restor_n_avoid_both.raster.list")
+    
+    pgm.2020restor_n_avoid_both <- pgm.2020restor_n_avoid_both[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
+    ## checking
+    #names(pgm.2020restor_n_avoid_both)
+    #plot(pgm.2020restor_n_avoid_both[[12]])
+    #points(SpatialPoints(occur[,c("Longitude", "Latitude")]))
+    
+    proj_2020restor_n_avoid_both <- stack()
+    for(m in chosen.models.from.all.models){
+      
+      cat("\n\t> Projecting", m, "restoration and avoid scenario in pgm")
+      
+      BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
+      
+      temp_workdir = NULL
+      if (length(grep("MAXENT.Phillips$", m)) == 1) {
+        temp_workdir = mod@model_output_dir
+      }
+      
+      indivdual_proj_2020restor_n_avoid_both <- predict(mod, pgm.2020restor_n_avoid_both, temp_workdir = temp_workdir)
+      names(indivdual_proj_2020restor_n_avoid_both) <- m
+      proj_2020restor_n_avoid_both <- addLayer(proj_2020restor_n_avoid_both, indivdual_proj_2020restor_n_avoid_both)
+      
+    }
+    
+    
+    
+    # building a consensus map by mean weight
+    proj_2020restor_n_avoid_both.conbywm <- weighted.mean(proj_2020restor_n_avoid_both, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
+    
+    writeRaster(proj_2020restor_n_avoid_both.conbywm, paste0("models.output/maps/PGM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+    
+    #cutoff.th <- round((mean(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2)
+    #
+    #proj_2020restor_n_avoid_both.conbywm.bin <- proj_2020restor_n_avoid_both.conbywm
+    #proj_2020restor_n_avoid_both.conbywm.bin[proj_2020restor_n_avoid_both.conbywm.bin>=cutoff.th]<-1
+    #proj_2020restor_n_avoid_both.conbywm.bin[proj_2020restor_n_avoid_both.conbywm.bin<cutoff.th]<-0
+    #
+    #writeRaster(proj_2020restor_n_avoid_both.conbywm.bin, paste0("models.output/maps/PGM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
+    
+    
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -560,7 +614,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("stm.2020real.raster.list")
     
     stm.2020real <- stm.2020real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020real<-aggregate(stm.2020real,fact=35,fun=mean,na.rm=T); stm.2020real<-stack(stm.2020real)
     ## checking
     #names(stm.2020real)
     #plot(stm.2020real[[12]])
@@ -569,7 +622,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020real <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for real scenario")
+      cat("\n\t> Projecting", m, "for real scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -600,7 +653,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020real.conbywm.bin, paste0("models.output/maps/STM/2020_real/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -615,7 +668,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("stm.2020avoiddegrad.raster.list")
     
     stm.2020avoiddegrad <- stm.2020avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020avoiddegrad<-aggregate(stm.2020avoiddegrad,fact=35,fun=mean,na.rm=T); stm.2020avoiddegrad<-stack(stm.2020avoiddegrad)
     ## checking
     #names(stm.2020avoiddegrad)
     #plot(stm.2020avoiddegrad[[12]])
@@ -624,7 +676,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoiddegrad <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid degradation scenario")
+      cat("\n\t> Projecting", m, "for avoid degradation scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -655,7 +707,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoiddegrad.conbywm.bin, paste0("models.output/maps/STM/2020_avoiddegrad/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -670,7 +722,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("stm.2020avoiddeforest.raster.list")
     
     stm.2020avoiddeforest <- stm.2020avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020avoiddeforest<-aggregate(stm.2020avoiddeforest,fact=35,fun=mean,na.rm=T); stm.2020avoiddeforest<-stack(stm.2020avoiddeforest)
     ## checking
     #names(stm.2020avoiddeforest)
     #plot(stm.2020avoiddeforest[[12]])
@@ -679,7 +730,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoiddeforest <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid deforestation scenario")
+      cat("\n\t> Projecting", m, "for avoid deforestation scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -710,7 +761,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoiddeforest.conbywm.bin, paste0("models.output/maps/STM/2020_avoiddeforest/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -725,7 +776,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("stm.2020avoidboth.raster.list")
     
     stm.2020avoidboth <- stm.2020avoidboth[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020avoidboth<-aggregate(stm.2020avoidboth,fact=35,fun=mean,na.rm=T); stm.2020avoidboth<-stack(stm.2020avoidboth)
     ## checking
     #names(stm.2020avoidboth)
     #plot(stm.2020avoidboth[[12]])
@@ -734,7 +784,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020avoidboth <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for avoid both scenario")
+      cat("\n\t> Projecting", m, "for avoid both scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -765,7 +815,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020avoidboth.conbywm.bin, paste0("models.output/maps/STM/2020_avoidboth/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -780,7 +830,6 @@ for (i in forestdep.spplist$Binomial) {
     rm("stm.2020restor_wo_avoid.raster.list")
     
     stm.2020restor_wo_avoid <- stm.2020restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020restor_wo_avoid<-aggregate(stm.2020restor_wo_avoid,fact=35,fun=mean,na.rm=T); stm.2020restor_wo_avoid<-stack(stm.2020restor_wo_avoid)
     ## checking
     #names(stm.2020restor_wo_avoid)
     #plot(stm.2020restor_wo_avoid[[12]])
@@ -789,7 +838,7 @@ for (i in forestdep.spplist$Binomial) {
     proj_2020restor_wo_avoid <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "for restoration without avoid scenario")
+      cat("\n\t> Projecting", m, "for restoration without avoid scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -820,7 +869,7 @@ for (i in forestdep.spplist$Binomial) {
     #writeRaster(proj_2020restor_wo_avoid.conbywm.bin, paste0("models.output/maps/STM/2020_restor_wo_avoid/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -828,23 +877,22 @@ for (i in forestdep.spplist$Binomial) {
     
     
     
-    # 2020 restoration and avoid
-    stm.2020restor_n_avoid.raster.list <- list.files("rasters/STM/2020_restor_n_avoid/", pattern = ".tif", full.names = T, recursive = T)
-    stm.2020restor_n_avoid <- stack(stm.2020restor_n_avoid.raster.list)
-    names(stm.2020restor_n_avoid) <- unlist(strsplit(stm.2020restor_n_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
-    rm("stm.2020restor_n_avoid.raster.list")
+    # 2020 restoration and avoid deforestation
+    stm.2020restor_n_avoid_deforest.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020restor_n_avoid_deforest <- stack(stm.2020restor_n_avoid_deforest.raster.list)
+    names(stm.2020restor_n_avoid_deforest) <- unlist(strsplit(stm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    rm("stm.2020restor_n_avoid_deforest.raster.list")
     
-    stm.2020restor_n_avoid <- stm.2020restor_n_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
-    stm.2020restor_n_avoid<-aggregate(stm.2020restor_n_avoid,fact=35,fun=mean,na.rm=T); stm.2020restor_n_avoid<-stack(stm.2020restor_n_avoid)
+    stm.2020restor_n_avoid_deforest <- stm.2020restor_n_avoid_deforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
     ## checking
-    #names(stm.2020restor_n_avoid)
-    #plot(stm.2020restor_n_avoid[[12]])
+    #names(stm.2020restor_n_avoid_deforest)
+    #plot(stm.2020restor_n_avoid_deforest[[12]])
     #points(SpatialPoints(occur[,c("Longitude", "Latitude")]))
     
-    proj_2020restor_n_avoid <- stack()
+    proj_2020restor_n_avoid_deforest <- stack()
     for(m in chosen.models.from.all.models){
       
-      cat("\n\t> Projecting", m, "restoration and avoid scenario")
+      cat("\n\t> Projecting", m, "restoration and avoid scenario in stm")
       
       BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
       
@@ -853,29 +901,83 @@ for (i in forestdep.spplist$Binomial) {
         temp_workdir = mod@model_output_dir
       }
       
-      indivdual_proj_2020restor_n_avoid <- predict(mod, stm.2020restor_n_avoid, temp_workdir = temp_workdir)
-      names(indivdual_proj_2020restor_n_avoid) <- m
-      proj_2020restor_n_avoid <- addLayer(proj_2020restor_n_avoid, indivdual_proj_2020restor_n_avoid)
+      indivdual_proj_2020restor_n_avoid_deforest <- predict(mod, stm.2020restor_n_avoid_deforest, temp_workdir = temp_workdir)
+      names(indivdual_proj_2020restor_n_avoid_deforest) <- m
+      proj_2020restor_n_avoid_deforest <- addLayer(proj_2020restor_n_avoid_deforest, indivdual_proj_2020restor_n_avoid_deforest)
       
     }
     
     
     
     # building a consensus map by mean weight
-    proj_2020restor_n_avoid.conbywm <- weighted.mean(proj_2020restor_n_avoid, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
+    proj_2020restor_n_avoid_deforest.conbywm <- weighted.mean(proj_2020restor_n_avoid_deforest, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
     
-    writeRaster(proj_2020restor_n_avoid.conbywm, paste0("models.output/maps/STM/2020_restor_n_avoid/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+    writeRaster(proj_2020restor_n_avoid_deforest.conbywm, paste0("models.output/maps/STM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
     
     #cutoff.th <- round((mean(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2)
     #
-    #proj_2020restor_n_avoid.conbywm.bin <- proj_2020restor_n_avoid.conbywm
-    #proj_2020restor_n_avoid.conbywm.bin[proj_2020restor_n_avoid.conbywm.bin>=cutoff.th]<-1
-    #proj_2020restor_n_avoid.conbywm.bin[proj_2020restor_n_avoid.conbywm.bin<cutoff.th]<-0
+    #proj_2020restor_n_avoid_deforest.conbywm.bin <- proj_2020restor_n_avoid_deforest.conbywm
+    #proj_2020restor_n_avoid_deforest.conbywm.bin[proj_2020restor_n_avoid_deforest.conbywm.bin>=cutoff.th]<-1
+    #proj_2020restor_n_avoid_deforest.conbywm.bin[proj_2020restor_n_avoid_deforest.conbywm.bin<cutoff.th]<-0
     #
-    #writeRaster(proj_2020restor_n_avoid.conbywm.bin, paste0("models.output/maps/STM/2020_restor_n_avoid/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
+    #writeRaster(proj_2020restor_n_avoid_deforest.conbywm.bin, paste0("models.output/maps/STM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
     
     
-    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur", "sel.var.df",
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
+                                "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
+                                "chosen.models.from.ev", "chosen.models.from.all.models"))])
+    gc()
+    #
+    
+    
+    
+    # 2020 restoration and avoid both
+    stm.2020restor_n_avoid_both.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020restor_n_avoid_both <- stack(stm.2020restor_n_avoid_both.raster.list)
+    names(stm.2020restor_n_avoid_both) <- unlist(strsplit(stm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,80,4)]
+    rm("stm.2020restor_n_avoid_both.raster.list")
+    
+    stm.2020restor_n_avoid_both <- stm.2020restor_n_avoid_both[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
+    ## checking
+    #names(stm.2020restor_n_avoid_both)
+    #plot(stm.2020restor_n_avoid_both[[12]])
+    #points(SpatialPoints(occur[,c("Longitude", "Latitude")]))
+    
+    proj_2020restor_n_avoid_both <- stack()
+    for(m in chosen.models.from.all.models){
+      
+      cat("\n\t> Projecting", m, "restoration and avoid scenario in stm")
+      
+      BIOMOD_LoadModels(bm.out = myBiomodModelOut, full.name = m, as = "mod")
+      
+      temp_workdir = NULL
+      if (length(grep("MAXENT.Phillips$", m)) == 1) {
+        temp_workdir = mod@model_output_dir
+      }
+      
+      indivdual_proj_2020restor_n_avoid_both <- predict(mod, stm.2020restor_n_avoid_both, temp_workdir = temp_workdir)
+      names(indivdual_proj_2020restor_n_avoid_both) <- m
+      proj_2020restor_n_avoid_both <- addLayer(proj_2020restor_n_avoid_both, indivdual_proj_2020restor_n_avoid_both)
+      
+    }
+    
+    
+    
+    # building a consensus map by mean weight
+    proj_2020restor_n_avoid_both.conbywm <- weighted.mean(proj_2020restor_n_avoid_both, EMeval[EMeval$Eval.metric=="TSS","Testing.data"], na.rm=T)
+    
+    writeRaster(proj_2020restor_n_avoid_both.conbywm, paste0("models.output/maps/STM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+    
+    #cutoff.th <- round((mean(EMeval[EMeval$Eval.metric=="TSS","Cutoff"]))/1000,2)
+    #
+    #proj_2020restor_n_avoid_both.conbywm.bin <- proj_2020restor_n_avoid_both.conbywm
+    #proj_2020restor_n_avoid_both.conbywm.bin[proj_2020restor_n_avoid_both.conbywm.bin>=cutoff.th]<-1
+    #proj_2020restor_n_avoid_both.conbywm.bin[proj_2020restor_n_avoid_both.conbywm.bin<cutoff.th]<-0
+    #
+    #writeRaster(proj_2020restor_n_avoid_both.conbywm.bin, paste0("models.output/maps/STM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run_TSSBin.tif"), format = "GTiff", overwrite = T)
+    
+    
+    rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var",
                                 "myBiomodData", "myBiomodOption", "myBiomodModelOut", "ev", "eval_threshold", "EMeval",
                                 "chosen.models.from.ev", "chosen.models.from.all.models"))])
     gc()
@@ -887,9 +989,9 @@ for (i in forestdep.spplist$Binomial) {
 #
 
   forestdep.spplist[forestdep.spplist$Binomial==i,"Done"] <- TRUE
-  write.csv(forestdep.spplist, "models.output/evaluation/updated_species_summary_vn.csv")
+  write.csv(forestdep.spplist, "models.output/evaluation/updated_species_summary_v1.csv")
   
-  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i"))])
+  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "pa.data", "occur", "sel.var.df", "env.explanatory.var"))])
 
 
   #do.call(file.remove, list(list.files(paste0("models.output/", i), full.names = T, recursive = T)))

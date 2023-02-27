@@ -245,6 +245,7 @@ forestdep.spplist$TSS<-NA
 forestdep.spplist$Sensitivity<-NA
 forestdep.spplist$Specificity<-NA
 forestdep.spplist$Cutoff<-NA
+forestdep.spplist$job <- c(rep(1:15, each=floor(length(unique(sppdata.final$Binomial))/15)),15)
 forestdep.spplist$Done <- "FALSE"
 
 rm(list= ls()[!(ls() %in% c("env.explanatory.var", "sel.var.df", "forestdep.spplist", "sppdata.final"))])
