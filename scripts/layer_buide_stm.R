@@ -67,6 +67,19 @@ names(stm.lulc) <- c("stm.lulc.2010real", "stm.lulc.2020real")
 # 39 == Soybean               == Farming
 # 41 == Other Temporary Crops == Farming
 
+#stm.lulc.2010.df <- as.data.frame(stm.lulc[["stm.lulc.2010real"]], xy = TRUE)
+#breakpoints <- sort(unique(stm.lulc.2010.df$stm.lulc.2010real))
+#labels.legend <- c("Non Observed", "Forest Formation", "Savanna Formation", "Wetland", "Grassland",
+#                   "Pasture", "Urban Area", "Water", "Soybean", "Other Temporary Crops")
+#mapbiomas.legend <- c("#ffffff", "#006400", "#32CD32", "#45C2A5", "#B8AF4F", "#B8AF4F", "#af2a2a",
+#                      "#0000FF", "#c59ff4", "#e787f8")
+#
+#ggplot() +
+#  geom_raster(data = stm.lulc.2010.df , aes(x = x, y = y, fill = factor(stm.lulc.2010real))) + 
+#  scale_fill_manual(breaks = breakpoints, values = mapbiomas.legend, labels = labels.legend, name = "LULC Classes") +
+#  theme_void()
+
+
 # isolating forest class pixels
 stm.lulc.2010.forest.class <- stm.lulc[["stm.lulc.2010real"]]
 stm.lulc.2010.forest.class[stm.lulc.2010.forest.class==3] <- 1
@@ -1574,7 +1587,7 @@ gc()
 
 
 # scenario restoration and avoid both
-TF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.young, na.rm = T)
+TF.restore10.c <- sum(UPF2010, DPF2010, SFAge2010.restore10.young, na.rm = T)
 TF.restore10.c[TF.restore10.c>1] <- 1
 ##cheking
 #TF.restore10.c
@@ -1800,7 +1813,7 @@ gc()
 
 
 # scenario restoration and avoid both
-MF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.mature, na.rm = T)
+MF.restore10.c <- sum(UPF2010, DPF2010, SFAge2010.restore10.mature, na.rm = T)
 MF.restore10.c[MF.restore10.c>1] <- 1
 ##cheking
 #MF.restore10.c

@@ -52,7 +52,6 @@ pgm.lulc <- stack(c("rasters/PGM/input/pgm-2010-lulc-mapbiomas-brazil-collection
 names(pgm.lulc) <- c("pgm.lulc.2010real", "pgm.lulc.2020real")
 #checking
 #pgm.lulc
-#plot(pgm.lulc)
 #sort(unique(values(pgm.lulc[["pgm.lulc.2010real"]])))
 
 # land ues land cover pixel values and codes
@@ -69,6 +68,19 @@ names(pgm.lulc) <- c("pgm.lulc.2010real", "pgm.lulc.2020real")
 # 39 == Soybean               == Farming
 # 41 == Other Temporary Crops == Farming
 # 48 == Other Perennial Crops == Farming
+
+#pgm.lulc.2010.df <- as.data.frame(pgm.lulc[["pgm.lulc.2010real"]], xy = TRUE)
+#breakpoints <- sort(unique(pgm.lulc.2010.df$pgm.lulc.2010real))
+#labels.legend <- c("Non Observed", "Forest Formation", "Savanna Formation", "Forest Plantation", "Wetland", "Grassland",
+#                   "Pasture", "Urban Area", "Mining", "Water", "Soybean", "Other Temporary Crops", "Other Perennial Crops")
+#mapbiomas.legend <- c("#ffffff", "#006400", "#32CD32", "#935132", "#45C2A5", "#B8AF4F", "#B8AF4F", "#af2a2a", "#8A2BE2",
+#                      "#0000FF", "#c59ff4", "#e787f8", "#cd49e4")
+#
+#ggplot() +
+#  geom_raster(data = pgm.lulc.2010.df , aes(x = x, y = y, fill = factor(pgm.lulc.2010real))) + 
+#  scale_fill_manual(breaks = breakpoints, values = mapbiomas.legend, labels = labels.legend, name = "LULC Classes") +
+#  theme_void()
+
 
 # isolating forest class pixels
 pgm.lulc.2010.forest.class <- pgm.lulc[["pgm.lulc.2010real"]]
@@ -149,7 +161,7 @@ candidate.areas.total <- pgm.lulc[["pgm.lulc.2010real"]]
 values(candidate.areas.total)[values(candidate.areas.total) %in% deforestation.class.list] = 1
 values(candidate.areas.total)[values(candidate.areas.total) > 1] = 0
 names(candidate.areas.total) <- "restoration.candidate.areas"
-#plot(candidate.areas.total)
+#plot(candidate.areas.total, col=c("#ffffff","#B8AF4F"), legend = F)
 
 #select pixels based on proximity to water (<500m), slope (>25°) and proximity to forest (<1000m)
 dist.river.all <- dist.river
@@ -161,7 +173,7 @@ candidate.areas.water <- candidate.areas.total
 candidate.areas.water <- mask(candidate.areas.water, dist.river)
 values(candidate.areas.water)[is.na(values(candidate.areas.water))] = 0
 candidate.areas.water <- mask(candidate.areas.water, pgm.shp)
-#plot(candidate.areas.water)
+#plot(candidate.areas.water, col=c("#ffffff","#B8AF4F"))
 
 
 
@@ -174,7 +186,7 @@ candidate.areas.slope <- candidate.areas.total
 candidate.areas.slope <- mask(candidate.areas.slope, slope)
 values(candidate.areas.slope)[is.na(values(candidate.areas.slope))] = 0
 candidate.areas.slope <- mask(candidate.areas.slope, pgm.shp)
-#plot(candidate.areas.slope)
+#plot(candidate.areas.slope, col="#ffffff")
 
 
 forest.class <- pgm.lulc[["pgm.lulc.2010real"]]
@@ -195,12 +207,12 @@ candidate.areas.forest <- candidate.areas.total
 candidate.areas.forest <- mask(candidate.areas.forest, deforest.dist)
 values(candidate.areas.forest)[is.na(values(candidate.areas.forest))] = 0
 candidate.areas.forest <- mask(candidate.areas.forest, pgm.shp)
-#plot(candidate.areas.forest)
+#plot(candidate.areas.forest, col=c("#ffffff","#B8AF4F"))
 
 
 candidate.areas.final <- sum(candidate.areas.water,candidate.areas.slope,candidate.areas.forest)
 values(candidate.areas.final)[values(candidate.areas.final) >= 1] = 1
-#plot(candidate.areas.final)
+#plot(candidate.areas.final, col=c("#ffffff","#B8AF4F"), legend = F)
 
 #select rural properties with less than 50% of forest cover in 2010
 
@@ -241,7 +253,7 @@ candidate.areas.final.copy <- candidate.areas.final
 candidate.areas.final <- mask(candidate.areas.final, pgm.car.restoration.candidates)
 values(candidate.areas.final)[is.na(values(candidate.areas.final))] = 0
 candidate.areas.final <- mask(candidate.areas.final, pgm.shp)
-#plot(candidate.areas.final)
+#plot(candidate.areas.final, col=c("#ffffff","#B8AF4F"), legend = F)
 #plot(pgm.car.restoration.candidates, add=T)
 
 
@@ -334,7 +346,7 @@ pgm.car.restoration.candidates.l80 <- pgm.car.restoration.candidates.l80[-which(
 
 candidate.areas.final.copy <- candidate.areas.final
 j=nrow(pgm.car.restoration.candidates.l80@data)
-#i="PA-1505502-8B1A6744B90E42C6BC856664188651AF"
+#i="PA-1505502-B640BA807A4345D5BCAF725EA7424517"
 for (i in pgm.car.restoration.candidates.l80$COD_IMOVEL) {
   
   rural.property <- pgm.car.restoration.candidates.l80[pgm.car.restoration.candidates.l80$COD_IMOVEL==i,]
@@ -367,7 +379,7 @@ for (i in pgm.car.restoration.candidates.l80$COD_IMOVEL) {
 #length(candidate.areas.final[candidate.areas.final[]==1])
 
 candidate.areas.final <- mask(candidate.areas.final, pgm.shp)
-#plot(candidate.areas.final)
+#plot(candidate.areas.final, col=c("#ffffff","#B8AF4F"), legend = F, main="candidate areas final")
 #plot(pgm.car.restoration.candidates, add=T)
 #candidate.areas.final <- raster("rasters/PGM/input/restoration_candidate_areas.tif")
 
@@ -1557,7 +1569,7 @@ gc()
 
 
 # scenario restoration and avoid both
-TF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.young, na.rm = T)
+TF.restore10.c <- sum(UPF2010, DPF2010, SFAge2010.restore10.young, na.rm = T)
 TF.restore10.c[TF.restore10.c>1] <- 1
 ##cheking
 #TF.restore10.c
@@ -1783,7 +1795,7 @@ gc()
 
 
 # scenario restoration and avoid both
-MF.restore10.c <- sum(UPF2020, DPF2020, SFAge2010.restore10.mature, na.rm = T)
+MF.restore10.c <- sum(UPF2010, DPF2010, SFAge2010.restore10.mature, na.rm = T)
 MF.restore10.c[MF.restore10.c>1] <- 1
 ##cheking
 #MF.restore10.c
