@@ -149,6 +149,26 @@ writeRaster(elevation, "rasters/PGM/2020_restor_n_avoid_both/elevation.tif", for
 
 #
 
+#import rural properties shapefiles and data from SISCAR
+#https://www.car.gov.br/publico/municipios/downloads
+pgm.car <- readOGR(dsn = "rasters/PGM/input/SHAPE_1505502_CAR_Paragominas", layer = "AREA_IMOVEL")
+#head(pgm.car@data)
+#plot(pgm.car, add=T)
+pgm.car.raster <- rasterize(pgm.car, pgm.lulc, field = "NUM_AREA", fun = "mean")
+  
+#saving
+writeRaster(pgm.car.raster, "rasters/PGM/2010_real/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_real/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_wo_avoid/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoid_both/property.tif", format="GTiff", overwrite=T)
+
+#
+
+
+
 
 #### candidate areas for restoration scenarios ####
 
@@ -216,11 +236,6 @@ values(candidate.areas.final)[values(candidate.areas.final) >= 1] = 1
 
 #select rural properties with less than 50% of forest cover in 2010
 
-#import rural properties shapefiles and data from SISCAR
-#https://www.car.gov.br/publico/municipios/downloads
-pgm.car <- readOGR(dsn = "rasters/PGM/input/SHAPE_1505502_CAR_Paragominas", layer = "AREA_IMOVEL")
-#head(pgm.car@data)
-#plot(pgm.car, add=T)
 
 
 #calculate forest cover in each property and select properties with <50%

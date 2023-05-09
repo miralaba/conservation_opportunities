@@ -147,6 +147,61 @@ writeRaster(elevation, "rasters/STM/2020_restor_n_avoid_both/elevation.tif", for
 
 #
 
+#import rural properties shapefiles and data from SISCAR
+#https://www.car.gov.br/publico/municipios/downloads
+stm.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1506807_Santarem", layer = "AREA_IMOVEL")
+#head(stm.car@data)
+#plot(stm.car)
+
+btr.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1501451_Belterra", layer = "AREA_IMOVEL")
+#head(btr.car@data)
+#plot(btr.car, add=T)
+
+mjc.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1504752_Mojui_dos_Campos", layer = "AREA_IMOVEL")
+#head(mjc.car@data)
+#plot(mjc.car, add=T)
+
+stm.car <- rbind(stm.car,btr.car,mjc.car)
+stm.car <- crop(stm.car, extent(stm.shp))
+
+#excluding protected areas
+stm.car <- stm.car[-which(stm.car@data$TIPO_IMOVE=="PCT"),]
+#head(stm.car@data)
+#plot(stm.car, add=T)
+stm.car.raster <- rasterize(stm.car, stm.lulc[[1]], field = "NUM_AREA", fun = "mean")
+
+#1st edition -- replacing 0 and water to NA
+stm.lulc.mask <- stm.lulc[[1]]
+stm.lulc.mask[stm.lulc.mask == 0] <- NA
+stm.lulc.mask[stm.lulc.mask == 33] <- NA
+
+stm.car.raster <- mask(stm.car.raster, stm.lulc.mask)
+
+#2nd edition -- excluding areas on islands
+pts <- st_as_sf(gBuffer(SpatialPoints(coords = cbind(c(-54.7,-54.47),c(-2.22,-2.43))), width = .2))
+
+mask <- st_bbox(stm.car.raster) %>% # take extent of your raster... 
+  st_as_sfc() %>% # make it a sf object
+  st_set_crs(st_crs(pts)) %>% # in CRS of your polygon 
+  st_difference(pts) %>% # intersect with the polygon object
+  st_as_sf() # interpret as sf (and not sfc) object
+
+stm.car.raster <- mask(stm.car.raster, mask)
+
+
+#saving
+writeRaster(stm.car.raster, "rasters/STM/2010_real/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_real/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_avoiddeforest/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_avoiddegrad/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_avoidboth/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_restor_wo_avoid/property.tif", format="GTiff", overwrite=T)
+writeRaster(stm.car.raster, "rasters/STM/2020_restor_n_avoid_both/property.tif", format="GTiff", overwrite=T)
+
+#
+
+
+
 
 #### candidate areas for restoration scenarios ####
 
@@ -214,27 +269,6 @@ values(candidate.areas.final)[values(candidate.areas.final) >= 1] = 1
 
 #select rural properties with less than 50% of forest cover in 2010
 
-#import rural properties shapefiles and data from SISCAR
-#https://www.car.gov.br/publico/municipios/downloads
-stm.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1506807_Santarem", layer = "AREA_IMOVEL")
-#head(stm.car@data)
-#plot(stm.car)
-
-btr.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1501451_Belterra", layer = "AREA_IMOVEL")
-#head(btr.car@data)
-#plot(btr.car, add=T)
-
-mjc.car <- readOGR(dsn = "rasters/STM/input/SHAPE_1504752_Mojui_dos_Campos", layer = "AREA_IMOVEL")
-#head(mjc.car@data)
-#plot(mjc.car, add=T)
-
-stm.car <- rbind(stm.car,btr.car,mjc.car)
-stm.car <- crop(stm.car, extent(stm.shp))
-
-#excluding protected areas
-stm.car <- stm.car[-which(stm.car@data$TIPO_IMOVE=="PCT"),]
-#head(stm.car@data)
-#plot(stm.car, add=T)
 
 
 #calculate forest cover in each property and select properties with <50%
@@ -402,7 +436,7 @@ candidate.areas.final <- mask(candidate.areas.final, stm.shp)
 #candidate.areas.final <- raster("rasters/STM/input/restoration_candidate_areas.tif")
 
 rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "dist.road",
-                          "dist.river.all", "elevation", "candidate.areas.final")]) #keeping only raster stack
+                          "dist.river.all", "elevation", "stm.car.raster", "candidate.areas.final")]) #keeping only raster stack
 gc()
 
 
@@ -555,7 +589,7 @@ stm.sfage.2020.all.class[stm.sfage.2020.all.class<1] <- 0
 
 
 rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "dist.road",
-                          "dist.river.all", "elevation", "candidate.areas.final", "stm.degrad", "stm.degrad.2010.forest.class",
+                          "dist.river.all", "elevation", "stm.car.raster", "candidate.areas.final", "stm.degrad", "stm.degrad.2010.forest.class",
                           "stm.degrad.2020.forest.class", "stm.sfage", "stm.sfage.2010.all.class", "stm.sfage.2020.all.class")]) #keeping only raster stack
 gc()
 
