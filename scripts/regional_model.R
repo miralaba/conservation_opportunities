@@ -26,7 +26,7 @@ sel.var.df <- read.csv("rasters/selected_environmental_explanatory_variables_byV
 pgm.env.explanatory.var.list <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 pgm.env.explanatory.var <- stack(pgm.env.explanatory.var.list)
-names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,84,4)]
 
 pgm.env.explanatory.var <- pgm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 ##cheking
@@ -39,7 +39,7 @@ pgm.env.explanatory.var <- pgm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df
 stm.env.explanatory.var.list <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 stm.env.explanatory.var <- stack(stm.env.explanatory.var.list)
-names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
+names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,84,4)]
 
 stm.env.explanatory.var <- stm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 ##cheking
@@ -243,7 +243,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 real
     pgm.2020real.raster.list <- list.files("rasters/PGM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020real <- stack(pgm.2020real.raster.list)
-    names(pgm.2020real) <- unlist(strsplit(pgm.2020real.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020real) <- unlist(strsplit(pgm.2020real.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020real.raster.list")
     
     pgm.2020real <- pgm.2020real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -297,7 +297,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid degradation
     pgm.2020avoiddegrad.raster.list <- list.files("rasters/PGM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020avoiddegrad <- stack(pgm.2020avoiddegrad.raster.list)
-    names(pgm.2020avoiddegrad) <- unlist(strsplit(pgm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020avoiddegrad) <- unlist(strsplit(pgm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020avoiddegrad.raster.list")
     
     pgm.2020avoiddegrad <- pgm.2020avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -351,7 +351,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid deforestation
     pgm.2020avoiddeforest.raster.list <- list.files("rasters/PGM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020avoiddeforest <- stack(pgm.2020avoiddeforest.raster.list)
-    names(pgm.2020avoiddeforest) <- unlist(strsplit(pgm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020avoiddeforest) <- unlist(strsplit(pgm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020avoiddeforest.raster.list")
     
     pgm.2020avoiddeforest <- pgm.2020avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -405,7 +405,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid both
     pgm.2020avoidboth.raster.list <- list.files("rasters/PGM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020avoidboth <- stack(pgm.2020avoidboth.raster.list)
-    names(pgm.2020avoidboth) <- unlist(strsplit(pgm.2020avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020avoidboth) <- unlist(strsplit(pgm.2020avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020avoidboth.raster.list")
     
     pgm.2020avoidboth <- pgm.2020avoidboth[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -459,7 +459,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration without avoid
     pgm.2020restor_wo_avoid.raster.list <- list.files("rasters/PGM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020restor_wo_avoid <- stack(pgm.2020restor_wo_avoid.raster.list)
-    names(pgm.2020restor_wo_avoid) <- unlist(strsplit(pgm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020restor_wo_avoid) <- unlist(strsplit(pgm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020restor_wo_avoid.raster.list")
     
     pgm.2020restor_wo_avoid <- pgm.2020restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -513,7 +513,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration and avoid deforestation
     pgm.2020restor_n_avoid_deforest.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020restor_n_avoid_deforest <- stack(pgm.2020restor_n_avoid_deforest.raster.list)
-    names(pgm.2020restor_n_avoid_deforest) <- unlist(strsplit(pgm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020restor_n_avoid_deforest) <- unlist(strsplit(pgm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020restor_n_avoid_deforest.raster.list")
     
     pgm.2020restor_n_avoid_deforest <- pgm.2020restor_n_avoid_deforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -567,7 +567,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration and avoid both
     pgm.2020restor_n_avoid_both.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
     pgm.2020restor_n_avoid_both <- stack(pgm.2020restor_n_avoid_both.raster.list)
-    names(pgm.2020restor_n_avoid_both) <- unlist(strsplit(pgm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(pgm.2020restor_n_avoid_both) <- unlist(strsplit(pgm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("pgm.2020restor_n_avoid_both.raster.list")
     
     pgm.2020restor_n_avoid_both <- pgm.2020restor_n_avoid_both[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -626,7 +626,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 real
     stm.2020real.raster.list <- list.files("rasters/STM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020real <- stack(stm.2020real.raster.list)
-    names(stm.2020real) <- unlist(strsplit(stm.2020real.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020real) <- unlist(strsplit(stm.2020real.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020real.raster.list")
     
     stm.2020real <- stm.2020real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -680,7 +680,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid degradation
     stm.2020avoiddegrad.raster.list <- list.files("rasters/STM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020avoiddegrad <- stack(stm.2020avoiddegrad.raster.list)
-    names(stm.2020avoiddegrad) <- unlist(strsplit(stm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020avoiddegrad) <- unlist(strsplit(stm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020avoiddegrad.raster.list")
     
     stm.2020avoiddegrad <- stm.2020avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -734,7 +734,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid deforestation
     stm.2020avoiddeforest.raster.list <- list.files("rasters/STM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020avoiddeforest <- stack(stm.2020avoiddeforest.raster.list)
-    names(stm.2020avoiddeforest) <- unlist(strsplit(stm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020avoiddeforest) <- unlist(strsplit(stm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020avoiddeforest.raster.list")
     
     stm.2020avoiddeforest <- stm.2020avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -788,7 +788,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 avoid both
     stm.2020avoidboth.raster.list <- list.files("rasters/STM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020avoidboth <- stack(stm.2020avoidboth.raster.list)
-    names(stm.2020avoidboth) <- unlist(strsplit(stm.2020avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020avoidboth) <- unlist(strsplit(stm.2020avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020avoidboth.raster.list")
     
     stm.2020avoidboth <- stm.2020avoidboth[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -842,7 +842,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration without avoid
     stm.2020restor_wo_avoid.raster.list <- list.files("rasters/STM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020restor_wo_avoid <- stack(stm.2020restor_wo_avoid.raster.list)
-    names(stm.2020restor_wo_avoid) <- unlist(strsplit(stm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020restor_wo_avoid) <- unlist(strsplit(stm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020restor_wo_avoid.raster.list")
     
     stm.2020restor_wo_avoid <- stm.2020restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -896,7 +896,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration and avoid deforestation
     stm.2020restor_n_avoid_deforest.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020restor_n_avoid_deforest <- stack(stm.2020restor_n_avoid_deforest.raster.list)
-    names(stm.2020restor_n_avoid_deforest) <- unlist(strsplit(stm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020restor_n_avoid_deforest) <- unlist(strsplit(stm.2020restor_n_avoid_deforest.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020restor_n_avoid_deforest.raster.list")
     
     stm.2020restor_n_avoid_deforest <- stm.2020restor_n_avoid_deforest[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -950,7 +950,7 @@ for (i in forestdep.spplist$Binomial) {
     # 2020 restoration and avoid both
     stm.2020restor_n_avoid_both.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
     stm.2020restor_n_avoid_both <- stack(stm.2020restor_n_avoid_both.raster.list)
-    names(stm.2020restor_n_avoid_both) <- unlist(strsplit(stm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,80,4)]
+    names(stm.2020restor_n_avoid_both) <- unlist(strsplit(stm.2020restor_n_avoid_both.raster.list, "/|.tif"))[seq(4,84,4)]
     rm("stm.2020restor_n_avoid_both.raster.list")
     
     stm.2020restor_n_avoid_both <- stm.2020restor_n_avoid_both[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
@@ -1175,6 +1175,129 @@ if (any(occur$Region=="STM")) {
   j=j-1
   cat("\n> species", i, "done; now", j, "species to go <\n")
 }
+
+
+# importing species list and methods and evaluation metrics data frame
+forestdep.spplist <- read.csv("data/species_summary_final.csv")
+
+#### adding variable on conservation value ####
+
+# bird conservation value is inverse occurrence area size
+# scaled from 0 [the biggest] to 1 [the smallest]
+# based on birdlife_v2017b shapefiles
+bird.distribution.shp <- readOGR(dsn="D:/GIS/shapes/bird_distr_BirdLifeInternational2016", layer="Birds_of_Amazonia")
+head(bird.distribution.shp@data)
+# adding variable to match with species list dataframe
+bird.distribution.shp@data$Binomial <- gsub(" ", "", bird.distribution.shp@data$SCINAME)
+
+# adding shape area from birdlife_v2017b shapefiles
+forestdep.spplist <- forestdep.spplist %>% left_join(bird.distribution.shp@data[,c("Binomial", "Shape_Area")]) %>%
+                        group_by(Binomial) %>% mutate(Shape_Area = sum(Shape_Area)) %>% distinct(Binomial, .keep_all = T)
+
+# scaling
+forestdep.spplist$Shape_Area_scaled <- rescale(forestdep.spplist$Shape_Area, to = c(.999,.001))
+
+#
+
+rm(bird.distribution.shp)
+
+
+# tree conservation value is wood density
+# scaled from 0 [the biggest] to 1 [the smallest]
+# based on the World Checklist of Vascular Plants
+## trees
+pgm.treedata <- read.csv("data/input/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
+stm.treedata <- read.csv("data/input/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
+# merging tree data
+treedata <- rbind(pgm.treedata, stm.treedata)
+rm(pgm.treedata); rm(stm.treedata)
+# new var with spp binomial
+treedata$Binomial <- paste(treedata$Genera, treedata$Species, sep="")
+treedata <- treedata %>% dplyr::select(Genera.SP.SPP, Binomial) %>% 
+  distinct(.keep_all = T) %>% 
+  filter(Binomial %in% forestdep.spplist$Binomial) %>% 
+  mutate(Genera.SP.SPP = str_trim(str_replace_all(Genera.SP.SPP, "_", " ")))
+
+treedata$Shape_Area <- NA
+
+
+library(rWCVP)
+
+j=nrow(treedata)
+for (sp in treedata$Genera.SP.SPP) {
+  
+  test <- try(wcvp_distribution(treedata[treedata$Genera.SP.SPP==sp,"Genera.SP.SPP"], taxon_rank="species"), silent=TRUE)
+  distribution <- if(class(test) %in% 'try-error') { next } 
+  else {wcvp_distribution(treedata[treedata$Genera.SP.SPP==sp,"Genera.SP.SPP"], taxon_rank="species")}
+  
+  treedata[treedata$Genera.SP.SPP==sp,"Shape_Area"] <- sum(st_area(distribution))
+  
+  j=j-1
+  cat("\n> done:", sp, "now", j, "species left <\n")
+}
+
+# scaling
+treedata <- treedata %>% 
+  mutate(Shape_Area_scaled = rescale(Shape_Area, to = c(.999,.001))) %>% 
+  dplyr::select(Binomial:Shape_Area_scaled) %>% 
+  distinct(Binomial, .keep_all = T)
+
+# merging data
+forestdep.spplist <- forestdep.spplist %>% rows_update(treedata, by = c("Binomial"))
+
+rm(treedata)
+
+
+# saving
+write.csv(forestdep.spplist, "data/species_summary_final.csv")
+#forestdep.spplist <- read.csv("data/species_summary_final.csv")
+
+
+
+#### biodiversity benefit ####
+forestdep.spplist.total <- forestdep.spplist
+forestdep.spplist <- forestdep.spplist %>% filter(Method != "Excluded" & !is.na(Shape_Area))
+
+scenarios <- c("PGM/2020_real/", "PGM/2020_avoiddegrad/", "PGM/2020_avoiddeforest/", "PGM/2020_avoidboth/",
+               "PGM/2020_restor_wo_avoid/", "PGM/2020_restor_n_avoid_deforest/", "PGM/2020_restor_n_avoid_both/",
+               "STM/2020_real/", "STM/2020_avoiddegrad/", "STM/2020_avoiddeforest/", "STM/2020_avoidboth/",
+               "STM/2020_restor_wo_avoid/", "STM/2020_restor_n_avoid_deforest/", "STM/2020_restor_n_avoid_both/")
+
+
+for (s in scenarios) {
+  
+  maps.list <- list.files(paste0("models.output/maps/", s), pattern = ".tif", full.names = T, recursive = T)
+  maps.list <- grep(paste(forestdep.spplist$Binomial, collapse = "|"), maps.list, value = T)
+  
+  biodiversity.maps <- stack(maps.list)
+  names(biodiversity.maps) <- gsub("_merged_algo_merged_dataset_merged_run.tif", "", 
+                                   gsub(paste0("models.output/maps/", s), "", maps.list))
+  
+  conservation.value <- forestdep.spplist[grep(paste(names(biodiversity.maps), collapse = "|"), forestdep.spplist$Binomial), "Shape_Area_scaled"]
+  
+  
+  biodiversity.benefit.a <- stack()
+  for (m in 1:length(conservation.value)) {
+    biodiversity.benefit.x <- biodiversity.maps[[m]] * conservation.value[[m]]
+    biodiversity.benefit.a <- addLayer(biodiversity.benefit.a, biodiversity.benefit.x)
+    cat("\n> add conservation value to", names(biodiversity.maps[[m]]), "in scenario", s,  "<\n")
+  }
+  rm(biodiversity.benefit.x); gc()
+  
+  biodiversity.benefit <- sum(biodiversity.benefit.a, na.rm = T)
+  
+  writeRaster(biodiversity.benefit, paste0("models.output/biodiversity.benefits/", gsub("/", "_", s), "biodiversity_benefit.tif"), format="GTiff", overwrite=T)
+  
+  rm(list=ls()[!ls() %in% c("forestdep.spplist.total", "forestdep.spplist", "biodiversity.benefit", "s")]) #keeping only raster stack
+  gc()
+  cat("\n>>> SCENARIO", s, "DONE <<<\n")
+  
+  
+}
+
+
+
+
 
 
 
@@ -1494,7 +1617,7 @@ sel.var.df <- c("edgedist", "SFpx", "TFpx", "UPFls", "TSDls")
 #PGM 2020 real
 pgm.2020real.raster.list <- list.files("rasters/PGM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020real <- stack(pgm.2020real.raster.list)
-names(pgm.2020real) <- unlist(strsplit(pgm.2020real.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020real) <- unlist(strsplit(pgm.2020real.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020real <- pgm.2020real[[sel.var.df]]
 
 set.seed(999)
@@ -1521,7 +1644,7 @@ gc()
 #PGM 2020 avoid degradation
 pgm.2020avoiddegrad.raster.list <- list.files("rasters/PGM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020avoiddegrad <- stack(pgm.2020avoiddegrad.raster.list)
-names(pgm.2020avoiddegrad) <- unlist(strsplit(pgm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020avoiddegrad) <- unlist(strsplit(pgm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020avoiddegrad <- pgm.2020avoiddegrad[[sel.var.df]]
 
 set.seed(999)
@@ -1548,7 +1671,7 @@ gc()
 #PGM 2020 avoid deforestation
 pgm.2020avoiddeforest.raster.list <- list.files("rasters/PGM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020avoiddeforest <- stack(pgm.2020avoiddeforest.raster.list)
-names(pgm.2020avoiddeforest) <- unlist(strsplit(pgm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020avoiddeforest) <- unlist(strsplit(pgm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020avoiddeforest <- pgm.2020avoiddeforest[[sel.var.df]]
 
 set.seed(999)
@@ -1575,7 +1698,7 @@ gc()
 #PGM 2020 avoid both
 pgm.2020avoidboth.raster.list <- list.files("rasters/PGM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020avoidboth <- stack(pgm.2020avoidboth.raster.list)
-names(pgm.2020avoidboth) <- unlist(strsplit(pgm.2020avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020avoidboth) <- unlist(strsplit(pgm.2020avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020avoidboth <- pgm.2020avoidboth[[sel.var.df]]
 
 set.seed(999)
@@ -1603,7 +1726,7 @@ gc()
 #PGM 2020 restoration without avoid
 pgm.2020restor_wo_avoid.raster.list <- list.files("rasters/PGM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020restor_wo_avoid <- stack(pgm.2020restor_wo_avoid.raster.list)
-names(pgm.2020restor_wo_avoid) <- unlist(strsplit(pgm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020restor_wo_avoid) <- unlist(strsplit(pgm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020restor_wo_avoid <- pgm.2020restor_wo_avoid[[sel.var.df]]
 
 set.seed(999)
@@ -1631,7 +1754,7 @@ gc()
 #PGM 2020 restoration and avoid deforest
 pgm.2020restor_n_avoiddeforest.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020restor_n_avoiddeforest <- stack(pgm.2020restor_n_avoiddeforest.raster.list)
-names(pgm.2020restor_n_avoiddeforest) <- unlist(strsplit(pgm.2020restor_n_avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020restor_n_avoiddeforest) <- unlist(strsplit(pgm.2020restor_n_avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020restor_n_avoiddeforest <- pgm.2020restor_n_avoiddeforest[[sel.var.df]]
 
 set.seed(999)
@@ -1659,7 +1782,7 @@ gc()
 #PGM 2020 restoration and avoid both
 pgm.2020restor_n_avoidboth.raster.list <- list.files("rasters/PGM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020restor_n_avoidboth <- stack(pgm.2020restor_n_avoidboth.raster.list)
-names(pgm.2020restor_n_avoidboth) <- unlist(strsplit(pgm.2020restor_n_avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.2020restor_n_avoidboth) <- unlist(strsplit(pgm.2020restor_n_avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
 pgm.2020restor_n_avoidboth <- pgm.2020restor_n_avoidboth[[sel.var.df]]
 
 set.seed(999)
@@ -1688,7 +1811,7 @@ gc()
 #STM 2020 real
 stm.2020real.raster.list <- list.files("rasters/STM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020real <- stack(stm.2020real.raster.list)
-names(stm.2020real) <- unlist(strsplit(stm.2020real.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020real) <- unlist(strsplit(stm.2020real.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020real <- stm.2020real[[sel.var.df]]
 
 set.seed(999)
@@ -1717,7 +1840,7 @@ gc()
 #STM 2020 avoid degradation
 stm.2020avoiddegrad.raster.list <- list.files("rasters/STM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020avoiddegrad <- stack(stm.2020avoiddegrad.raster.list)
-names(stm.2020avoiddegrad) <- unlist(strsplit(stm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020avoiddegrad) <- unlist(strsplit(stm.2020avoiddegrad.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020avoiddegrad <- stm.2020avoiddegrad[[sel.var.df]]
 
 set.seed(999)
@@ -1746,7 +1869,7 @@ gc()
 #STM 2020 avoid deforestation
 stm.2020avoiddeforest.raster.list <- list.files("rasters/STM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020avoiddeforest <- stack(stm.2020avoiddeforest.raster.list)
-names(stm.2020avoiddeforest) <- unlist(strsplit(stm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020avoiddeforest) <- unlist(strsplit(stm.2020avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020avoiddeforest <- stm.2020avoiddeforest[[sel.var.df]]
 
 set.seed(999)
@@ -1776,7 +1899,7 @@ gc()
 #STM 2020 avoid both
 stm.2020avoidboth.raster.list <- list.files("rasters/STM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020avoidboth <- stack(stm.2020avoidboth.raster.list)
-names(stm.2020avoidboth) <- unlist(strsplit(stm.2020avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020avoidboth) <- unlist(strsplit(stm.2020avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020avoidboth <- stm.2020avoidboth[[sel.var.df]]
 
 set.seed(999)
@@ -1806,7 +1929,7 @@ gc()
 #STM 2020 restoration without avoid
 stm.2020restor_wo_avoid.raster.list <- list.files("rasters/STM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020restor_wo_avoid <- stack(stm.2020restor_wo_avoid.raster.list)
-names(stm.2020restor_wo_avoid) <- unlist(strsplit(stm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020restor_wo_avoid) <- unlist(strsplit(stm.2020restor_wo_avoid.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020restor_wo_avoid <- stm.2020restor_wo_avoid[[sel.var.df]]
 
 set.seed(999)
@@ -1836,7 +1959,7 @@ gc()
 #STM 2020 restoration and avoid deforest
 stm.2020restor_n_avoiddeforest.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_deforest/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020restor_n_avoiddeforest <- stack(stm.2020restor_n_avoiddeforest.raster.list)
-names(stm.2020restor_n_avoiddeforest) <- unlist(strsplit(stm.2020restor_n_avoiddeforest.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020restor_n_avoiddeforest) <- unlist(strsplit(stm.2020restor_n_avoiddeforest.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020restor_n_avoiddeforest <- stm.2020restor_n_avoiddeforest[[sel.var.df]]
 
 set.seed(999)
@@ -1867,7 +1990,7 @@ gc()
 #STM 2020 restoration and avoid both
 stm.2020restor_n_avoidboth.raster.list <- list.files("rasters/STM/2020_restor_n_avoid_both/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020restor_n_avoidboth <- stack(stm.2020restor_n_avoidboth.raster.list)
-names(stm.2020restor_n_avoidboth) <- unlist(strsplit(stm.2020restor_n_avoidboth.raster.list, "/|.tif"))[seq(4,80,4)]
+names(stm.2020restor_n_avoidboth) <- unlist(strsplit(stm.2020restor_n_avoidboth.raster.list, "/|.tif"))[seq(4,84,4)]
 stm.2020restor_n_avoidboth <- stm.2020restor_n_avoidboth[[sel.var.df]]
 
 set.seed(999)
@@ -1892,6 +2015,462 @@ rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "env.explanatory.var", "mod.
                             "proj_stm.2020restor_n_avoiddeforest.conbywm", "proj_stm.2020restor_n_avoidboth.conbywm"))])
 gc()
 #
+
+
+
+
+
+
+
+
+
+
+##############################################
+####         opportunity cost             ####
+##############################################
+
+## property data
+property <- read.csv("data/input/areas.csv")
+#head(property)
+#str(property)
+#summary(property)
+property[which(is.na(property$totalarea_2009)),"totalarea_2009"] <- property[which(is.na(property$totalarea_2009)),"totalarea_2006"]
+property <- property[-which(is.na(property$totalarea_2009)),c("cd_propriedade", "totalarea_2009")]
+names(property) <- c("id", "property")
+
+## cost data
+revenue <- read.csv("data/input/revenue.csv")
+#head(revenue)
+#str(revenue)
+#summary(revenue)
+names(revenue)[1] <- "id"
+revenue$catchment <- as.factor(revenue$catchment)
+
+#merging
+property <- property %>% left_join(revenue) %>% mutate(profit_ha = profit/property)
+table(property$catchment)
+
+#extracting the explanatory variables by catchment
+expl.var <- carbon[,c(2,13:25)]
+names(expl.var)[1] <- names(property)[4]
+
+#merging
+property <- property %>% left_join(expl.var) %>% distinct(id, .keep_all = T)
+
+
+
+
+
+#scaling predictors -- z-scores
+property <- property %>% mutate(dominant = factor(dominant, levels = c("Cattlebeef","Cattlemilk","Animalother","Soy","Annual","Perennial","Mixed","Other")),
+                                property_z = ((property - mean(property))/sd(property)),
+                                distriver_z = ((distriver - mean(distriver))/sd(distriver)),
+                                distroad_z = ((distroad - mean(distroad))/sd(distroad)),
+                                DPFpx_z = ((DPFpx - mean(DPFpx))/sd(DPFpx)),
+                                edgedist_z = ((edgedist - mean(edgedist))/sd(edgedist)),
+                                edgels_z = ((edgels - mean(edgels))/sd(edgels)),
+                                elevation_z = ((elevation - mean(elevation))/sd(elevation)),
+                                meanprecips_z = ((meanprecips - mean(meanprecips))/sd(meanprecips)),
+                                meantemps_z = ((meantemps - mean(meantemps))/sd(meantemps)),
+                                SFagels_z = ((SFagels - mean(SFagels))/sd(SFagels)),
+                                SFpx_z = ((SFpx - mean(SFpx))/sd(SFpx)),
+                                TFpx_z = ((TFpx - mean(TFpx))/sd(TFpx)),
+                                UPFls_z = ((UPFls - mean(UPFls))/sd(UPFls)),
+                                TSDls_z = ((TSDls - mean(TSDls))/sd(TSDls)))
+
+write.csv(property, "data/property.csv", row.names = F)
+#property <- read.csv("data/property.csv")
+
+rm(list= ls()[!(ls() %in% c("property"))])
+gc()
+
+#keeping only properties with positive profit
+property.total <- property
+property <- property %>% dplyr::filter(profit_ha > 0 & !is.nan(profit_ha) & !is.infinite(profit_ha))
+
+#excluding outliers -- two properties with area lower than 2ha but profits greater than $20k/ha:
+#id == 419 (PGM), 461 and 322 (STM)
+property <- property %>% dplyr::filter(!id %in% c(419, 461, 322))
+
+
+# distribution family
+property.norm <- fitdist(property$profit_ha, "norm", method="mle")
+summary(property.norm)
+
+property.lnorm <- fitdist(property$profit_ha, "lnorm", method="mle")
+summary(property.lnorm)
+
+property.gamma <- fitdist(property$profit_ha, "gamma", method="mme")
+summary(property.gamma)
+
+property.weibull <- fitdist(property$profit_ha, "weibull", method="mle")
+summary(property.weibull)
+
+
+par(mfrow=c(2,2))
+plot.legend <- c("gamma", "lognormal", "gamma")
+denscomp(list(property.gamma, property.lnorm, property.gamma), legendtext = plot.legend)
+cdfcomp(list(property.gamma, property.lnorm, property.gamma), legendtext = plot.legend)
+qqcomp(list(property.gamma, property.lnorm, property.gamma), legendtext = plot.legend)
+ppcomp(list(property.gamma, property.lnorm, property.gamma), legendtext = plot.legend)
+
+
+#plot(Fn <- ecdf(property$profit_ha))
+#
+#curve(plnorm(x, mean(log(property$profit)), sd(log(property$profit))), from = 128, to = 9000000, add = TRUE, col='darkgreen', lwd = 2)
+#
+#curve(pgamma(x, shape=6.044639e-02, rate=4.413056e-07), from = 128, to = 9000000, add = TRUE, col='blue', lwd = 2)
+#
+#curve(pweibull(x, shape=4.160007e-01, scale=2.931072e+04), from = 128, to = 9000000, add = TRUE, col='red', lwd = 2)
+
+
+# log of profit
+property <- property %>% mutate(profit_halog = log(profit_ha))
+
+#null model
+mod.null <- lm(profit_halog ~ 1, data = property)
+summary(mod.null)
+
+
+
+
+#k-fold
+set.seed(999)
+group <- kfold(property, k=5, by = property$catchment)
+unique(group)
+
+#model fiting and cross-validated predictions for GLM:
+eval.mlr <- NULL
+models.mlr.list <- list()
+
+for (i in 1:5) {
+  train <- property[group != i,]
+  test <- property[group == i,]
+  crosspred.mlr <- glm(profit_halog ~ dominant + property_z + distriver_z + distroad_z + DPFpx_z + edgedist_z + edgels_z + elevation_z +
+                         meanprecips_z + meantemps_z + SFagels_z + SFpx_z + TFpx_z + UPFls_z + TSDls_z,
+                       data = train)
+  model.sel <- step(crosspred.mlr, test="LRT")
+  mod.mlr.fn <- glm(model.sel$formula, data = train)
+  models.mlr.list[[i]] <- mod.mlr.fn
+  
+  predict.mlr <- predict(mod.mlr.fn, test)
+  #predict.mlr <- predict(crosspred.mlr, subset(test, non_zero==1))
+  eval.mlr[i] <- caret::RMSE(predict.mlr, test$profit_halog)
+  
+}
+
+model.sel(models.mlr.list)
+eval.mlr
+
+#best AICc [==1164.0]; not the best RMSE [==1.83]
+mod.mlr.fn1 <- glm(profit_halog ~ property_z + distroad_z + DPFpx_z + edgedist_z + edgels_z + elevation_z +
+                     meantemps_z + SFagels_z + UPFls_z + TSDls_z, data = property)
+summary(mod.mlr.fn1)
+r.squaredLR(mod.mlr.fn1)
+plot(mod.mlr.fn1)
+
+#considering non-transformed var
+mod.mlr.fn2 <- glm(profit_halog ~ property + distroad + DPFpx + edgedist + edgels + elevation +
+                     meantemps + SFagels + UPFls + TSDls, data = property)
+summary(mod.mlr.fn2)
+r.squaredLR(mod.mlr.fn2)
+plot(mod.mlr.fn2)
+
+
+#visreg(mod.mlr.fn4, xvar = "edgedist_z", data = property)
+
+
+
+
+#model fiting and cross-validated predictions for GLMM -- catchments as random effects
+eval.glmm <- NULL
+models.glmm.list <- list()
+
+for (i in 1:5) {
+  train <- property[group != i,]
+  test <- property[group == i,]
+  crosspred.glmm <- lmer(profit_halog ~ distriver_z + distroad_z + DPFpx_z + edgedist_z + edgels_z + elevation_z + meanprecips_z +
+                           meantemps_z + SFagels_z + SFpx_z + TFpx_z + UPFls_z + TSDls_z + (property_z|dominant),
+                         data = train)
+  step_res <- step(crosspred.glmm)
+  models.glmm.list[[i]] <- get_model(step_res)
+  
+  predict.glmm <- predict(get_model(step_res), test)
+  eval.glmm[i] <- caret::RMSE(predict.glmm, test$profit_halog)
+  
+}
+
+model.sel(models.glmm.list)
+eval.glmm
+
+#best AICc [==1200.4]; not the best RMSE [==1.84]
+mod.glmm.fn1 <- lmer(profit_halog ~ distroad_z + edgedist_z + edgels_z + elevation_z + 
+                       meantemps_z + SFagels_z + UPFls_z + TSDls_z + (property_z|dominant),
+                     data = property)
+summary(mod.glmm.fn1)
+r.squaredLR(mod.glmm.fn1)
+plot(mod.glmm.fn1)
+
+#considering non-transformed var
+mod.glmm.fn2 <- lmer(profit_halog ~ distroad + edgedist + edgels + elevation + 
+                       meantemps + SFagels + UPFls + TSDls + (property|dominant),
+                     data = property)
+summary(mod.glmm.fn2)
+r.squaredLR(mod.glmm.fn2)
+plot(mod.glmm.fn2)
+
+
+#visreg(mod.mlr.fn4, xvar = "edgedist_z", data = property)
+
+
+
+
+#model fiting for GAM
+mod.gam.full <- gam(profit_halog ~ s(property_z, k = 6, bs = "cs") + s(distriver_z, k = 6, bs = "cs") + s(distroad_z, k = 6, bs = "cs") +
+                      s(DPFpx_z, k = 6, bs = "cs") + s(edgedist_z, k = 6, bs = "cs") + s(edgels_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + 
+                      s(meanprecips_z, k = 6, bs = "cs") + s(meantemps_z, k = 6, bs = "cs") + s(SFagels_z, k = 6, bs = "cs") + s(SFpx_z, k = 6, bs = "cs") + 
+                      s(TFpx_z, k = 6, bs = "cs") + s(UPFls_z, k = 6, bs = "cs") + s(TSDls_z, k = 6, bs = "cs"), method="REML", select = T,
+                    data = property)
+summary(mod.gam.full)
+plot(mod.gam.full, pages=1, residuals=TRUE)
+gam.check(mod.gam.full)
+
+
+mod.gam1 <- gam(profit_halog ~ s(property_z, k = 6, bs = "cs") + s(distriver_z, k = 6, bs = "cs") +
+                  s(edgedist_z, k = 6, bs = "cs") + s(edgels_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + 
+                  s(meantemps_z, k = 6, bs = "cs"), method="REML", select = T, data = property)
+summary(mod.gam1)
+plot(mod.gam1, pages=1, residuals=TRUE)
+gam.check(mod.gam1)
+
+
+mod.gam2 <- gam(profit_halog ~ s(property_z, k = 6, fx = T, bs = "tp") + s(distriver_z, k = 6, fx = T, bs = "tp") +
+                  s(edgedist_z, k = 6, fx = T, bs = "tp") + s(edgels_z, k = 6, fx = T, bs = "tp") + 
+                  s(elevation_z, k = 6, fx = T, bs = "tp") + s(meantemps_z, k = 6, fx = T, bs = "tp"),
+                method="REML", select = T, data = property)
+summary(mod.gam2)
+plot(mod.gam2, pages=1, residuals=TRUE)
+gam.check(mod.gam2)
+
+
+mod.gam3 <- gam(profit_halog ~ s(property, k = 6, bs = "cs") + s(distriver, k = 6, bs = "cs") +
+                  s(edgedist, k = 6, bs = "cs") + s(edgels, k = 6, bs = "cs") + s(elevation, k = 6, bs = "cs") + 
+                  s(meantemps, k = 6, bs = "cs"), method="REML", select = T, data = property)
+summary(mod.gam3)
+plot(mod.gam3, pages=1, residuals=TRUE)
+gam.check(mod.gam3)
+
+mod.gam4 <- gam(profit_halog ~ s(property, k = 6, bs = "cs") + s(distroad, k = 6, bs = "cs") +
+                  s(edgedist, k = 6, bs = "cs") + s(elevation, k = 6, bs = "cs") + s(meanprecips, k = 6, bs = "cs") +
+                  s(meantemps, k = 6, bs = "cs"), method="REML", select = T, data = property)
+summary(mod.gam4)
+plot(mod.gam4, pages=1, residuals=TRUE)
+gam.check(mod.gam4)
+
+
+model.sel(mod.gam1, mod.gam2, mod.gam3, mod.gam4, mod.glmm.fn1, mod.glmm.fn2, mod.mlr.fn1, mod.mlr.fn2) #
+
+
+
+#model fiting and cross-validated predictions for RF
+eval.rf <- NULL
+models.rf.list <- list()
+
+for (i in 1:5) {
+  train <- property[group != i,]
+  test <- property[group == i,]
+  models.rf.list[[i]] <- randomForest(x = train[,c(3,21:34)], y = train$profit_halog,
+                                      xtest = test[,c(3,21:34)], ytest = test$profit_halog,
+                                      ntree = 1000, nodesize = 10, importance =T, nPerm = 5)
+  
+}
+
+par(mfrow=c(3,2))
+plot(models.rf.list[[1]])
+plot(models.rf.list[[2]])
+plot(models.rf.list[[3]])
+plot(models.rf.list[[4]])
+plot(models.rf.list[[5]])
+
+par(mfrow=c(3,2))
+varImpPlot(models.rf.list[[1]], type = 1)
+varImpPlot(models.rf.list[[2]], type = 1)
+varImpPlot(models.rf.list[[3]], type = 1)
+varImpPlot(models.rf.list[[4]], type = 1)
+varImpPlot(models.rf.list[[5]], type = 1)
+
+mod.rf.fn1 <- randomForest(x = property[,c(21,29,22,25,26,27)], y = property$profit_halog,
+                          ntree=600, nodesize=10, importance =T, nPerm = 5)
+
+par(mfrow=c(1,2))
+plot(mod.rf.fn1)
+varImpPlot(mod.rf.fn1, type = 1)
+
+mod.rf.fn2 <- randomForest(x = property[, c(2,15,8,12,11,13)], y = property$profit_halog,
+                           ntree=600, nodesize=10, importance =T, nPerm = 5)
+
+plot(mod.rf.fn2)
+varImpPlot(mod.rf.fn2, type = 1)
+
+
+mod.rf.fn3 <- randomForest(x = property[,c(2,15,9,14,13,11)], y = property$profit_halog,
+                          ntree=600, nodesize=10, importance =T, nPerm = 5)
+
+plot(mod.rf.fn3)
+varImpPlot(mod.rf.fn3, type = 1)
+
+
+rm(list= ls()[!(ls() %in% c("property", "mod.gam3", "mod.rf.fn2"))])
+gc()
+
+
+
+
+
+#predctions
+#PGM
+dir.create("rasters/PGM/costs", recursive = T)
+
+
+
+pgm.2010real.raster.list <- list.files("rasters/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+pgm.2010real <- stack(pgm.2010real.raster.list)
+names(pgm.2010real) <- unlist(strsplit(pgm.2010real.raster.list, "/|.tif"))[seq(4,84,4)]
+
+pgm.2010real <- pgm.2010real[[c("property", "distriver", "edgedist", "edgels", "elevation", "meantemps")]]
+#pgm.2010real <- pgm.2010real[[c("property", "distriver", "DPFpx", "elevation", "meanprecips", "meantemps", "SFagels")]]
+
+
+set.seed(999)
+mod.gam.proj_pgm.2010real <- exp(predict(pgm.2010real, mod.gam3))
+set.seed(999)
+mod.rf.proj_pgm.2010real <- exp(predict(pgm.2010real, mod.rf.fn2))
+
+
+#building a consensus map by mean weight
+proj_pgm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_pgm.2010real, mod.rf.proj_pgm.2010real), 
+                                           c(RMSE(mod.gam3$fitted.values, mod.gam3$y),
+                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+                                           na.rm=T)
+
+writeRaster(proj_pgm.2010real.conbywm, paste0("rasters/PGM/costs/PGM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
+
+rm(list= ls()[!(ls() %in% c("property", "mod.gam3", "mod.rf.fn2", "proj_pgm.2010real.conbywm"))])
+gc()
+#
+
+
+
+#STM
+dir.create("rasters/STM/costs", recursive = T)
+
+
+
+stm.2010real.raster.list <- list.files("rasters/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+stm.2010real <- stack(stm.2010real.raster.list)
+names(stm.2010real) <- unlist(strsplit(stm.2010real.raster.list, "/|.tif"))[seq(4,84,4)]
+
+stm.2010real <- stm.2010real[[c("property", "DPFpx", "edgedist", "elevation", "meantemps", "SFagels", "TSDls")]]
+#stm.2010real <- stm.2010real[[c("property", "distriver", "DPFpx", "elevation", "meanprecips", "meantemps", "SFagels")]]
+
+
+set.seed(999)
+mod.gam.proj_stm.2010real <- exp(predict(stm.2010real, mod.gam3))
+set.seed(999)
+mod.rf.proj_stm.2010real <- exp(predict(stm.2010real, mod.rf.fn2))
+
+
+#building a consensus map by mean weight
+proj_stm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_stm.2010real, mod.rf.proj_stm.2010real), 
+                                           c(RMSE(mod.gam3$fitted.values, mod.gam3$y),
+                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+                                           na.rm=T)
+
+writeRaster(proj_stm.2010real.conbywm, paste0("rasters/PGM/costs/STM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
+
+rm(list= ls()[!(ls() %in% c("property", "mod.gam3", "mod.rf.fn2", "proj_pgm.2010real.conbywm", "proj_stm.2010real.conbywm"))])
+gc()
+#
+
+
+
+
+# scenario avoid degradation (mean timber value + fire control)
+writeRaster(TF.avoiddegrad.mask, "rasters/PGM/all_forest_mask/PGM_2020_avoiddegrad.tif", format = "GTiff", overwrite = T)
+
+
+pgm.2020avoiddegrad <- sum(TF.avoiddegrad.mask, TF2020.mask, na.rm = T)
+##cheking
+#sort(unique(values(pgm.2020avoiddegrad)))
+pgm.2020avoiddegrad[pgm.2020avoiddegrad>1] <- 0
+pgm.2020avoiddegrad[pgm.2020avoiddegrad==1] <- 0
+#plot(pgm.2020avoiddegrad)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
