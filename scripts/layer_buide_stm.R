@@ -520,6 +520,7 @@ for (year in 2016:2020) {
 stm.degrad.temp <- mask(stm.degrad.temp, stm.lulc.2020.forest.class)
 
 stm.degrad.2020 <- stm.degrad.temp
+#stm.degrad.2020 <- raster("rasters/STM/input/stm-2020-deg_tsince0.tif")
 
 names(stm.degrad.2020) <- "stm.degrad.2020real"
 
@@ -552,8 +553,8 @@ stm.degrad.2020.forest.class[stm.degrad.2020.forest.class<2]<-0
 stm.degrad.2020.forest.class[stm.degrad.2020.forest.class==2]<-1
 
 rm(list=ls()[!ls() %in% c("stm.shp", "stm.lulc","stm.lulc.2010.forest.class", "stm.lulc.2020.forest.class", "dist.road",
-                          "dist.river.all", "elevation", "candidate.areas.final", "stm.degrad", "stm.degrad.2010.forest.class",
-                          "stm.degrad.2020.forest.class")]) #keeping only raster stack
+                          "dist.river.all", "elevation", "stm.car.raster", "candidate.areas.final", "stm.degrad", 
+                          "stm.degrad.2010.forest.class", "stm.degrad.2020.forest.class")]) #keeping only raster stack
 gc()
 
 
@@ -709,11 +710,11 @@ gc()
 
 
 # scenario avoid deforestation
-UPF.avoiddefor<-sum(stm.lulc.2010.forest.class, stm.sfage.2010.all.class, stm.degrad.2020.forest.class, na.rm = T)
+UPF.avoiddefor<-sum(stm.lulc.2020.forest.class, stm.sfage.2010.all.class, stm.degrad.2020.forest.class, na.rm = T)
 UPF.avoiddefor[UPF.avoiddefor>1]<-0
 ##cheking
-#unique(UPF.avoiddegrad[])
-#plot(UPF.avoiddegrad)
+#unique(UPF.avoiddefor[])
+#plot(UPF.avoiddefor)
 
 # mean upf cover in pixel scale (150m)
 UPF.avoiddefor.px <- focal(UPF.avoiddefor, matrix(1,ncol=5,nrow=5), fun=mean, na.rm=T)
@@ -2585,6 +2586,131 @@ rm(list=ls())
 gc()
 
 
+
+#
+
+
+#######################################################################################################################
+
+# Creating forest mask for conservation action costs
+# each land cover category is assigned a value
+
+# scenario 2010
+UPF2010.mask <- UPF2010
+
+DPF2010.mask <- DPF2010
+
+SF2010.mask <- SF2010
+
+TF2010.mask <- sum(UPF2010.mask, DPF2010.mask, SF2010.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF2010.mask)))
+##handle overlaps
+TF2010.mask[TF2010.mask>1] <- 1
+#plot(TF2010.mask)
+writeRaster(TF2010.mask, "rasters/STM/all_forest_mask/STM_2010_real.tif", format = "GTiff", overwrite = T)
+
+
+#
+
+
+# scenario 2020
+UPF2020.mask <- UPF2020
+
+DPF2020.mask <- DPF2020
+
+SF2020.mask <- SF2020
+
+TF2020.mask <- sum(UPF2020.mask, DPF2020.mask, SF2020.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF2020.mask)))
+##handle overlaps
+TF2020.mask[TF2020.mask>1] <- 1 #sf over upf
+#plot(TF2020.mask)
+writeRaster(TF2020.mask, "rasters/STM/all_forest_mask/STM_2020_real.tif", format = "GTiff", overwrite = T)
+
+
+#
+
+
+# scenario avoid degradation
+UPF.avoiddegrad.mask <- UPF.avoiddegrad
+
+TF.avoiddegrad.mask <- sum(UPF.avoiddegrad.mask, DPF2010.mask, SF2020.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.avoiddegrad.mask)))
+##handle overlaps
+TF.avoiddegrad.mask[TF.avoiddegrad.mask>1] <- 1
+#plot(TF.avoiddegrad.mask)
+writeRaster(TF.avoiddegrad.mask, "rasters/STM/all_forest_mask/STM_2020_avoiddegrad.tif", format = "GTiff", overwrite = T)
+
+
+#
+
+
+# scenario avoid deforestation
+UPF.avoiddefor.mask <- UPF.avoiddefor
+
+TF.avoiddefor.mask <- sum(UPF.avoiddefor, DPF2020.mask, SF2010.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.avoiddefor.mask)))
+##handle overlaps
+TF.avoiddefor.mask[TF.avoiddefor.mask>1] <- 1
+#plot(TF.avoiddefor.mask)
+writeRaster(TF.avoiddefor.mask, "rasters/STM/all_forest_mask/STM_2020_avoiddeforest.tif", format = "GTiff", overwrite = T)
+
+
+#
+
+
+# scenario avoid both
+UPF.avoidboth.mask <- UPF.avoidboth
+
+TF.avoidboth.mask <- sum(UPF.avoidboth.mask, DPF2010.mask, SF2010.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.avoidboth.mask)))
+##handle overlaps
+TF.avoidboth.mask[TF.avoidboth.mask>1] <- 1
+#plot(TF.avoidboth.mask)
+writeRaster(TF.avoidboth.mask, "rasters/STM/all_forest_mask/STM_2020_avoidboth.tif", format = "GTiff", overwrite = T)
+
+
+#
+
+
+# scenario restoration without avoid
+SF2020.restore10.mask <- SF2020.restore10
+
+TF.restore10.a <- sum(UPF2020.mask, DPF2020.mask, SF2020.restore10.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.restore10.a)))
+TF.restore10.a[TF.restore10.a>1] <- 1
+#plot(TF.restore10.a)
+writeRaster(TF.restore10.a, "rasters/STM/all_forest_mask/STM_2020_restor_wo_avoid.tif", format = "GTiff", overwrite = T)
+
+#
+
+
+# scenario restoration and avoid deforestation
+SF2010.restore10.mask <- SF2010.restore10
+
+TF.restore10.b <- sum(UPF.avoiddefor.mask, DPF2020.mask, SF2010.restore10.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.restore10.b)))
+TF.restore10.b[TF.restore10.b>1] <- 1
+#plot(TF.restore10.b)
+writeRaster(TF.restore10.b, "rasters/STM/all_forest_mask/STM_2020_restor_n_avoid_deforest.tif", format = "GTiff", overwrite = T)
+
+#
+
+
+# scenario restoration and avoid both
+TF.restore10.c <- sum(UPF.avoidboth.mask, DPF2010.mask, SF2010.restore10.mask, na.rm = T)
+##cheking
+#sort(unique(values(TF.restore10.c)))
+TF.restore10.c[TF.restore10.c>1] <- 1
+#plot(TF.restore10.c)
+writeRaster(TF.restore10.c, "rasters/STM/all_forest_mask/STM_2020_restor_n_avoid_both.tif", format = "GTiff", overwrite = T)
 
 #
 
