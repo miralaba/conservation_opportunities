@@ -2590,6 +2590,39 @@ gc()
 #
 
 
+##############################################################################################################################################################################################################################################
+
+# [distmarket] distance to municipality nucleus
+
+stm.crs<-"+proj=longlat +datum=WGS84 +no_defs"
+
+stm.munic.nucleus <- data.frame(ID = "stm", long = -54.7009, lat = -2.45063)
+
+stm.munic.nucleus.coord <- SpatialPointsDataFrame(coords = stm.munic.nucleus[,c("long","lat")], 
+                                                  data = stm.munic.nucleus, 
+                                                  proj4string = CRS(stm.crs))
+
+stm.munic.nucleus.coord <- spTransform(x = stm.munic.nucleus.coord, CRSobj = stm.crs)
+
+distmarket <- distanceFromPoints(object = stm.lulc, xy = stm.munic.nucleus.coord)
+
+distmarket <- mask(distmarket, stm.shp)
+
+#saving
+writeRaster(distmarket, "rasters/STM/2010_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_avoiddeforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_avoiddegrad/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_avoidboth/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_restor_wo_avoid/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_restor_n_avoid_deforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/STM/2020_restor_n_avoid_both/distmarket.tif", format="GTiff", overwrite=T)
+
+
+
+#
+
+
 #######################################################################################################################
 
 # Creating forest mask for conservation action costs
