@@ -759,7 +759,6 @@ rm(list=ls()[ls() %in% c("UPF2020.px", "UPF2020.ls")]) #keeping only raster stac
 gc()
 
 
-
 #
 
 
@@ -856,6 +855,37 @@ writeRaster(DPF2020.ls, "rasters/PGM/2020_restor_n_avoid_deforest/DPFls.tif", fo
 rm(list=ls()[ls() %in% c("pgm.degrad.2020.forest.class", "DPF2020.px", "DPF2020.ls")]) #keeping only raster stack
 gc()
 
+
+################################
+#### avoid degradation cost ####
+################################
+
+#isolating areas degraded between 2010 and 2020
+avoid.degrad.cost <- DPF2020 - DPF2010
+avoid.degrad.cost[avoid.degrad.cost!=1]<-0
+
+#convert raster to polygons
+library(stars)
+library(lwgeom)
+avoid.degrad.cost.shp <- as_Spatial(st_as_sf(st_as_stars(avoid.degrad.cost), 
+                                    as_points = FALSE, merge = TRUE))
+
+#cheking & adjustments
+gIsValid(avoid.degrad.cost.shp) # FALSE here means that you'll need to run the buffer routine:
+#r.to.poly <- rgeos::gBuffer(r.to.poly, byid = TRUE, width = 0)
+
+#estimating the perimeter
+avoid.degrad.cost.shp@data$layer <- 1:nrow(avoid.degrad.cost.shp@data)
+avoid.degrad.cost.shp@data$perimeter <- st_length(st_cast(st_as_sf(avoid.degrad.cost.shp),"MULTILINESTRING"))
+
+#addin fire control costs
+#creating and maintaining (every four years on average) 6m wide fire breaks
+#fire breaks could be cleared at rate of 4.8 meters per hour using a tractor costing R$100 per hour according to Embrapa
+#cost of fire control was 2 x (P x 6)/10000 x 4.8 x 100, where P is the perimeter in meters of forested area not degraded
+avoid.degrad.cost.shp@data$cost = as.numeric(2 * (avoid.degrad.cost.shp@data$perimeter * 6)/10000 * 4.8 * 100)
+
+#convert to raster
+avoid.degrad.cost.v2 <- rasterize(avoid.degrad.cost.shp, avoid.degrad.cost, field = "cost", fun = "mean")
 
 
 #
@@ -2548,6 +2578,39 @@ writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoid_both/meanprecip
 #save.image("~/conserv_opportunities_jamesthomson/github_repo/pgm_environment.RData")
 rm(list=ls())
 gc()
+
+
+
+#
+
+
+##############################################################################################################################################################################################################################################
+
+# [distmarket] distance to municipality nucleus
+
+pgm.crs<-"+proj=longlat +datum=WGS84 +no_defs"
+
+pgm.munic.nucleus <- data.frame(ID = "pgm", long = -47.35311, lat = -3.00249)
+
+pgm.munic.nucleus.coord <- SpatialPointsDataFrame(coords = pgm.munic.nucleus[,c("long","lat")], 
+                                                  data = pgm.munic.nucleus, 
+                                                  proj4string = CRS(pgm.crs))
+
+pgm.munic.nucleus.coord <- spTransform(x = pgm.munic.nucleus.coord, CRSobj = pgm.crs)
+
+distmarket <- distanceFromPoints(object = pgm.lulc, xy = pgm.munic.nucleus.coord)
+
+distmarket <- mask(distmarket, pgm.shp)
+
+#saving
+writeRaster(distmarket, "rasters/PGM/2010_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddeforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddegrad/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoidboth/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_wo_avoid/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoid_deforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoid_both/distmarket.tif", format="GTiff", overwrite=T)
 
 
 
