@@ -784,7 +784,9 @@ benefit.cost.ratio.df <- benefit.cost.ratio.df %>%
 #
 
 
-
+benefit.cost.ratio.df <- benefit.cost.ratio.df %>% 
+  mutate(Biodiversity.BCR = ifelse(is.na(Costs) | is.na(Biodiversity), NA, Biodiversity/Costs),
+         Carbon.BCR = ifelse(is.na(Costs) | is.na(Carbon), NA, Carbon/Costs))
 
 
 
