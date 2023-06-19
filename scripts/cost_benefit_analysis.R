@@ -788,6 +788,21 @@ benefit.cost.ratio.df <- benefit.cost.ratio.df %>%
   mutate(Biodiversity.BCR = ifelse(is.na(Costs) | is.na(Biodiversity), NA, Biodiversity/Costs),
          Carbon.BCR = ifelse(is.na(Costs) | is.na(Carbon), NA, Carbon/Costs))
 
+#benefit.cost.ratio.df <- read.csv("data/benefit_cost_ratio.csv")
+
+
+
+
+
+benefit.cost.ratio.overview <- benefit.cost.ratio.df %>% group_by(Region, Scenario) %>% 
+                                    summarise(
+                                      Biodiversity_mean = mean(Biodiversity, na.rm=T),
+                                      Carbon_mean = mean(Carbon, na.rm=T),
+                                      Costs_mean = mean(Costs, na.rm=T),
+                                      Biodiversity_sd = sd(Biodiversity, na.rm=T),
+                                      Carbon_sd = sd(Carbon, na.rm=T),
+                                      Costs_sd = sd(Costs, na.rm=T),
+                                      )
 
 
 library(ggrepel)
@@ -804,38 +819,122 @@ empty_theme <- theme(
 )
 
 
+cowplot::plot_grid(
 
-df <- benefit.cost.ratio.df %>% group_by(Region, Scenario) %>% 
-               summarise(
-                 Biodiversity = mean(Biodiversity, na.rm=T),
-                 Carbon = mean(Carbon, na.rm=T),
-                 Costs = mean(Costs, na.rm=T)
-                 ) %>% 
-               pivot_longer(
-                 Biodiversity:Carbon,
-                 names_to = "Benefit",
-                 values_to = "Values"
-                 )
-  
-  
-ggplot(df, aes(x = Costs)) +
-  geom_point(aes(y = Values, label = Scenario), colour = "deepskyblue", size = 1) +
-  geom_label_repel(aes(y = Values, label = Scenario),
-                   size = 3,
-                   fill = "deepskyblue",
-                   colour = "black",
-                   min.segment.length = unit(0, "lines")) +
-  scale_x_continuous(expand = c(0, 0), limits = c(-1, 700), breaks = c(200,500),
-                     labels=c("200" = "Low", "500" = "High")) +
-  scale_y_continuous(expand = c(0, 0), limits = c(-1,300), breaks = c(50,250),
-                     labels=c("50" = "Low", "250" = "High")) +
-  empty_theme +
-  labs(title = "Benefit x Cost",
+ggplot(data = benefit.cost.ratio.overview, 
+       aes(x = Costs_mean, y = Biodiversity_mean, 
+           fill = Scenario, 
+           shape = Scenario,
+           label = Scenario)) + 
+  geom_point(aes(size = 5)) +
+  geom_hline(data=filter(benefit.cost.ratio.df, Region=="PGM"), 
+             aes(yintercept=163.0597), linetype="dashed") + 
+  geom_hline(data=filter(benefit.cost.ratio.df, Region=="STM"), 
+             aes(yintercept=201.396), linetype="dashed") +
+  geom_vline(data=filter(benefit.cost.ratio.df, Region=="PGM"), 
+             aes(xintercept=225.7966), linetype="dashed") + 
+  geom_vline(data=filter(benefit.cost.ratio.df, Region=="STM"), 
+             aes(xintercept=329.7966), linetype="dashed") +
+  scale_x_continuous(breaks = c(160,400), 
+                     labels=c("160" = "Low", "400" = "High")) +
+  scale_y_continuous(breaks = c(160,210), 
+                     labels=c("160" = "Low", "210" = "High")) +
+  scale_shape_manual(values = c(21, 21, 21, 24, 24, 24)) +
+  scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                               "#D3756B", "#D3756B", "#D3756B")) +
+  geom_label_repel(size = 3,
+                   fill = NA,
+                   label.size = NA,
+                   min.segment.length = 0,
+                   segment.size = .5,
+                   segment.color=NA,
+                   box.padding = unit(.25, "lines"),
+                   nudge_y = 1.0E-6) +
+  facet_grid(~Region)+
+  labs(title = "Biodiversity Benefit x Cost",
        x = "Costs",
        y = "Benefits") +
-  facet_wrap(Benefit~Region) +
-  geom_vline() +
-  geom_hline()
+  empty_theme +
+  theme(legend.position = "none"),
+
+
+
+ggplot(data = benefit.cost.ratio.overview, 
+       aes(x = Costs_mean, y = Carbon_mean, 
+           fill = Scenario, 
+           shape = Scenario,
+           label = Scenario)) + 
+  geom_point(aes(size = 5)) +
+  geom_hline(data=filter(benefit.cost.ratio.df, Region=="PGM"), 
+             aes(yintercept=85.04721), linetype="dashed") + 
+  geom_hline(data=filter(benefit.cost.ratio.df, Region=="STM"), 
+             aes(yintercept=80.79686), linetype="dashed") +
+  geom_vline(data=filter(benefit.cost.ratio.df, Region=="PGM"), 
+             aes(xintercept=225.7966), linetype="dashed") + 
+  geom_vline(data=filter(benefit.cost.ratio.df, Region=="STM"), 
+             aes(xintercept=329.7966), linetype="dashed") +
+  scale_x_continuous(breaks = c(160,400), 
+                     labels=c("160" = "Low", "400" = "High")) +
+  scale_y_continuous(breaks = c(81,90), 
+                     labels=c("81" = "Low", "90" = "High")) +
+  scale_shape_manual(values = c(21, 21, 21, 24, 24, 24)) +
+  scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                               "#D3756B", "#D3756B", "#D3756B")) +
+  geom_label_repel(size = 3,
+                   fill = NA,
+                   label.size = NA,
+                   min.segment.length = 0,
+                   segment.size = .5,
+                   segment.color=NA,
+                   box.padding = unit(.25, "lines"),
+                   nudge_y = 1.0E-6) +
+  facet_grid(~Region)+
+  labs(title = "Carbon Benefit x Cost",
+       x = "Costs",
+       y = "Benefits") +
+  empty_theme +
+  theme(legend.position = "none"),
+
+ncol = 1, align = "hv")
+  
+
+
+
+
+#next steps
+#step 1 - filter the cells with conservation action for each scenario
+# [the difference in total forests between scenario and 2020 Real]
+
+
+#step 2 - mask and select cells with higher conservation values
+# [top 20% ???]
+
+
+#step 3 - mask with costs
+
+
+#step 4 - choose cells ranked by costs until a budget constraint
+#and calculate the proportion of land of each scenario in each simulation
+#[simulations!]
+
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
   
 
 
