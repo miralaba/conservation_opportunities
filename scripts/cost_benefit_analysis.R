@@ -334,7 +334,7 @@ cowplot::plot_grid(
   ncol = 4, rel_widths = c(1, 1.8), align = "hv")
 
 
-#rm(list= ls()[!(ls() %in% c("biodiversity.benefit"))])
+#rm(list= ls()[!(ls() %in% c("pgm.biodiversity.benefit", "stm.biodiversity.benefit", "biodiversity.benefit"))])
 #gc()
 
 
@@ -656,7 +656,8 @@ cowplot::plot_grid(
   ncol = 4, rel_widths = c(1, 1.8), align = "hv")
 
 
-#rm(list= ls()[!(ls() %in% c("biodiversity.benefit", "carbon.benefit"))])
+#rm(list= ls()[!(ls() %in% c("pgm.biodiversity.benefit", "stm.biodiversity.benefit", "biodiversity.benefit", 
+#                            "pgm.carbon.benefit", "stm.carbon.benefit", "carbon.benefit"))])
 #gc()
 
 
@@ -779,7 +780,9 @@ benefit.cost.ratio.df <- benefit.cost.ratio.df %>%
     by = c("x", "y", "Region", "Scenario")
   )
 
-#rm(list= ls()[!(ls() %in% c("biodiversity.benefit", "carbon.benefit", "costs", "benefit.cost.ratio.df"))])
+#rm(list= ls()[!(ls() %in% c("pgm.biodiversity.benefit", "stm.biodiversity.benefit", "biodiversity.benefit", 
+#                            "pgm.carbon.benefit", "stm.carbon.benefit", "carbon.benefit", 
+#                            "pgm.costs", "stm.costs", "costs", "benefit.cost.ratio.df"))])
 #gc()
 #
 
@@ -905,12 +908,225 @@ ncol = 1, align = "hv")
 #step 1 - filter the cells with conservation action for each scenario
 # [the difference in total forests between scenario and 2020 Real]
 
+pgm.allforest.list <- list.files("rasters/PGM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
+
+pgm.allforest <- stack(pgm.allforest.list)
+names(pgm.allforest) <- unlist(strsplit(pgm.allforest.list, "/|.tif"))[seq(4,32,4)]
+
+
+pgm.conservationaction.avoiddegrad <- pgm.allforest[["PGM_2020_avoiddegrad"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoiddegrad[pgm.conservationaction.avoiddegrad!=1]<-NA
+
+pgm.conservationaction.avoiddeforest <- pgm.allforest[["PGM_2020_avoiddeforest"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoiddeforest[pgm.conservationaction.avoiddeforest!=1]<-NA
+
+pgm.conservationaction.avoidboth <- pgm.allforest[["PGM_2020_avoidboth"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoidboth[pgm.conservationaction.avoidboth!=1]<-NA
+
+pgm.conservationaction.restor_wo_avoid <- pgm.allforest[["PGM_2020_restor_wo_avoid"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_wo_avoid[pgm.conservationaction.restor_wo_avoid!=1]<-NA
+
+pgm.conservationaction.restor_n_avoid_deforest <- pgm.allforest[["PGM_2020_restor_n_avoid_deforest"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_n_avoid_deforest[pgm.conservationaction.restor_n_avoid_deforest!=1]<-NA
+
+pgm.conservationaction.restor_n_avoid_both <- pgm.allforest[["PGM_2020_restor_n_avoid_both"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_n_avoid_both[pgm.conservationaction.restor_n_avoid_both!=1]<-NA
+
+
+stm.allforest.list <- list.files("rasters/STM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
+
+stm.allforest <- stack(stm.allforest.list)
+names(stm.allforest) <- unlist(strsplit(stm.allforest.list, "/|.tif"))[seq(4,32,4)]
+
+
+stm.conservationaction.avoiddegrad <- stm.allforest[["STM_2020_avoiddegrad"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoiddegrad[stm.conservationaction.avoiddegrad!=1]<-NA
+
+stm.conservationaction.avoiddeforest <- stm.allforest[["STM_2020_avoiddeforest"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoiddeforest[stm.conservationaction.avoiddeforest!=1]<-NA
+
+stm.conservationaction.avoidboth <- stm.allforest[["STM_2020_avoidboth"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoidboth[stm.conservationaction.avoidboth!=1]<-NA
+
+stm.conservationaction.restor_wo_avoid <- stm.allforest[["STM_2020_restor_wo_avoid"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_wo_avoid[stm.conservationaction.restor_wo_avoid!=1]<-NA
+
+stm.conservationaction.restor_n_avoid_deforest <- stm.allforest[["STM_2020_restor_n_avoid_deforest"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_n_avoid_deforest[stm.conservationaction.restor_n_avoid_deforest!=1]<-NA
+
+stm.conservationaction.restor_n_avoid_both <- stm.allforest[["STM_2020_restor_n_avoid_both"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_n_avoid_both[stm.conservationaction.restor_n_avoid_both!=1]<-NA
+
 
 #step 2 - mask and select cells with higher conservation values
-# [top 20% ???]
+# [top 25% ???]
+
+##biodiversity
+pgm.conservact.avoiddegrad.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddegrad_biodiversity_benefit"]], pgm.conservationaction.avoiddegrad)
+top25 <- quantile(values(pgm.conservact.avoiddegrad.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoiddegrad.biodbenefitmask[pgm.conservact.avoiddegrad.biodbenefitmask<top25]<-NA
+
+pgm.conservact.avoiddeforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddeforest_biodiversity_benefit"]], pgm.conservationaction.avoiddeforest)
+top25 <- quantile(values(pgm.conservact.avoiddeforest.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoiddeforest.biodbenefitmask[pgm.conservact.avoiddeforest.biodbenefitmask<top25]<-NA
+
+pgm.conservact.avoidboth.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoidboth_biodiversity_benefit"]], pgm.conservationaction.avoidboth)
+top25 <- quantile(values(pgm.conservact.avoidboth.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoidboth.biodbenefitmask[pgm.conservact.avoidboth.biodbenefitmask<top25]<-NA
+
+pgm.conservact.restor_wo_avoid.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_wo_avoid_biodiversity_benefit"]], pgm.conservationaction.restor_wo_avoid)
+top25 <- quantile(values(pgm.conservact.restor_wo_avoid.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_wo_avoid.biodbenefitmask[pgm.conservact.restor_wo_avoid.biodbenefitmask<top25]<-NA
+
+pgm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_deforest)
+top25 <- quantile(values(pgm.conservact.restor_n_avoid_deforest.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_n_avoid_deforest.biodbenefitmask[pgm.conservact.restor_n_avoid_deforest.biodbenefitmask<top25]<-NA
+
+pgm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_both_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_both)
+top25 <- quantile(values(pgm.conservact.restor_n_avoid_both.biodbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_n_avoid_both.biodbenefitmask[pgm.conservact.restor_n_avoid_both.biodbenefitmask<top25]<-NA
+
+
+
+stm.conservact.avoiddegrad.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddegrad_biodiversity_benefit"]], stm.conservationaction.avoiddegrad)
+top25 <- quantile(values(stm.conservact.avoiddegrad.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoiddegrad.biodbenefitmask[stm.conservact.avoiddegrad.biodbenefitmask<top25]<-NA
+
+stm.conservact.avoiddeforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddeforest_biodiversity_benefit"]], stm.conservationaction.avoiddeforest)
+top25 <- quantile(values(stm.conservact.avoiddeforest.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoiddeforest.biodbenefitmask[stm.conservact.avoiddeforest.biodbenefitmask<top25]<-NA
+
+stm.conservact.avoidboth.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoidboth_biodiversity_benefit"]], stm.conservationaction.avoidboth)
+top25 <- quantile(values(stm.conservact.avoidboth.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoidboth.biodbenefitmask[stm.conservact.avoidboth.biodbenefitmask<top25]<-NA
+
+stm.conservact.restor_wo_avoid.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_wo_avoid_biodiversity_benefit"]], stm.conservationaction.restor_wo_avoid)
+top25 <- quantile(values(stm.conservact.restor_wo_avoid.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_wo_avoid.biodbenefitmask[stm.conservact.restor_wo_avoid.biodbenefitmask<top25]<-NA
+
+stm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_deforest)
+top25 <- quantile(values(stm.conservact.restor_n_avoid_deforest.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_n_avoid_deforest.biodbenefitmask[stm.conservact.restor_n_avoid_deforest.biodbenefitmask<top25]<-NA
+
+stm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_both_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_both)
+top25 <- quantile(values(stm.conservact.restor_n_avoid_both.biodbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_n_avoid_both.biodbenefitmask[stm.conservact.restor_n_avoid_both.biodbenefitmask<top25]<-NA
+
+
+
+
+##carbon
+pgm.conservact.avoiddegrad.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoiddegrad_carbon_benefit"]], pgm.conservationaction.avoiddegrad)
+top25 <- quantile(values(pgm.conservact.avoiddegrad.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoiddegrad.carbbenefitmask[pgm.conservact.avoiddegrad.carbbenefitmask<top25]<-NA
+
+pgm.conservact.avoiddeforest.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoiddeforest_carbon_benefit"]], pgm.conservationaction.avoiddeforest)
+top25 <- quantile(values(pgm.conservact.avoiddeforest.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoiddeforest.carbbenefitmask[pgm.conservact.avoiddeforest.carbbenefitmask<top25]<-NA
+
+pgm.conservact.avoidboth.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoidboth_carbon_benefit"]], pgm.conservationaction.avoidboth)
+top25 <- quantile(values(pgm.conservact.avoidboth.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.avoidboth.carbbenefitmask[pgm.conservact.avoidboth.carbbenefitmask<top25]<-NA
+
+pgm.conservact.restor_wo_avoid.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_wo_avoid_carbon_benefit"]], pgm.conservationaction.restor_wo_avoid)
+top25 <- quantile(values(pgm.conservact.restor_wo_avoid.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_wo_avoid.carbbenefitmask[pgm.conservact.restor_wo_avoid.carbbenefitmask<top25]<-NA
+
+pgm.conservact.restor_n_avoid_deforest.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_n_avoid_deforest_carbon_benefit"]], pgm.conservationaction.restor_n_avoid_deforest)
+top25 <- quantile(values(pgm.conservact.restor_n_avoid_deforest.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_n_avoid_deforest.carbbenefitmask[pgm.conservact.restor_n_avoid_deforest.carbbenefitmask<top25]<-NA
+
+pgm.conservact.restor_n_avoid_both.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_n_avoid_both_carbon_benefit"]], pgm.conservationaction.restor_n_avoid_both)
+top25 <- quantile(values(pgm.conservact.restor_n_avoid_both.carbbenefitmask), 0.75, na.rm=TRUE)
+pgm.conservact.restor_n_avoid_both.carbbenefitmask[pgm.conservact.restor_n_avoid_both.carbbenefitmask<top25]<-NA
+
+
+
+stm.conservact.avoiddegrad.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoiddegrad_carbon_benefit"]], stm.conservationaction.avoiddegrad)
+top25 <- quantile(values(stm.conservact.avoiddegrad.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoiddegrad.carbbenefitmask[stm.conservact.avoiddegrad.carbbenefitmask<top25]<-NA
+
+stm.conservact.avoiddeforest.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoiddeforest_carbon_benefit"]], stm.conservationaction.avoiddeforest)
+top25 <- quantile(values(stm.conservact.avoiddeforest.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoiddeforest.carbbenefitmask[stm.conservact.avoiddeforest.carbbenefitmask<top25]<-NA
+
+stm.conservact.avoidboth.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoidboth_carbon_benefit"]], stm.conservationaction.avoidboth)
+top25 <- quantile(values(stm.conservact.avoidboth.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.avoidboth.carbbenefitmask[stm.conservact.avoidboth.carbbenefitmask<top25]<-NA
+
+stm.conservact.restor_wo_avoid.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_wo_avoid_carbon_benefit"]], stm.conservationaction.restor_wo_avoid)
+top25 <- quantile(values(stm.conservact.restor_wo_avoid.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_wo_avoid.carbbenefitmask[stm.conservact.restor_wo_avoid.carbbenefitmask<top25]<-NA
+
+stm.conservact.restor_n_avoid_deforest.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_n_avoid_deforest_carbon_benefit"]], stm.conservationaction.restor_n_avoid_deforest)
+top25 <- quantile(values(stm.conservact.restor_n_avoid_deforest.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_n_avoid_deforest.carbbenefitmask[stm.conservact.restor_n_avoid_deforest.carbbenefitmask<top25]<-NA
+
+stm.conservact.restor_n_avoid_both.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_n_avoid_both_carbon_benefit"]], stm.conservationaction.restor_n_avoid_both)
+top25 <- quantile(values(stm.conservact.restor_n_avoid_both.carbbenefitmask), 0.75, na.rm=TRUE)
+stm.conservact.restor_n_avoid_both.carbbenefitmask[stm.conservact.restor_n_avoid_both.carbbenefitmask<top25]<-NA
 
 
 #step 3 - mask with costs
+
+##biodiversity
+pgm.conservact.avoiddegrad.biodcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.biodbenefitmask)
+
+pgm.conservact.avoiddeforest.biodcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.biodbenefitmask)
+
+pgm.conservact.avoidboth.biodcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.biodbenefitmask)
+
+pgm.conservact.restor_wo_avoid.biodcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.biodbenefitmask)
+
+pgm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.biodbenefitmask)
+
+pgm.conservact.restor_n_avoid_both_cost.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.biodbenefitmask)
+
+
+
+stm.conservact.avoiddegrad.biodcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.biodbenefitmask)
+
+stm.conservact.avoiddeforest.biodcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.biodbenefitmask)
+
+stm.conservact.avoidboth.biodcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.biodbenefitmask)
+
+stm.conservact.restor_wo_avoid.biodcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.biodbenefitmask)
+
+stm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.biodbenefitmask)
+
+stm.conservact.restor_n_avoid_both_cost.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.biodbenefitmask)
+
+
+
+
+##carbon
+pgm.conservact.avoiddegrad.carbcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.carbbenefitmask)
+
+pgm.conservact.avoiddeforest.carbcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.carbbenefitmask)
+
+pgm.conservact.avoidboth.carbcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.carbbenefitmask)
+
+pgm.conservact.restor_wo_avoid.carbcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.carbbenefitmask)
+
+pgm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.carbbenefitmask)
+
+pgm.conservact.restor_n_avoid_both_cost.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.carbbenefitmask)
+
+
+
+stm.conservact.avoiddegrad.carbcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.carbbenefitmask)
+
+stm.conservact.avoiddeforest.carbcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.carbbenefitmask)
+
+stm.conservact.avoidboth.carbcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.carbbenefitmask)
+
+stm.conservact.restor_wo_avoid.carbcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.carbbenefitmask)
+
+stm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.carbbenefitmask)
+
+stm.conservact.restor_n_avoid_both_cost.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.carbbenefitmask)
+
+
 
 
 #step 4 - choose cells ranked by costs until a budget constraint
