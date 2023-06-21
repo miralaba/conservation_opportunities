@@ -1133,6 +1133,65 @@ stm.conservact.restor_n_avoid_both_cost.carbcostmask <- mask(stm.costs[["stm_res
 #and calculate the proportion of land of each scenario in each simulation
 #[simulations!]
 
+constraint.sim <- data.frame(Scenario=NA, N_cells=NA, Regiao=NA, Constraint=NA)
+
+##biodiversity
+r <- pgm.conservact.biodcostmask[[c(1,2,4)]]
+plot(r)
+values(r)[1,]
+
+r.ord <- calc(r, fun=function(x, na.rm) x[order(x, decreasing = F)])
+plot(r.ord)
+values(r.ord)[1,]
+
+r.scen <- calc(r, function(x, na.rm) order(x, decreasing = F))
+r.scen <- mask(r.scen, r.ord[[1]])
+plot(r.scen)
+values(r.scen)[1,]
+table(values(r.scen[[1]]))
+
+ss <- sort(as.vector(r.ord[[1]]), decreasing = F)
+
+for (i in seq(5000000,100000000,5000000)) {
+  
+  s_lim <- ss[cumsum(ss) <= i]
+  
+  constraint <- r.ord[[1]] 
+  constraint[!constraint %in% s_lim ] <- NA
+  #cellStats(constraint, sum)
+  #plot(constraint)
+  
+  constraint_scen <- mask(r.scen[[1]], constraint)
+  #plot(constraint_scen)
+  constraint_df <- as.data.frame(table(values(constraint_scen)))
+  constraint_df$Regiao <- "PGM"
+  constraint_df$Constraint <- i
+  colnames(constraint_df) <- c("Scenario", "N_cells", "Regiao", "Constraint")
+  
+  constraint.sim <- rbind(constraint.sim, constraint_df)
+  
+}
+
+
+constraint.sim <- constraint.sim[-1,]
+constraint.sim$Scenario <- ifelse(constraint.sim$Scenario == 1, "Degradation", 
+                                  ifelse(constraint.sim$Scenario == 2, "Deforestation", "Restoration"))
+
+
+
+constraint.sim %>% mutate(Scenario = factor(Scenario, levels = c("Degradation", 
+                                                                 "Deforestation", 
+                                                                 "Restoration"))) %>% 
+  ggplot(aes(x=Constraint, y=N_cells, color=Scenario))+
+  geom_smooth(se=F) +
+  labs(x="Budget constraint (Mi US$)", y="Proportional landscape area")+
+  theme_bw() +
+  theme(plot.title = element_text(size = 14, family = "sans", face = "bold"),
+        text = element_text(size = 12, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 11))
+
+
 
 #
 
