@@ -17,10 +17,65 @@ library(stringr)
 library(ggridges)
 #library(ggblend)
 
+
+#filter the cells with conservation action for each scenario
+# [the difference in total forests between scenario and 2020 Real]
+
+pgm.allforest.list <- list.files("rasters/PGM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
+
+pgm.allforest <- stack(pgm.allforest.list)
+names(pgm.allforest) <- unlist(strsplit(pgm.allforest.list, "/|.tif"))[seq(4,32,4)]
+
+
+pgm.conservationaction.avoiddegrad <- pgm.allforest[["PGM_2020_avoiddegrad"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoiddegrad[pgm.conservationaction.avoiddegrad!=1]<-NA
+
+pgm.conservationaction.avoiddeforest <- pgm.allforest[["PGM_2020_avoiddeforest"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoiddeforest[pgm.conservationaction.avoiddeforest!=1]<-NA
+
+pgm.conservationaction.avoidboth <- pgm.allforest[["PGM_2020_avoidboth"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.avoidboth[pgm.conservationaction.avoidboth!=1]<-NA
+
+pgm.conservationaction.restor_wo_avoid <- pgm.allforest[["PGM_2020_restor_wo_avoid"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_wo_avoid[pgm.conservationaction.restor_wo_avoid!=1]<-NA
+
+pgm.conservationaction.restor_n_avoid_deforest <- pgm.allforest[["PGM_2020_restor_n_avoid_deforest"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_n_avoid_deforest[pgm.conservationaction.restor_n_avoid_deforest!=1]<-NA
+
+pgm.conservationaction.restor_n_avoid_both <- pgm.allforest[["PGM_2020_restor_n_avoid_both"]] - pgm.allforest[["PGM_2020_real"]]
+pgm.conservationaction.restor_n_avoid_both[pgm.conservationaction.restor_n_avoid_both!=1]<-NA
+
+
+stm.allforest.list <- list.files("rasters/STM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
+
+stm.allforest <- stack(stm.allforest.list)
+names(stm.allforest) <- unlist(strsplit(stm.allforest.list, "/|.tif"))[seq(4,32,4)]
+
+
+stm.conservationaction.avoiddegrad <- stm.allforest[["STM_2020_avoiddegrad"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoiddegrad[stm.conservationaction.avoiddegrad!=1]<-NA
+
+stm.conservationaction.avoiddeforest <- stm.allforest[["STM_2020_avoiddeforest"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoiddeforest[stm.conservationaction.avoiddeforest!=1]<-NA
+
+stm.conservationaction.avoidboth <- stm.allforest[["STM_2020_avoidboth"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.avoidboth[stm.conservationaction.avoidboth!=1]<-NA
+
+stm.conservationaction.restor_wo_avoid <- stm.allforest[["STM_2020_restor_wo_avoid"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_wo_avoid[stm.conservationaction.restor_wo_avoid!=1]<-NA
+
+stm.conservationaction.restor_n_avoid_deforest <- stm.allforest[["STM_2020_restor_n_avoid_deforest"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_n_avoid_deforest[stm.conservationaction.restor_n_avoid_deforest!=1]<-NA
+
+stm.conservationaction.restor_n_avoid_both <- stm.allforest[["STM_2020_restor_n_avoid_both"]] - stm.allforest[["STM_2020_real"]]
+stm.conservationaction.restor_n_avoid_both[stm.conservationaction.restor_n_avoid_both!=1]<-NA
+
+
 #########################################
 #### comparing biodiversity benefits ####
 ####      between scenarios and      ####
 ####         real projections        ####
+####           (landscape)           ####
 #########################################
 biodiversity.benefit.list <- list.files("models.output/biodiversity.benefits/", pattern = ".tif", full.names = T, recursive = T)
 
@@ -34,15 +89,22 @@ pgm.biodiversity.benefit.df <- pgm.biodiversity.benefit.df %>%
                                       values_to = "Biodiversity"
                                       ) %>% 
                                     mutate(
-                                      across(c('x', 'y'), round, 5),
+                                      across(c('x', 'y'), round, 6),
                                       Region = "PGM",
-                                      Scenario = case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
-                                                           str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
-                                                           str_detect(ID, "avoidboth")~ "Avoid both",
-                                                           str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
-                                                           str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
-                                                           str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
-                                                           str_detect(ID, "real")~ "Real"),
+                                      Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                                                  str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                                                  str_detect(ID, "avoidboth")~ "Avoid both",
+                                                                  str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                                                  str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                                                  str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                                                  str_detect(ID, "real")~ "Real"),
+                                                  levels = c("Avoid degradation",
+                                                             "Avoid deforestation",
+                                                             "Avoid both",
+                                                             "Restoration without avoid",
+                                                             "Restoration and avoid deforestation",
+                                                             "Restoration and avoid both",
+                                                             "Real")),
                                       Biodiversity = na_if(Biodiversity, 0)
                                       )
 
@@ -57,15 +119,22 @@ stm.biodiversity.benefit.df <- stm.biodiversity.benefit.df %>%
                                       values_to = "Biodiversity"
                                       ) %>% 
                                     mutate(
-                                      across(c('x', 'y'), round, 5),
+                                      across(c('x', 'y'), round, 6),
                                       Region = "STM",
-                                      Scenario = case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
-                                                           str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
-                                                           str_detect(ID, "avoidboth")~ "Avoid both",
-                                                           str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
-                                                           str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
-                                                           str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
-                                                           str_detect(ID, "real")~ "Real"),
+                                      Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                                                  str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                                                  str_detect(ID, "avoidboth")~ "Avoid both",
+                                                                  str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                                                  str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                                                  str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                                                  str_detect(ID, "real")~ "Real"),
+                                                        levels = c("Avoid degradation",
+                                                                   "Avoid deforestation",
+                                                                   "Avoid both",
+                                                                   "Restoration without avoid",
+                                                                   "Restoration and avoid deforestation",
+                                                                   "Restoration and avoid both",
+                                                                   "Real")),
                                       Biodiversity = na_if(Biodiversity, 0)
                                       )
 
@@ -76,7 +145,8 @@ biodiversity.benefit %>% group_by(Region, Scenario) %>% summarise(mean.benefit =
 
 cowplot::plot_grid(
 
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddegrad_biodiversity_benefit") %>% 
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoiddegrad_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
   ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
@@ -84,8 +154,9 @@ cowplot::plot_grid(
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(ID == "PGM_2020_avoiddegrad_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-  ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoiddegrad_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -97,16 +168,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_wo_avoid_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_wo_avoid_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration without avoid", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_wo_avoid_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_wo_avoid_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -118,16 +191,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddeforest_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoiddeforest_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Avoid deforestation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddeforest_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoiddeforest_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -139,16 +214,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_deforest_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_deforest_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration and avoid deforestation", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_deforest_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_deforest_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -160,16 +237,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoidboth_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoidboth_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Avoid both", x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoidboth_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_avoidboth_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -181,19 +260,21 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_both_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_both_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration and avoid both", x = "Longitude", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_both_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_both_biodiversity_benefit" | ID == "PGM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
-    scale_color_manual(values = c("#440154", "#fde725"), labels = c("ID", "Real")) +
-    scale_fill_manual(values = c("#440154", "#fde725"), labels = c("ID", "Real")) +
+    scale_color_manual(values = c("#440154", "#fde725"), labels = c("Scenario", "Real")) +
+    scale_fill_manual(values = c("#440154", "#fde725"), labels = c("Scenario", "Real")) +
     geom_hline(aes(yintercept=138), linewidth=1, color = "#fde725") +
     geom_hline(aes(yintercept=174), linewidth=1, linetype='dashed', color = "#440154") +
     labs(title = "", x = "", y = "Biodiversity benefit values") +
@@ -207,16 +288,18 @@ ncol = 4, align = "hv")
 
 cowplot::plot_grid(
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddegrad_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_avoiddegrad_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Avoid degradation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(ID == "STM_2020_avoiddegrad_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "STM_2020_avoiddegrad_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -228,16 +311,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_wo_avoid_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_wo_avoid_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration without avoid", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_wo_avoid_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_wo_avoid_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -249,16 +334,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddeforest_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_avoiddeforest_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Avoid deforestation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddeforest_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddeforest_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -270,16 +357,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_deforest_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_n_avoid_deforest_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration and avoid deforestation", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_deforest_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_n_avoid_deforest_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -291,16 +380,18 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoidboth_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_avoidboth_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Avoid both", x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoidboth_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "STM_2020_avoidboth_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#440154", "#fde725")) +
     scale_fill_manual(values = c("#440154", "#fde725")) +
@@ -312,19 +403,21 @@ cowplot::plot_grid(
   
   
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_both_biodiversity_benefit") %>%  
-    ggplot() +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_n_avoid_both_biodiversity_benefit") %>%  
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Biodiversity)) +
     scale_fill_viridis_b(direction=-1, na.value = "white") +
     labs(title = "Restoration and avoid both", x = "Longitude", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  biodiversity.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_both_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
-    ggplot(aes(y=Biodiversity, fill = ID, colour = ID)) +
+  biodiversity.benefit %>% filter(ID == "STM_2020_restor_n_avoid_both_biodiversity_benefit" | ID == "STM_2020_real_biodiversity_benefit") %>% 
+    #mutate(Biodiversity = na_if(Biodiversity, 0)) %>%
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
-    scale_color_manual(values = c("#440154", "#fde725"), labels = c("ID", "Real")) +
-    scale_fill_manual(values = c("#440154", "#fde725"), labels = c("ID", "Real")) +
+    scale_color_manual(values = c("#440154", "#fde725"), labels = c("Scenario", "Real")) +
+    scale_fill_manual(values = c("#440154", "#fde725"), labels = c("Scenario", "Real")) +
     geom_hline(aes(yintercept=179), linewidth=1, color = "#fde725") +
     geom_hline(aes(yintercept=214), linewidth=1, linetype='dashed', color = "#440154") +
     labs(title = "", x = "", y = "Biodiversity benefit values") +
@@ -338,11 +431,124 @@ cowplot::plot_grid(
 #gc()
 
 
+#########################################
+#### comparing biodiversity benefits ####
+####      between scenarios and      ####
+####         real projections        ####
+####  (conservation action areas)    ####
+#########################################
+##biodiversity
+pgm.conservact.avoiddegrad.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddegrad_biodiversity_benefit"]], pgm.conservationaction.avoiddegrad)
+pgm.conservact.avoiddeforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddeforest_biodiversity_benefit"]], pgm.conservationaction.avoiddeforest)
+pgm.conservact.avoidboth.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoidboth_biodiversity_benefit"]], pgm.conservationaction.avoidboth)
+pgm.conservact.restor_wo_avoid.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_wo_avoid_biodiversity_benefit"]], pgm.conservationaction.restor_wo_avoid)
+pgm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_deforest)
+pgm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_both_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_both)
+
+pgm.conservact.biodbenefitmask <- stack(pgm.conservact.avoiddegrad.biodbenefitmask,
+                                        pgm.conservact.avoiddeforest.biodbenefitmask,
+                                        pgm.conservact.avoidboth.biodbenefitmask,
+                                        pgm.conservact.restor_wo_avoid.biodbenefitmask,
+                                        pgm.conservact.restor_n_avoid_deforest.biodbenefitmask,
+                                        pgm.conservact.restor_n_avoid_both.biodbenefitmask)
+
+names(pgm.conservact.biodbenefitmask) <- c("pgm_avoiddegrad_biodbenefitmask",
+                                           "pgm_avoiddeforest_biodbenefitmask",
+                                           "pgm_avoidboth_biodbenefitmask",
+                                           "pgm_restor_wo_avoid_biodbenefitmask",
+                                           "pgm_restor_n_avoid_deforest_biodbenefitmask",
+                                           "pgm_restor_n_avoid_both_biodbenefitmask")
+
+pgm.conservact.biodbenefitmask.df <- as.data.frame(pgm.conservact.biodbenefitmask, xy = TRUE)
+pgm.conservact.biodbenefitmask.df <- pgm.conservact.biodbenefitmask.df %>% 
+  pivot_longer(
+    pgm_avoiddegrad_biodbenefitmask:pgm_restor_n_avoid_both_biodbenefitmask,
+    names_to = "ID",
+    values_to = "Biodiversity"
+  ) %>% 
+  mutate(
+    across(c('x', 'y'), round, 6),
+    Region = "PGM",
+    Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                str_detect(ID, "avoidboth")~ "Avoid both",
+                                str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                str_detect(ID, "real")~ "Real"),
+                      levels = c("Avoid degradation",
+                                 "Avoid deforestation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both",
+                                 "Real")),
+    Biodiversity = na_if(Biodiversity, 0)
+  )
+
+
+stm.conservact.avoiddegrad.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddegrad_biodiversity_benefit"]], stm.conservationaction.avoiddegrad)
+stm.conservact.avoiddeforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddeforest_biodiversity_benefit"]], stm.conservationaction.avoiddeforest)
+stm.conservact.avoidboth.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoidboth_biodiversity_benefit"]], stm.conservationaction.avoidboth)
+stm.conservact.restor_wo_avoid.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_wo_avoid_biodiversity_benefit"]], stm.conservationaction.restor_wo_avoid)
+stm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_deforest)
+stm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_both_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_both)
+
+stm.conservact.biodbenefitmask <- stack(stm.conservact.avoiddegrad.biodbenefitmask,
+                                        stm.conservact.avoiddeforest.biodbenefitmask,
+                                        stm.conservact.avoidboth.biodbenefitmask,
+                                        stm.conservact.restor_wo_avoid.biodbenefitmask,
+                                        stm.conservact.restor_n_avoid_deforest.biodbenefitmask,
+                                        stm.conservact.restor_n_avoid_both.biodbenefitmask)
+
+names(stm.conservact.biodbenefitmask) <- c("stm_avoiddegrad_biodbenefitmask",
+                                           "stm_avoiddeforest_biodbenefitmask",
+                                           "stm_avoidboth_biodbenefitmask",
+                                           "stm_restor_wo_avoid_biodbenefitmask",
+                                           "stm_restor_n_avoid_deforest_biodbenefitmask",
+                                           "stm_restor_n_avoid_both_biodbenefitmask")
+
+stm.conservact.biodbenefitmask.df <- as.data.frame(stm.conservact.biodbenefitmask, xy = TRUE)
+stm.conservact.biodbenefitmask.df <- stm.conservact.biodbenefitmask.df %>% 
+  pivot_longer(
+    stm_avoiddegrad_biodbenefitmask:stm_restor_n_avoid_both_biodbenefitmask,
+    names_to = "ID",
+    values_to = "Biodiversity"
+  ) %>% 
+  mutate(
+    across(c('x', 'y'), round, 6),
+    Region = "PGM",
+    Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                str_detect(ID, "avoidboth")~ "Avoid both",
+                                str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                str_detect(ID, "real")~ "Real"),
+                      levels = c("Avoid degradation",
+                                 "Avoid deforestation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both",
+                                 "Real")),
+    Biodiversity = na_if(Biodiversity, 0)
+  )
+
+
+conservact.biodbenefitmask.df <- rbind(pgm.conservact.biodbenefitmask.df, stm.conservact.biodbenefitmask.df)
+
+
+conservact.biodbenefitmask.df %>% 
+  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
+  geom_density()
+
 
 #########################################
 ####    comparing carbon benefits    ####
 ####      between scenarios and      ####
 ####         real projections        ####
+####           (landscape)           ####
 #########################################
 carbon.benefit.list <- list.files("models.output/carbon.benefits/", pattern = ".tif", full.names = T, recursive = T)
 
@@ -356,15 +562,22 @@ pgm.carbon.benefit.df <- pgm.carbon.benefit.df %>%
                               values_to = "Carbon"
                               ) %>% 
                             mutate(
-                              across(c('x', 'y'), round, 5),
+                              across(c('x', 'y'), round, 6),
                               Region = "PGM",
-                              Scenario = case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
-                                                   str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
-                                                   str_detect(ID, "avoidboth")~ "Avoid both",
-                                                   str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
-                                                   str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
-                                                   str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
-                                                   str_detect(ID, "real")~ "Real"),
+                              Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                                          str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                                          str_detect(ID, "avoidboth")~ "Avoid both",
+                                                          str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                                          str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                                          str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                                          str_detect(ID, "real")~ "Real"),
+                                                levels = c("Avoid degradation",
+                                                           "Avoid deforestation",
+                                                           "Avoid both",
+                                                           "Restoration without avoid",
+                                                           "Restoration and avoid deforestation",
+                                                           "Restoration and avoid both",
+                                                           "Real")),
                               Carbon = na_if(Carbon, 0)
                               )
 
@@ -379,15 +592,22 @@ stm.carbon.benefit.df <- stm.carbon.benefit.df %>%
                                  values_to = "Carbon"
                                  ) %>% 
                                mutate(
-                                 across(c('x', 'y'), round, 5),
+                                 across(c('x', 'y'), round, 6),
                                  Region = "STM",
-                                 Scenario = case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
-                                                      str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
-                                                      str_detect(ID, "avoidboth")~ "Avoid both",
-                                                      str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
-                                                      str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
-                                                      str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
-                                                      str_detect(ID, "real")~ "Real"),
+                                 Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                                             str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                                             str_detect(ID, "avoidboth")~ "Avoid both",
+                                                             str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                                             str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                                             str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                                             str_detect(ID, "real")~ "Real"),
+                                                   levels = c("Avoid degradation",
+                                                              "Avoid deforestation",
+                                                              "Avoid both",
+                                                              "Restoration without avoid",
+                                                              "Restoration and avoid deforestation",
+                                                              "Restoration and avoid both",
+                                                              "Real")),
                                  Carbon = na_if(Carbon, 0)
                                )
 
@@ -398,16 +618,18 @@ carbon.benefit %>% group_by(Region, Scenario) %>% summarise(mean.benefit = mean(
 
 cowplot::plot_grid(
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddegrad_carbon_benefit") %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_avoiddegrad_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid degradation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(ID == "PGM_2020_avoiddegrad_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "PGM_2020_avoiddegrad_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -419,16 +641,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_wo_avoid_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_wo_avoid_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration without avoid", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_wo_avoid_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_wo_avoid_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -440,16 +664,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddeforest_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_avoiddeforest_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid deforestation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddeforest_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoiddeforest_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -461,16 +687,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_deforest_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_deforest_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration and avoid deforestation", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_deforest_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_deforest_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -482,16 +710,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoidboth_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_avoidboth_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid both", x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_avoidboth_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "PGM_2020_avoidboth_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -503,16 +733,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_both_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_both_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration and avoid both", x = "Longitude", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "PGM" & ID == "PGM_2020_restor_n_avoid_both_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "PGM_2020_restor_n_avoid_both_carbon_benefit" | ID == "PGM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725"), labels = c("ID", "Real")) +
     scale_fill_manual(values = c("#374f00", "#fde725"), labels = c("ID", "Real")) +
@@ -529,16 +761,18 @@ cowplot::plot_grid(
 
 cowplot::plot_grid(
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddegrad_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_avoiddegrad_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid degradation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(ID == "STM_2020_avoiddegrad_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_avoiddegrad_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -550,16 +784,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_wo_avoid_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_wo_avoid_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration without avoid", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_wo_avoid_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_wo_avoid_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -571,16 +807,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddeforest_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_avoiddeforest_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid deforestation", x = "", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoiddeforest_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_avoiddeforest_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -592,16 +830,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_deforest_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_n_avoid_deforest_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration and avoid deforestation", x = "", y = "") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_deforest_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_n_avoid_deforest_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -613,16 +853,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoidboth_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_avoidboth_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Avoid both", x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_avoidboth_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_avoidboth_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725")) +
     scale_fill_manual(values = c("#374f00", "#fde725")) +
@@ -634,16 +876,18 @@ cowplot::plot_grid(
   
   
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_both_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>% 
-    ggplot() +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_n_avoid_both_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>% 
+  ggplot() +
     geom_raster(aes(x = x, y = y, fill = Carbon)) +
     scale_fill_gradient2(low = "#F3F6F4", mid = "#8fce00", high = "#374f00", na.value = NA) +
     labs(title = "Restoration and avoid both", x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(legend.position = "none"),
   
-  carbon.benefit %>% filter(Region == "STM" & ID == "STM_2020_restor_n_avoid_both_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% mutate(Carbon = na_if(Carbon, 0)) %>%
-    ggplot(aes(y=Carbon, fill = ID, colour = ID)) +
+  carbon.benefit %>% filter(ID == "STM_2020_restor_n_avoid_both_carbon_benefit" | ID == "STM_2020_real_carbon_benefit") %>% 
+    #mutate(Carbon = na_if(Carbon, 0)) %>%
+  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
     geom_density(alpha = 0.3) +
     scale_color_manual(values = c("#374f00", "#fde725"), labels = c("ID", "Real")) +
     scale_fill_manual(values = c("#374f00", "#fde725"), labels = c("ID", "Real")) +
@@ -659,6 +903,14 @@ cowplot::plot_grid(
 #rm(list= ls()[!(ls() %in% c("pgm.biodiversity.benefit", "stm.biodiversity.benefit", "biodiversity.benefit", 
 #                            "pgm.carbon.benefit", "stm.carbon.benefit", "carbon.benefit"))])
 #gc()
+
+
+#########################################
+####    comparing carbon benefits    ####
+####      between scenarios and      ####
+####         real projections        ####
+####  (conservation action areas)    ####
+#########################################
 
 
 
@@ -702,14 +954,20 @@ pgm.costs.df <- pgm.costs.df %>%
                       values_to = "Costs"
                       ) %>% 
                     mutate(
-                      across(c('x', 'y'), round, 5),
+                      across(c('x', 'y'), round, 6),
                       Region = "PGM",
-                      Scenario = case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
-                                           str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
-                                           str_detect(ID, "avoidboth")~ "Avoid both",
-                                           str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
-                                           str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
-                                           str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both"),
+                      Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                                  str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                                  str_detect(ID, "avoidboth")~ "Avoid both",
+                                                  str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                                  str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                                  str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both"),
+                                        levels = c("Avoid degradation",
+                                                   "Avoid deforestation",
+                                                   "Avoid both",
+                                                   "Restoration without avoid",
+                                                   "Restoration and avoid deforestation",
+                                                   "Restoration and avoid both")),
                       Costs = na_if(Costs, 0)
                       )
 
@@ -905,166 +1163,8 @@ ncol = 1, align = "hv")
 
 
 #next steps
-#step 1 - filter the cells with conservation action for each scenario
-# [the difference in total forests between scenario and 2020 Real]
-
-pgm.allforest.list <- list.files("rasters/PGM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
-
-pgm.allforest <- stack(pgm.allforest.list)
-names(pgm.allforest) <- unlist(strsplit(pgm.allforest.list, "/|.tif"))[seq(4,32,4)]
 
 
-pgm.conservationaction.avoiddegrad <- pgm.allforest[["PGM_2020_avoiddegrad"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.avoiddegrad[pgm.conservationaction.avoiddegrad!=1]<-NA
-
-pgm.conservationaction.avoiddeforest <- pgm.allforest[["PGM_2020_avoiddeforest"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.avoiddeforest[pgm.conservationaction.avoiddeforest!=1]<-NA
-
-pgm.conservationaction.avoidboth <- pgm.allforest[["PGM_2020_avoidboth"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.avoidboth[pgm.conservationaction.avoidboth!=1]<-NA
-
-pgm.conservationaction.restor_wo_avoid <- pgm.allforest[["PGM_2020_restor_wo_avoid"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.restor_wo_avoid[pgm.conservationaction.restor_wo_avoid!=1]<-NA
-
-pgm.conservationaction.restor_n_avoid_deforest <- pgm.allforest[["PGM_2020_restor_n_avoid_deforest"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.restor_n_avoid_deforest[pgm.conservationaction.restor_n_avoid_deforest!=1]<-NA
-
-pgm.conservationaction.restor_n_avoid_both <- pgm.allforest[["PGM_2020_restor_n_avoid_both"]] - pgm.allforest[["PGM_2020_real"]]
-pgm.conservationaction.restor_n_avoid_both[pgm.conservationaction.restor_n_avoid_both!=1]<-NA
-
-
-stm.allforest.list <- list.files("rasters/STM/all_forest_mask/", pattern = ".tif", full.names = T, recursive = T)
-
-stm.allforest <- stack(stm.allforest.list)
-names(stm.allforest) <- unlist(strsplit(stm.allforest.list, "/|.tif"))[seq(4,32,4)]
-
-
-stm.conservationaction.avoiddegrad <- stm.allforest[["STM_2020_avoiddegrad"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.avoiddegrad[stm.conservationaction.avoiddegrad!=1]<-NA
-
-stm.conservationaction.avoiddeforest <- stm.allforest[["STM_2020_avoiddeforest"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.avoiddeforest[stm.conservationaction.avoiddeforest!=1]<-NA
-
-stm.conservationaction.avoidboth <- stm.allforest[["STM_2020_avoidboth"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.avoidboth[stm.conservationaction.avoidboth!=1]<-NA
-
-stm.conservationaction.restor_wo_avoid <- stm.allforest[["STM_2020_restor_wo_avoid"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.restor_wo_avoid[stm.conservationaction.restor_wo_avoid!=1]<-NA
-
-stm.conservationaction.restor_n_avoid_deforest <- stm.allforest[["STM_2020_restor_n_avoid_deforest"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.restor_n_avoid_deforest[stm.conservationaction.restor_n_avoid_deforest!=1]<-NA
-
-stm.conservationaction.restor_n_avoid_both <- stm.allforest[["STM_2020_restor_n_avoid_both"]] - stm.allforest[["STM_2020_real"]]
-stm.conservationaction.restor_n_avoid_both[stm.conservationaction.restor_n_avoid_both!=1]<-NA
-
-
-#step 2 - mask and select cells with higher conservation values
-# [top 25% ???]
-
-##biodiversity
-pgm.conservact.avoiddegrad.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddegrad_biodiversity_benefit"]], pgm.conservationaction.avoiddegrad)
-top25 <- quantile(values(pgm.conservact.avoiddegrad.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoiddegrad.biodbenefitmask[pgm.conservact.avoiddegrad.biodbenefitmask<top25]<-NA
-
-pgm.conservact.avoiddeforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoiddeforest_biodiversity_benefit"]], pgm.conservationaction.avoiddeforest)
-top25 <- quantile(values(pgm.conservact.avoiddeforest.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoiddeforest.biodbenefitmask[pgm.conservact.avoiddeforest.biodbenefitmask<top25]<-NA
-
-pgm.conservact.avoidboth.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_avoidboth_biodiversity_benefit"]], pgm.conservationaction.avoidboth)
-top25 <- quantile(values(pgm.conservact.avoidboth.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoidboth.biodbenefitmask[pgm.conservact.avoidboth.biodbenefitmask<top25]<-NA
-
-pgm.conservact.restor_wo_avoid.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_wo_avoid_biodiversity_benefit"]], pgm.conservationaction.restor_wo_avoid)
-top25 <- quantile(values(pgm.conservact.restor_wo_avoid.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_wo_avoid.biodbenefitmask[pgm.conservact.restor_wo_avoid.biodbenefitmask<top25]<-NA
-
-pgm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_deforest)
-top25 <- quantile(values(pgm.conservact.restor_n_avoid_deforest.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_n_avoid_deforest.biodbenefitmask[pgm.conservact.restor_n_avoid_deforest.biodbenefitmask<top25]<-NA
-
-pgm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(pgm.biodiversity.benefit[["PGM_2020_restor_n_avoid_both_biodiversity_benefit"]], pgm.conservationaction.restor_n_avoid_both)
-top25 <- quantile(values(pgm.conservact.restor_n_avoid_both.biodbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_n_avoid_both.biodbenefitmask[pgm.conservact.restor_n_avoid_both.biodbenefitmask<top25]<-NA
-
-
-
-stm.conservact.avoiddegrad.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddegrad_biodiversity_benefit"]], stm.conservationaction.avoiddegrad)
-top25 <- quantile(values(stm.conservact.avoiddegrad.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoiddegrad.biodbenefitmask[stm.conservact.avoiddegrad.biodbenefitmask<top25]<-NA
-
-stm.conservact.avoiddeforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoiddeforest_biodiversity_benefit"]], stm.conservationaction.avoiddeforest)
-top25 <- quantile(values(stm.conservact.avoiddeforest.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoiddeforest.biodbenefitmask[stm.conservact.avoiddeforest.biodbenefitmask<top25]<-NA
-
-stm.conservact.avoidboth.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_avoidboth_biodiversity_benefit"]], stm.conservationaction.avoidboth)
-top25 <- quantile(values(stm.conservact.avoidboth.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoidboth.biodbenefitmask[stm.conservact.avoidboth.biodbenefitmask<top25]<-NA
-
-stm.conservact.restor_wo_avoid.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_wo_avoid_biodiversity_benefit"]], stm.conservationaction.restor_wo_avoid)
-top25 <- quantile(values(stm.conservact.restor_wo_avoid.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_wo_avoid.biodbenefitmask[stm.conservact.restor_wo_avoid.biodbenefitmask<top25]<-NA
-
-stm.conservact.restor_n_avoid_deforest.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_deforest_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_deforest)
-top25 <- quantile(values(stm.conservact.restor_n_avoid_deforest.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_n_avoid_deforest.biodbenefitmask[stm.conservact.restor_n_avoid_deforest.biodbenefitmask<top25]<-NA
-
-stm.conservact.restor_n_avoid_both.biodbenefitmask <- mask(stm.biodiversity.benefit[["STM_2020_restor_n_avoid_both_biodiversity_benefit"]], stm.conservationaction.restor_n_avoid_both)
-top25 <- quantile(values(stm.conservact.restor_n_avoid_both.biodbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_n_avoid_both.biodbenefitmask[stm.conservact.restor_n_avoid_both.biodbenefitmask<top25]<-NA
-
-
-
-
-##carbon
-pgm.conservact.avoiddegrad.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoiddegrad_carbon_benefit"]], pgm.conservationaction.avoiddegrad)
-top25 <- quantile(values(pgm.conservact.avoiddegrad.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoiddegrad.carbbenefitmask[pgm.conservact.avoiddegrad.carbbenefitmask<top25]<-NA
-
-pgm.conservact.avoiddeforest.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoiddeforest_carbon_benefit"]], pgm.conservationaction.avoiddeforest)
-top25 <- quantile(values(pgm.conservact.avoiddeforest.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoiddeforest.carbbenefitmask[pgm.conservact.avoiddeforest.carbbenefitmask<top25]<-NA
-
-pgm.conservact.avoidboth.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_avoidboth_carbon_benefit"]], pgm.conservationaction.avoidboth)
-top25 <- quantile(values(pgm.conservact.avoidboth.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.avoidboth.carbbenefitmask[pgm.conservact.avoidboth.carbbenefitmask<top25]<-NA
-
-pgm.conservact.restor_wo_avoid.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_wo_avoid_carbon_benefit"]], pgm.conservationaction.restor_wo_avoid)
-top25 <- quantile(values(pgm.conservact.restor_wo_avoid.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_wo_avoid.carbbenefitmask[pgm.conservact.restor_wo_avoid.carbbenefitmask<top25]<-NA
-
-pgm.conservact.restor_n_avoid_deforest.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_n_avoid_deforest_carbon_benefit"]], pgm.conservationaction.restor_n_avoid_deforest)
-top25 <- quantile(values(pgm.conservact.restor_n_avoid_deforest.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_n_avoid_deforest.carbbenefitmask[pgm.conservact.restor_n_avoid_deforest.carbbenefitmask<top25]<-NA
-
-pgm.conservact.restor_n_avoid_both.carbbenefitmask <- mask(pgm.carbon.benefit[["PGM_2020_restor_n_avoid_both_carbon_benefit"]], pgm.conservationaction.restor_n_avoid_both)
-top25 <- quantile(values(pgm.conservact.restor_n_avoid_both.carbbenefitmask), 0.75, na.rm=TRUE)
-pgm.conservact.restor_n_avoid_both.carbbenefitmask[pgm.conservact.restor_n_avoid_both.carbbenefitmask<top25]<-NA
-
-
-
-stm.conservact.avoiddegrad.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoiddegrad_carbon_benefit"]], stm.conservationaction.avoiddegrad)
-top25 <- quantile(values(stm.conservact.avoiddegrad.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoiddegrad.carbbenefitmask[stm.conservact.avoiddegrad.carbbenefitmask<top25]<-NA
-
-stm.conservact.avoiddeforest.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoiddeforest_carbon_benefit"]], stm.conservationaction.avoiddeforest)
-top25 <- quantile(values(stm.conservact.avoiddeforest.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoiddeforest.carbbenefitmask[stm.conservact.avoiddeforest.carbbenefitmask<top25]<-NA
-
-stm.conservact.avoidboth.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_avoidboth_carbon_benefit"]], stm.conservationaction.avoidboth)
-top25 <- quantile(values(stm.conservact.avoidboth.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.avoidboth.carbbenefitmask[stm.conservact.avoidboth.carbbenefitmask<top25]<-NA
-
-stm.conservact.restor_wo_avoid.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_wo_avoid_carbon_benefit"]], stm.conservationaction.restor_wo_avoid)
-top25 <- quantile(values(stm.conservact.restor_wo_avoid.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_wo_avoid.carbbenefitmask[stm.conservact.restor_wo_avoid.carbbenefitmask<top25]<-NA
-
-stm.conservact.restor_n_avoid_deforest.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_n_avoid_deforest_carbon_benefit"]], stm.conservationaction.restor_n_avoid_deforest)
-top25 <- quantile(values(stm.conservact.restor_n_avoid_deforest.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_n_avoid_deforest.carbbenefitmask[stm.conservact.restor_n_avoid_deforest.carbbenefitmask<top25]<-NA
-
-stm.conservact.restor_n_avoid_both.carbbenefitmask <- mask(stm.carbon.benefit[["STM_2020_restor_n_avoid_both_carbon_benefit"]], stm.conservationaction.restor_n_avoid_both)
-top25 <- quantile(values(stm.conservact.restor_n_avoid_both.carbbenefitmask), 0.75, na.rm=TRUE)
-stm.conservact.restor_n_avoid_both.carbbenefitmask[stm.conservact.restor_n_avoid_both.carbbenefitmask<top25]<-NA
 
 
 #step 3 - mask with costs
