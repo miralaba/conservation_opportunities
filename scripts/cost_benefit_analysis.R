@@ -540,10 +540,18 @@ conservact.biodbenefitmask.df <- rbind(pgm.conservact.biodbenefitmask.df, stm.co
 
 
 conservact.biodbenefitmask.df %>% 
-  ggplot(aes(y=Biodiversity, fill = Scenario, colour = Scenario)) +
-  geom_violin(aes(x=Scenario), show.legend = F) +
+  ggplot(aes(x=Scenario, y=Biodiversity, fill = Scenario)) +
+  geom_violin(show.legend = F) + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange", width = 0.2, show.legend = F) +
+  scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                               "#D3756B", "#D3756B", "#D3756B")) +
   coord_flip() +
-  facet_wrap(~Region)
+  facet_wrap(~Region) +
+  labs(title = "", x = "", y = "Biodiversity benefit values") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14))
 
 
 #########################################
@@ -1016,10 +1024,18 @@ conservact.carbbenefitmask.df <- rbind(pgm.conservact.carbbenefitmask.df, stm.co
 
 
 conservact.carbbenefitmask.df %>% 
-  ggplot(aes(y=Carbon, fill = Scenario, colour = Scenario)) +
-  geom_violin(aes(x=Scenario), show.legend = F) +
+  ggplot(aes(x=Scenario, y=Carbon, fill = Scenario)) +
+  geom_violin(show.legend = F) + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange", width = 0.2, show.legend = F) +
+  scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                               "#D3756B", "#D3756B", "#D3756B")) +
   coord_flip() +
-  facet_wrap(~Region)
+  facet_wrap(~Region) +
+  labs(title = "", x = "", y = "Carbon benefit values") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14))
 
 
 ##########################################
@@ -1046,10 +1062,9 @@ pgm.restor_n_avoid_both.cost <- pgm.opportunity.cost + pgm.passiverestor.cost + 
 
 
 #converting in dataframe
-pgm.costs.list <- c(pgm.avoiddegrad.cost, pgm.avoiddeforest.cost, pgm.avoidboth.cost, pgm.restor_wo_avoid.cost,
-                    pgm.restor_n_avoid_deforest.cost, pgm.restor_n_avoid_both.cost)
+pgm.costs <- stack(c(pgm.avoiddegrad.cost, pgm.avoiddeforest.cost, pgm.avoidboth.cost, pgm.restor_wo_avoid.cost,
+                     pgm.restor_n_avoid_deforest.cost, pgm.restor_n_avoid_both.cost))
 
-pgm.costs <- stack(pgm.costs.list)
 names(pgm.costs) <- c("pgm_avoiddegrad_cost", "pgm_avoiddeforest_cost", "pgm_avoidboth_cost", "pgm_restor_wo_avoid_cost",
                     "pgm_restor_n_avoid_deforest.cost", "pgm_restor_n_avoid_both_cost")
 
@@ -1098,10 +1113,9 @@ stm.restor_n_avoid_both.cost <- stm.opportunity.cost + stm.passiverestor.cost + 
 
 
 #converting in dataframe
-stm.costs.list <- c(stm.avoiddegrad.cost, stm.avoiddeforest.cost, stm.avoidboth.cost, stm.restor_wo_avoid.cost,
-                    stm.restor_n_avoid_deforest.cost, stm.restor_n_avoid_both.cost)
+stm.costs <- stack(c(stm.avoiddegrad.cost, stm.avoiddeforest.cost, stm.avoidboth.cost, stm.restor_wo_avoid.cost,
+                     stm.restor_n_avoid_deforest.cost, stm.restor_n_avoid_both.cost))
 
-stm.costs <- stack(stm.costs.list)
 names(stm.costs) <- c("stm_avoiddegrad_cost", "stm_avoiddeforest_cost", "stm_avoidboth_cost", "stm_restor_wo_avoid_cost",
                       "stm_restor_n_avoid_deforest_cost", "stm_restor_n_avoid_both_cost")
 
@@ -1137,9 +1151,6 @@ costs <- rbind(pgm.costs.df, stm.costs.df)
 costs %>% group_by(Region, Scenario) %>% summarise(mean.costs = mean(Costs, na.rm=T))
 
 
-
-
-
 benefit.cost.ratio.df <- costs %>% dplyr::select(-ID) %>% 
   left_join(
     (biodiversity.benefit %>% dplyr::select(-ID) %>% filter(Scenario!="Real")),
@@ -1164,9 +1175,6 @@ benefit.cost.ratio.df <- benefit.cost.ratio.df %>%
          Carbon.BCR = ifelse(is.na(Costs) | is.na(Carbon), NA, Carbon/Costs))
 
 #benefit.cost.ratio.df <- read.csv("data/benefit_cost_ratio.csv")
-
-
-
 
 
 benefit.cost.ratio.overview <- benefit.cost.ratio.df %>% group_by(Region, Scenario) %>% 
@@ -1387,21 +1395,21 @@ names(stm.conservact.carbbenefitmask) <- c("stm_avoiddegrad_carbcostmask",
 #and calculate the proportion of land of each scenario in each simulation
 #[simulations!]
 
-constraint.sim <- data.frame(Scenario=NA, N_cells=NA, Regiao=NA, Constraint=NA)
+constraint.sim <- data.frame(Regiao=NA, Scenario=NA, Benefit=NA, N_cells=NA, Area=NA, Constraint=NA)
 
 ##biodiversity
 r <- pgm.conservact.biodcostmask[[c(1,2,4)]]
-plot(r)
-values(r)[1,]
+#plot(r)
+#values(r)[1,]
 
 r.ord <- calc(r, fun=function(x, na.rm) x[order(x, decreasing = F)])
-plot(r.ord)
-values(r.ord)[1,]
+#plot(r.ord)
+#values(r.ord)[1,]
 
 r.scen <- calc(r, function(x, na.rm) order(x, decreasing = F))
 r.scen <- mask(r.scen, r.ord[[1]])
-plot(r.scen)
-values(r.scen)[1,]
+#plot(r.scen)
+#values(r.scen)[1,]
 table(values(r.scen[[1]]))
 
 ss <- sort(as.vector(r.ord[[1]]), decreasing = F)
@@ -1418,9 +1426,12 @@ for (i in seq(0,100000000,2000000)) {
   constraint_scen <- mask(r.scen[[1]], constraint)
   #plot(constraint_scen)
   constraint_df <- as.data.frame(table(values(constraint_scen)))
+  colnames(constraint_df) <- c("Scenario", "N_cells")
   constraint_df$Regiao <- "PGM"
+  constraint_df$Benefit <- "Biodiversity"
+  constraint_df$Area <- constraint_df$N_cells/length(r.scen[[1]][Which(!is.na(r.scen[[1]]))])
   constraint_df$Constraint <- i
-  colnames(constraint_df) <- c("Scenario", "N_cells", "Regiao", "Constraint")
+  
   
   constraint.sim <- rbind(constraint.sim, constraint_df)
   
@@ -1429,19 +1440,18 @@ for (i in seq(0,100000000,2000000)) {
 constraint.sim <- constraint.sim[-1,]
 
 
-
 r2 <- stm.conservact.biodcostmask[[c(1,2,4)]]
-plot(r2)
-values(r2)[1,]
+#plot(r2)
+#values(r2)[1,]
 
 r2.ord <- calc(r2, fun=function(x, na.rm) x[order(x, decreasing = F)])
-plot(r2.ord)
-values(r2.ord)[1,]
+#plot(r2.ord)
+#values(r2.ord)[1,]
 
 r2.scen <- calc(r2, function(x, na.rm) order(x, decreasing = F))
 r2.scen <- mask(r2.scen, r2.ord[[1]])
-plot(r2.scen)
-values(r2.scen)[1,]
+#plot(r2.scen)
+#values(r2.scen)[1,]
 table(values(r2.scen[[1]]))
 
 ss2 <- sort(as.vector(r2.ord[[1]]), decreasing = F)
@@ -1458,9 +1468,92 @@ for (i in seq(0,100000000,2000000)) {
   constraint_scen <- mask(r2.scen[[1]], constraint)
   #plot(constraint_scen)
   constraint_df <- as.data.frame(table(values(constraint_scen)))
+  colnames(constraint_df) <- c("Scenario", "N_cells")
   constraint_df$Regiao <- "STM"
+  constraint_df$Benefit <- "Biodiversity"
+  constraint_df$Area <- constraint_df$N_cells/length(r2.scen[[1]][Which(!is.na(r2.scen[[1]]))])
   constraint_df$Constraint <- i
-  colnames(constraint_df) <- c("Scenario", "N_cells", "Regiao", "Constraint")
+  
+  
+  constraint.sim <- rbind(constraint.sim, constraint_df)
+  
+}
+
+
+r3 <- pgm.conservact.carbcostmask[[c(1,2,4)]]
+#plot(r3)
+#values(r3)[1,]
+
+r3.ord <- calc(r3, fun=function(x, na.rm) x[order(x, decreasing = F)])
+#plot(r3.ord)
+#values(r3.ord)[1,]
+
+r3.scen <- calc(r3, function(x, na.rm) order(x, decreasing = F))
+r3.scen <- mask(r3.scen, r3.ord[[1]])
+#plot(r3.scen)
+#values(r3.scen)[1,]
+table(values(r3.scen[[1]]))
+
+ss3 <- sort(as.vector(r3.ord[[1]]), decreasing = F)
+
+for (i in seq(0,100000000,2000000)) {
+  
+  s3_lim <- ss3[cumsum(ss3) <= i]
+  
+  constraint <- r3.ord[[1]] 
+  constraint[!constraint %in% s3_lim ] <- NA
+  #cellStats(constraint, sum)
+  #plot(constraint)
+  
+  constraint_scen <- mask(r3.scen[[1]], constraint)
+  #plot(constraint_scen)
+  constraint_df <- as.data.frame(table(values(constraint_scen)))
+  colnames(constraint_df) <- c("Scenario", "N_cells")
+  constraint_df$Regiao <- "PGM"
+  constraint_df$Benefit <- "Carbon"
+  constraint_df$Area <- constraint_df$N_cells/length(r3.scen[[1]][Which(!is.na(r3.scen[[1]]))])
+  constraint_df$Constraint <- i
+  
+  
+  constraint.sim <- rbind(constraint.sim, constraint_df)
+  
+}
+
+
+r4 <- stm.conservact.carbcostmask[[c(1,2,4)]]
+#plot(r4)
+#values(r4)[1,]
+
+r4.ord <- calc(r4, fun=function(x, na.rm) x[order(x, decreasing = F)])
+#plot(r4.ord)
+#values(r4.ord)[1,]
+
+r4.scen <- calc(r4, function(x, na.rm) order(x, decreasing = F))
+r4.scen <- mask(r4.scen, r4.ord[[1]])
+#plot(r4.scen)
+#values(r4.scen)[1,]
+table(values(r4.scen[[1]]))
+
+ss4 <- sort(as.vector(r4.ord[[1]]), decreasing = F)
+
+for (i in seq(0,100000000,2000000)) {
+  
+  s4_lim <- ss4[cumsum(ss4) <= i]
+  
+  constraint <- r4.ord[[1]] 
+  constraint[!constraint %in% s4_lim ] <- NA
+  #cellStats(constraint, sum)
+  #plot(constraint)
+  
+  constraint_scen <- mask(r4.scen[[1]], constraint)
+  #plot(constraint_scen)
+  constraint_df <- as.data.frame(table(values(constraint_scen)))
+  colnames(constraint_df) <- c("Scenario", "N_cells")
+  constraint_df$Regiao <- "STM"
+  constraint_df$Benefit <- "Carbon"
+  constraint_df$Area <- constraint_df$N_cells/length(r4.scen[[1]][Which(!is.na(r4.scen[[1]]))])
+  constraint_df$Constraint <- i
+  
   
   constraint.sim <- rbind(constraint.sim, constraint_df)
   
@@ -1476,15 +1569,16 @@ constraint.sim$Scenario <- ifelse(constraint.sim$Scenario == 1, "Degradation",
 constraint.sim %>% mutate(Scenario = factor(Scenario, levels = c("Degradation", 
                                                                  "Deforestation", 
                                                                  "Restoration"))) %>% 
-  ggplot(aes(x=Constraint, y=N_cells, color=Scenario))+
+  ggplot(aes(x=Constraint, y=Area, color=Scenario))+
   geom_smooth(se=F) +
-  facet_wrap(~Regiao) +
-  labs(x="Budget constraint", y="N_cells")+
-  theme_bw() +
-  theme(plot.title = element_text(size = 14, family = "sans", face = "bold"),
-        text = element_text(size = 12, family = "sans"),
+  scale_x_continuous(breaks = seq(0,100000000,10000000), labels = scales::comma) +
+  facet_grid(Benefit~Regiao) +
+  labs(x="Budget constraint", y="Proportional landscape area")+
+  theme_bw()+
+  theme(plot.title = element_text(size = 16, family = "sans", face = "bold"),
+        text = element_text(size = 16, family = "sans"),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 11))
+        axis.text.x=element_text(angle = 45, hjust=1, size = 14))
 
 
 
