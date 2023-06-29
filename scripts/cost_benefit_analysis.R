@@ -1038,9 +1038,12 @@ conservact.carbbenefitmask.df %>%
         axis.text.x=element_text(size = 14))
 
 
-##########################################
-#### analyzing the benefit-cost ratio ####
-##########################################
+#########################################
+####          comparing costs        ####
+####      between scenarios and      ####
+####         real projections        ####
+####           (landscape)           ####
+#########################################
 dir.create("models.output/biodiversity.cost.benefits", recursive = T)
 dir.create("models.output/carbon.cost.benefits", recursive = T)
 
@@ -1151,11 +1154,14 @@ costs <- rbind(pgm.costs.df, stm.costs.df)
 costs %>% group_by(Region, Scenario) %>% summarise(mean.costs = mean(Costs, na.rm=T))
 
 
+######################################################
+#### analyzing the benefit-cost ratio (landscape) ####
+######################################################
 benefit.cost.ratio.df <- costs %>% dplyr::select(-ID) %>% 
   left_join(
     (biodiversity.benefit %>% dplyr::select(-ID) %>% filter(Scenario!="Real")),
     by = c("x", "y", "Region", "Scenario")
-    )
+  )
 
 benefit.cost.ratio.df <- benefit.cost.ratio.df %>% 
   left_join(
@@ -1178,14 +1184,15 @@ benefit.cost.ratio.df <- benefit.cost.ratio.df %>%
 
 
 benefit.cost.ratio.overview <- benefit.cost.ratio.df %>% group_by(Region, Scenario) %>% 
-                                    summarise(
-                                      Biodiversity_mean = mean(Biodiversity, na.rm=T),
-                                      Carbon_mean = mean(Carbon, na.rm=T),
-                                      Costs_mean = mean(Costs, na.rm=T),
-                                      Biodiversity_sd = sd(Biodiversity, na.rm=T),
-                                      Carbon_sd = sd(Carbon, na.rm=T),
-                                      Costs_sd = sd(Costs, na.rm=T),
-                                      )
+  summarise(
+    Biodiversity_mean = mean(Biodiversity, na.rm=T),
+    Carbon_mean = mean(Carbon, na.rm=T),
+    Costs_mean = mean(Costs, na.rm=T),
+    Biodiversity_sd = sd(Biodiversity, na.rm=T),
+    Carbon_sd = sd(Carbon, na.rm=T),
+    Costs_sd = sd(Costs, na.rm=T),
+  )
+
 
 
 library(ggrepel)
@@ -1286,107 +1293,340 @@ ncol = 1, align = "hv")
   
 
 
+#########################################
+####         comparing costs         ####
+####      between scenarios and      ####
+####         real projections        ####
+####  (conservation action areas)    ####
+#########################################
+pgm.conservact.avoiddegrad.costmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservationaction.avoiddegrad)
+pgm.conservact.avoiddeforest.costmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservationaction.avoiddeforest)
+pgm.conservact.avoidboth.costmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservationaction.avoidboth)
+pgm.conservact.restor_wo_avoid.costmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservationaction.restor_wo_avoid)
+pgm.conservact.restor_n_avoid_deforest.costmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservationaction.restor_n_avoid_deforest)
+pgm.conservact.restor_n_avoid_both.costmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservationaction.restor_n_avoid_both)
+
+pgm.conservact.costmask <- stack(pgm.conservact.avoiddegrad.costmask,
+                                 pgm.conservact.avoiddeforest.costmask,
+                                 pgm.conservact.avoidboth.costmask,
+                                 pgm.conservact.restor_wo_avoid.costmask,
+                                 pgm.conservact.restor_n_avoid_deforest.costmask,
+                                 pgm.conservact.restor_n_avoid_both.costmask)
+
+names(pgm.conservact.costmask) <- c("pgm_avoiddegrad_costmask",
+                                    "pgm_avoiddeforest_costmask",
+                                    "pgm_avoidboth_costmask",
+                                    "pgm_restor_wo_avoid_costmask",
+                                    "pgm_restor_n_avoid_deforest_costmask",
+                                    "pgm_restor_n_avoid_both_costmask")
+
+pgm.conservact.costmask.df <- as.data.frame(pgm.conservact.costmask, xy = TRUE)
+pgm.conservact.costmask.df <- pgm.conservact.costmask.df %>% 
+  pivot_longer(
+    pgm_avoiddegrad_costmask:pgm_restor_n_avoid_both_costmask,
+    names_to = "ID",
+    values_to = "Costs"
+  ) %>% 
+  mutate(
+    across(c('x', 'y'), round, 6),
+    Region = "PGM",
+    Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                str_detect(ID, "avoidboth")~ "Avoid both",
+                                str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both"),
+                      levels = c("Avoid degradation",
+                                 "Avoid deforestation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both")),
+    Costs = na_if(Costs, 0)
+  )
 
 
-#next steps
+stm.conservact.avoiddegrad.costmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservationaction.avoiddegrad)
+stm.conservact.avoiddeforest.costmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservationaction.avoiddeforest)
+stm.conservact.avoidboth.costmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservationaction.avoidboth)
+stm.conservact.restor_wo_avoid.costmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservationaction.restor_wo_avoid)
+stm.conservact.restor_n_avoid_deforest.costmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservationaction.restor_n_avoid_deforest)
+stm.conservact.restor_n_avoid_both.costmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservationaction.restor_n_avoid_both)
+
+stm.conservact.costmask <- stack(stm.conservact.avoiddegrad.costmask,
+                                 stm.conservact.avoiddeforest.costmask,
+                                 stm.conservact.avoidboth.costmask,
+                                 stm.conservact.restor_wo_avoid.costmask,
+                                 stm.conservact.restor_n_avoid_deforest.costmask,
+                                 stm.conservact.restor_n_avoid_both.costmask)
+
+names(stm.conservact.costmask) <- c("stm_avoiddegrad_costmask",
+                                    "stm_avoiddeforest_costmask",
+                                    "stm_avoidboth_costmask",
+                                    "stm_restor_wo_avoid_costmask",
+                                    "stm_restor_n_avoid_deforest_costmask",
+                                    "stm_restor_n_avoid_both_costmask")
+
+stm.conservact.costmask.df <- as.data.frame(stm.conservact.costmask, xy = TRUE)
+stm.conservact.costmask.df <- stm.conservact.costmask.df %>% 
+  pivot_longer(
+    stm_avoiddegrad_costmask:stm_restor_n_avoid_both_costmask,
+    names_to = "ID",
+    values_to = "Costs"
+  ) %>% 
+  mutate(
+    across(c('x', 'y'), round, 6),
+    Region = "STM",
+    Scenario = factor(case_when(str_detect(ID, "avoiddegrad")~ "Avoid degradation",
+                                str_detect(ID, "avoiddeforest")~ "Avoid deforestation",
+                                str_detect(ID, "avoidboth")~ "Avoid both",
+                                str_detect(ID, "restor_wo_avoid")~ "Restoration without avoid",
+                                str_detect(ID, "restor_n_avoid_deforest")~ "Restoration and avoid deforestation",
+                                str_detect(ID, "restor_n_avoid_both")~ "Restoration and avoid both",
+                                str_detect(ID, "real")~ "Real"),
+                      levels = c("Avoid degradation",
+                                 "Avoid deforestation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both",
+                                 "Real")),
+    Costs = na_if(Costs, 0)
+  )
+
+
+conservact.costmask.df <- rbind(pgm.conservact.costmask.df, stm.conservact.costmask.df)
+
+
+conservact.costmask.df %>% 
+  ggplot(aes(x=Scenario, y=Costs, fill = Scenario)) +
+  geom_violin(show.legend = F) + 
+  stat_summary(fun.data = "mean_cl_boot", geom = "pointrange", width = 0.2, show.legend = F) +
+  scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                               "#D3756B", "#D3756B", "#D3756B")) +
+  coord_flip() +
+  facet_wrap(~Region) +
+  labs(title = "", x = "", y = "Costs") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14))
 
 
 
 
-#step 3 - mask with costs
 
-##biodiversity
-pgm.conservact.avoiddegrad.biodcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.biodbenefitmask)
-pgm.conservact.avoiddeforest.biodcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.biodbenefitmask)
-pgm.conservact.avoidboth.biodcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.biodbenefitmask)
-pgm.conservact.restor_wo_avoid.biodcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.biodbenefitmask)
-pgm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.biodbenefitmask)
-pgm.conservact.restor_n_avoid_both.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.biodbenefitmask)
 
-pgm.conservact.biodcostmask <- stack(pgm.conservact.avoiddegrad.biodcostmask,
-                                     pgm.conservact.avoiddeforest.biodcostmask,
-                                     pgm.conservact.avoidboth.biodcostmask,
-                                     pgm.conservact.restor_wo_avoid.biodcostmask,
-                                     pgm.conservact.restor_n_avoid_deforest.biodcostmask,
-                                     pgm.conservact.restor_n_avoid_both.biodcostmask)
+#####################################################################
+#### analyzing the benefit-cost ratio (conservation action area) ####
+#####################################################################
+conservact.benefit.cost.ratio.df <- conservact.costmask.df %>% dplyr::select(-ID) %>% 
+  left_join(
+    (conservact.biodbenefitmask.df %>% dplyr::select(-ID) %>% filter(Scenario!="Real")),
+    by = c("x", "y", "Region", "Scenario")
+  )
 
-names(pgm.conservact.carbbenefitmask) <- c("pgm_avoiddegrad_biodcostmask",
-                                           "pgm_avoiddeforest_biodcostmask",
-                                           "pgm_avoidboth_biodcostmask",
-                                           "pgm_restor_wo_avoid_biodcostmask",
-                                           "pgm_restor_n_avoid_deforest_biodcostmask",
-                                           "pgm_restor_n_avoid_both_biodcostmask")
+conservact.benefit.cost.ratio.df <- conservact.benefit.cost.ratio.df %>% 
+  left_join(
+    (conservact.carbbenefitmask.df %>% dplyr::select(-ID)%>% filter(Scenario!="Real")),
+    by = c("x", "y", "Region", "Scenario")
+  )
 
 
 
+conservact.benefit.cost.ratio.df <- conservact.benefit.cost.ratio.df %>% 
+  mutate(Biodiversity.BCR = ifelse(is.na(Costs) | is.na(Biodiversity), NA, Biodiversity/Costs),
+         Carbon.BCR = ifelse(is.na(Costs) | is.na(Carbon), NA, Carbon/Costs))
 
-stm.conservact.avoiddegrad.biodcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.biodbenefitmask)
-stm.conservact.avoiddeforest.biodcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.biodbenefitmask)
-stm.conservact.avoidboth.biodcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.biodbenefitmask)
-stm.conservact.restor_wo_avoid.biodcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.biodbenefitmask)
-stm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.biodbenefitmask)
-stm.conservact.restor_n_avoid_both.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.biodbenefitmask)
+#conservact.benefit.cost.ratio.df <- read.csv("data/conservact_benefit_cost_ratio.csv")
 
-stm.conservact.biodcostmask <- stack(stm.conservact.avoiddegrad.biodcostmask,
-                                     stm.conservact.avoiddeforest.biodcostmask,
-                                     stm.conservact.avoidboth.biodcostmask,
-                                     stm.conservact.restor_wo_avoid.biodcostmask,
-                                     stm.conservact.restor_n_avoid_deforest.biodcostmask,
-                                     stm.conservact.restor_n_avoid_both.biodcostmask)
 
-names(stm.conservact.carbbenefitmask) <- c("stm_avoiddegrad_biodcostmask",
-                                           "stm_avoiddeforest_biodcostmask",
-                                           "stm_avoidboth_biodcostmask",
-                                           "stm_restor_wo_avoid_biodcostmask",
-                                           "stm_restor_n_avoid_deforest_biodcostmask",
-                                           "stm_restor_n_avoid_both_biodcostmask")
+conservact.benefit.cost.ratio.overview <- conservact.benefit.cost.ratio.df %>% group_by(Region, Scenario) %>% 
+  summarise(
+    Biodiversity_mean = mean(Biodiversity, na.rm=T),
+    Carbon_mean = mean(Carbon, na.rm=T),
+    Costs_mean = mean(Costs, na.rm=T),
+    Biodiversity_sd = sd(Biodiversity, na.rm=T),
+    Carbon_sd = sd(Carbon, na.rm=T),
+    Costs_sd = sd(Costs, na.rm=T),
+  )
 
 
 
-##carbon
-pgm.conservact.avoiddegrad.carbcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.carbbenefitmask)
-pgm.conservact.avoiddeforest.carbcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.carbbenefitmask)
-pgm.conservact.avoidboth.carbcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.carbbenefitmask)
-pgm.conservact.restor_wo_avoid.carbcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.carbbenefitmask)
-pgm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.carbbenefitmask)
-pgm.conservact.restor_n_avoid_both.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.carbbenefitmask)
+library(ggrepel)
 
-pgm.conservact.carbcostmask <- stack(pgm.conservact.avoiddegrad.carbcostmask,
-                                     pgm.conservact.avoiddeforest.carbcostmask,
-                                     pgm.conservact.avoidboth.carbcostmask,
-                                     pgm.conservact.restor_wo_avoid.carbcostmask,
-                                     pgm.conservact.restor_n_avoid_deforest.carbcostmask,
-                                     pgm.conservact.restor_n_avoid_both.carbcostmask)
-
-names(pgm.conservact.carbbenefitmask) <- c("pgm_avoiddegrad_carbcostmask",
-                                           "pgm_avoiddeforest_carbcostmask",
-                                           "pgm_avoidboth_carbcostmask",
-                                           "pgm_restor_wo_avoid_carbcostmask",
-                                           "pgm_restor_n_avoid_deforest_carbcostmask",
-                                           "pgm_restor_n_avoid_both_carbcostmask")
+empty_theme <- theme(                              
+  plot.background = element_blank(), 
+  panel.grid.major = element_blank(), 
+  panel.grid.minor = element_blank(), 
+  panel.border = element_blank(), 
+  panel.background = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  axis.text.y = element_text(angle = 90)
+)
 
 
+cowplot::plot_grid(
+  
+  ggplot(data = conservact.benefit.cost.ratio.overview, 
+         aes(x = Costs_mean, y = Biodiversity_mean, 
+             fill = Scenario, 
+             shape = Scenario,
+             label = Scenario)) + 
+    geom_point(aes(size = 8)) +
+    #geom_errorbar(aes(ymin = Biodiversity_mean-Biodiversity_sd, ymax = Biodiversity_mean+Biodiversity_sd)) + 
+    #geom_errorbarh(aes(xmin = Costs_mean-Costs_sd, xmax = Costs_mean+Costs_sd)) +
+    #geom_hline(data=filter(conservact.benefit.cost.ratio.overview, Region=="PGM"), 
+    #           aes(yintercept=150), linetype="dashed") + 
+    #geom_hline(data=filter(conservact.benefit.cost.ratio.overview, Region=="STM"), 
+    #           aes(yintercept=150), linetype="dashed") +
+    #geom_vline(data=filter(conservact.benefit.cost.ratio.overview, Region=="PGM"), 
+    #           aes(xintercept=625), linetype="dashed") + 
+    #geom_vline(data=filter(conservact.benefit.cost.ratio.overview, Region=="STM"), 
+    #           aes(xintercept=750), linetype="dashed") +
+    #scale_x_continuous(breaks = c(160,400), 
+    #                   labels=c("160" = "Low", "400" = "High")) +
+    #scale_y_continuous(breaks = c(160,210), 
+    #                   labels=c("160" = "Low", "210" = "High")) +
+    scale_shape_manual(values = c(21, 21, 21, 24, 24, 24)) +
+    scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                                 "#D3756B", "#D3756B", "#D3756B")) +
+    geom_label_repel(size = 5,
+                     fill = NA,
+                     label.size = NA,
+                     min.segment.length = 0,
+                     segment.size = .5,
+                     segment.color=NA,
+                     box.padding = unit(.25, "lines"),
+                     nudge_y = 1.0E-6) +
+    facet_grid(~Region)+
+    labs(title = "Biodiversity Benefit x Cost",
+         x = "Costs",
+         y = "Benefits") +
+    empty_theme +
+    theme(legend.position = "none"),
+  
+  
+  
+  ggplot(data = conservact.benefit.cost.ratio.overview, 
+         aes(x = Costs_mean, y = Carbon_mean, 
+             fill = Scenario, 
+             shape = Scenario,
+             label = Scenario)) + 
+    geom_point(aes(size = 8)) +
+    #geom_errorbar(aes(ymin = Carbon_mean-Carbon_sd, ymax = Carbon_mean+Carbon_sd)) + 
+    #geom_errorbarh(aes(xmin = Costs_mean-Costs_sd, xmax = Costs_mean+Costs_sd)) +
+    #geom_hline(data=filter(conservact.benefit.cost.ratio.overview, Region=="PGM"), 
+    #           aes(yintercept=85.04721), linetype="dashed") + 
+    #geom_hline(data=filter(conservact.benefit.cost.ratio.overview, Region=="STM"), 
+    #           aes(yintercept=80.79686), linetype="dashed") +
+    #geom_vline(data=filter(conservact.benefit.cost.ratio.overview, Region=="PGM"), 
+    #           aes(xintercept=225.7966), linetype="dashed") + 
+    #geom_vline(data=filter(conservact.benefit.cost.ratio.overview, Region=="STM"), 
+    #           aes(xintercept=329.7966), linetype="dashed") +
+    #scale_x_continuous(breaks = c(160,400), 
+    #                   labels=c("160" = "Low", "400" = "High")) +
+    #scale_y_continuous(breaks = c(81,90), 
+    #                   labels=c("81" = "Low", "90" = "High")) +
+    scale_shape_manual(values = c(21, 21, 21, 24, 24, 24)) +
+    scale_fill_manual(values = c("#41644A", "#41644A", "#41644A", 
+                                 "#D3756B", "#D3756B", "#D3756B")) +
+    geom_label_repel(size = 5,
+                     fill = NA,
+                     label.size = NA,
+                     min.segment.length = 0,
+                     segment.size = .5,
+                     segment.color=NA,
+                     box.padding = unit(.25, "lines"),
+                     nudge_y = 1.0E-6) +
+    facet_grid(~Region)+
+    labs(title = "Carbon Benefit x Cost",
+         x = "Costs",
+         y = "Benefits") +
+    empty_theme +
+    theme(legend.position = "none"),
+  
+  ncol = 1, align = "hv")
 
-stm.conservact.avoiddegrad.carbcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.carbbenefitmask)
-stm.conservact.avoiddeforest.carbcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.carbbenefitmask)
-stm.conservact.avoidboth.carbcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.carbbenefitmask)
-stm.conservact.restor_wo_avoid.carbcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.carbbenefitmask)
-stm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.carbbenefitmask)
-stm.conservact.restor_n_avoid_both.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.carbbenefitmask)
 
-stm.conservact.carbcostmask <- stack(stm.conservact.avoiddegrad.carbcostmask,
-                                     stm.conservact.avoiddeforest.carbcostmask,
-                                     stm.conservact.avoidboth.carbcostmask,
-                                     stm.conservact.restor_wo_avoid.carbcostmask,
-                                     stm.conservact.restor_n_avoid_deforest.carbcostmask,
-                                     stm.conservact.restor_n_avoid_both.carbcostmask)
 
-names(stm.conservact.carbbenefitmask) <- c("stm_avoiddegrad_carbcostmask",
-                                           "stm_avoiddeforest_carbcostmask",
-                                           "stm_avoidboth_carbcostmask",
-                                           "stm_restor_wo_avoid_carbcostmask",
-                                           "stm_restor_n_avoid_deforest_carbcostmask",
-                                           "stm_restor_n_avoid_both_carbcostmask")
+
+##### Global (simple) benefits & costs bar plot ####
+addline_format <- function(x,...){
+  gsub('\\s','\n',x)
+}
+
+### biodiversity
+biodiversity.scale.factor <- max(conservact.benefit.cost.ratio.df$Biodiversity, na.rm = T) / max(conservact.benefit.cost.ratio.df$Costs, na.rm = T)
+
+conservact.benefit.cost.ratio.df %>% 
+  drop_na() %>% 
+  mutate(Costs = Costs * biodiversity.scale.factor) %>% 
+  pivot_longer(cols = c(Biodiversity, Costs)) %>% 
+  mutate(name = factor(name, levels = c("Biodiversity", "Costs"))) %>% 
+  ggplot(aes(x = Scenario)) +
+  geom_boxplot(aes(y = value, alpha = name, fill = name), outlier.shape = NA) +
+  scale_y_continuous(name = "Biodiversity benefits*", 
+                     sec.axis = sec_axis(~ ./biodiversity.scale.factor, name = "Costs (R$/ha)"),
+                     expand = c(0, 0), limits = c(0, 560)) +
+  scale_x_discrete(name = "",
+                   breaks=unique(conservact.benefit.cost.ratio.df$Scenario), 
+                   labels=addline_format(c("Avoid degradation", 
+                                           "Avoid deforestation", 
+                                           "Avoid both",
+                                           "Restoration without avoid", 
+                                           "Restoration and avoid deforestation", 
+                                           "Restoration and avoid both"))) +
+  scale_fill_manual(values = c(Biodiversity = "#440154", Costs = "#f08700")) +
+  scale_alpha_manual(values = c(0.7, 1)) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 22, family = "sans", face = "bold"),
+        text = element_text(size = 20, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 20),
+        legend.position = "top",
+        legend.title = element_blank())
+
+
+
+
+### carbon
+carbon.scale.factor <- max(conservact.benefit.cost.ratio.df$Carbon, na.rm = T) / max(conservact.benefit.cost.ratio.df$Costs, na.rm = T)
+
+conservact.benefit.cost.ratio.df %>% 
+  drop_na() %>% 
+  mutate(Costs = Costs * carbon.scale.factor) %>% 
+  pivot_longer(cols = c(Carbon, Costs)) %>% 
+  mutate(name = factor(name, levels = c("Carbon", "Costs"))) %>% 
+  ggplot(aes(x = Scenario)) +
+  geom_boxplot(aes(y = value, alpha = name, fill = name), outlier.shape = NA) +
+  scale_y_continuous(name = "Carbon benefits*", 
+                     sec.axis = sec_axis(~ ./carbon.scale.factor, name = "Costs (R$/ha)"),
+                     expand = c(0, 0), limits = c(0, 170)) +
+  scale_x_discrete(name = "",
+                   breaks=unique(conservact.benefit.cost.ratio.df$Scenario), 
+                   labels=addline_format(c("Avoid degradation", 
+                                           "Avoid deforestation", 
+                                           "Avoid both",
+                                           "Restoration without avoid", 
+                                           "Restoration and avoid deforestation", 
+                                           "Restoration and avoid both"))) +
+  scale_fill_manual(values = c(Carbon = "#374f00", Costs = "#f08700")) +
+  scale_alpha_manual(values = c(0.7, 1)) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 22, family = "sans", face = "bold"),
+        text = element_text(size = 20, family = "sans"),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 20),
+        legend.position = "top",
+        legend.title = element_blank())
+
+
+
+
+
+
 
 
 
@@ -1571,14 +1811,18 @@ constraint.sim %>% mutate(Scenario = factor(Scenario, levels = c("Degradation",
                                                                  "Restoration"))) %>% 
   ggplot(aes(x=Constraint, y=Area, color=Scenario))+
   geom_smooth(se=F) +
-  scale_x_continuous(breaks = seq(0,100000000,10000000), labels = scales::comma) +
+  scale_x_continuous(breaks = seq(0,100000000,10000000),
+                     labels = unit_format(unit = "M", scale = 1e-6)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   facet_grid(Benefit~Regiao) +
   labs(x="Budget constraint", y="Proportional landscape area")+
   theme_bw()+
-  theme(plot.title = element_text(size = 16, family = "sans", face = "bold"),
-        text = element_text(size = 16, family = "sans"),
+  theme(plot.title = element_text(size = 22, family = "sans", face = "bold"),
+        text = element_text(size = 22, family = "sans"),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_text(angle = 45, hjust=1, size = 14))
+        axis.text.x=element_text(angle = 45, hjust=1, size = 20),
+        panel.spacing = unit(2, "lines"),
+        legend.position = "top")
 
 
 
@@ -1626,3 +1870,216 @@ constraint.sim %>% mutate(Scenario = factor(Scenario, levels = c("Degradation",
 
 
 
+##next steps
+#
+#
+#
+#
+##step 3 - mask with costs
+#
+###biodiversity
+#pgm.conservact.avoiddegrad.biodcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.biodbenefitmask)
+#pgm.conservact.avoiddeforest.biodcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.biodbenefitmask)
+#pgm.conservact.avoidboth.biodcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.biodbenefitmask)
+#pgm.conservact.restor_wo_avoid.biodcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.biodbenefitmask)
+#pgm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.biodbenefitmask)
+#pgm.conservact.restor_n_avoid_both.biodcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.biodbenefitmask)
+#
+#pgm.conservact.biodcostmask <- stack(pgm.conservact.avoiddegrad.biodcostmask,
+#                                     pgm.conservact.avoiddeforest.biodcostmask,
+#                                     pgm.conservact.avoidboth.biodcostmask,
+#                                     pgm.conservact.restor_wo_avoid.biodcostmask,
+#                                     pgm.conservact.restor_n_avoid_deforest.biodcostmask,
+#                                     pgm.conservact.restor_n_avoid_both.biodcostmask)
+#
+#names(pgm.conservact.carbbenefitmask) <- c("pgm_avoiddegrad_biodcostmask",
+#                                           "pgm_avoiddeforest_biodcostmask",
+#                                           "pgm_avoidboth_biodcostmask",
+#                                           "pgm_restor_wo_avoid_biodcostmask",
+#                                           "pgm_restor_n_avoid_deforest_biodcostmask",
+#                                           "pgm_restor_n_avoid_both_biodcostmask")
+#
+#
+#
+#
+#stm.conservact.avoiddegrad.biodcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.biodbenefitmask)
+#stm.conservact.avoiddeforest.biodcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.biodbenefitmask)
+#stm.conservact.avoidboth.biodcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.biodbenefitmask)
+#stm.conservact.restor_wo_avoid.biodcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.biodbenefitmask)
+#stm.conservact.restor_n_avoid_deforest.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.biodbenefitmask)
+#stm.conservact.restor_n_avoid_both.biodcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.biodbenefitmask)
+#
+#stm.conservact.biodcostmask <- stack(stm.conservact.avoiddegrad.biodcostmask,
+#                                     stm.conservact.avoiddeforest.biodcostmask,
+#                                     stm.conservact.avoidboth.biodcostmask,
+#                                     stm.conservact.restor_wo_avoid.biodcostmask,
+#                                     stm.conservact.restor_n_avoid_deforest.biodcostmask,
+#                                     stm.conservact.restor_n_avoid_both.biodcostmask)
+#
+#names(stm.conservact.carbbenefitmask) <- c("stm_avoiddegrad_biodcostmask",
+#                                           "stm_avoiddeforest_biodcostmask",
+#                                           "stm_avoidboth_biodcostmask",
+#                                           "stm_restor_wo_avoid_biodcostmask",
+#                                           "stm_restor_n_avoid_deforest_biodcostmask",
+#                                           "stm_restor_n_avoid_both_biodcostmask")
+#
+#
+#
+###carbon
+#pgm.conservact.avoiddegrad.carbcostmask <- mask(pgm.costs[["pgm_avoiddegrad_cost"]], pgm.conservact.avoiddegrad.carbbenefitmask)
+#pgm.conservact.avoiddeforest.carbcostmask <- mask(pgm.costs[["pgm_avoiddeforest_cost"]], pgm.conservact.avoiddeforest.carbbenefitmask)
+#pgm.conservact.avoidboth.carbcostmask <- mask(pgm.costs[["pgm_avoidboth_cost"]], pgm.conservact.avoidboth.carbbenefitmask)
+#pgm.conservact.restor_wo_avoid.carbcostmask <- mask(pgm.costs[["pgm_restor_wo_avoid_cost"]], pgm.conservact.restor_wo_avoid.carbbenefitmask)
+#pgm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_deforest.cost"]], pgm.conservact.restor_n_avoid_deforest.carbbenefitmask)
+#pgm.conservact.restor_n_avoid_both.carbcostmask <- mask(pgm.costs[["pgm_restor_n_avoid_both_cost"]], pgm.conservact.restor_n_avoid_both.carbbenefitmask)
+#
+#pgm.conservact.carbcostmask <- stack(pgm.conservact.avoiddegrad.carbcostmask,
+#                                     pgm.conservact.avoiddeforest.carbcostmask,
+#                                     pgm.conservact.avoidboth.carbcostmask,
+#                                     pgm.conservact.restor_wo_avoid.carbcostmask,
+#                                     pgm.conservact.restor_n_avoid_deforest.carbcostmask,
+#                                     pgm.conservact.restor_n_avoid_both.carbcostmask)
+#
+#names(pgm.conservact.carbbenefitmask) <- c("pgm_avoiddegrad_carbcostmask",
+#                                           "pgm_avoiddeforest_carbcostmask",
+#                                           "pgm_avoidboth_carbcostmask",
+#                                           "pgm_restor_wo_avoid_carbcostmask",
+#                                           "pgm_restor_n_avoid_deforest_carbcostmask",
+#                                           "pgm_restor_n_avoid_both_carbcostmask")
+#
+#
+#
+#stm.conservact.avoiddegrad.carbcostmask <- mask(stm.costs[["stm_avoiddegrad_cost"]], stm.conservact.avoiddegrad.carbbenefitmask)
+#stm.conservact.avoiddeforest.carbcostmask <- mask(stm.costs[["stm_avoiddeforest_cost"]], stm.conservact.avoiddeforest.carbbenefitmask)
+#stm.conservact.avoidboth.carbcostmask <- mask(stm.costs[["stm_avoidboth_cost"]], stm.conservact.avoidboth.carbbenefitmask)
+#stm.conservact.restor_wo_avoid.carbcostmask <- mask(stm.costs[["stm_restor_wo_avoid_cost"]], stm.conservact.restor_wo_avoid.carbbenefitmask)
+#stm.conservact.restor_n_avoid_deforest.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_deforest_cost"]], stm.conservact.restor_n_avoid_deforest.carbbenefitmask)
+#stm.conservact.restor_n_avoid_both.carbcostmask <- mask(stm.costs[["stm_restor_n_avoid_both_cost"]], stm.conservact.restor_n_avoid_both.carbbenefitmask)
+#
+#stm.conservact.carbcostmask <- stack(stm.conservact.avoiddegrad.carbcostmask,
+#                                     stm.conservact.avoiddeforest.carbcostmask,
+#                                     stm.conservact.avoidboth.carbcostmask,
+#                                     stm.conservact.restor_wo_avoid.carbcostmask,
+#                                     stm.conservact.restor_n_avoid_deforest.carbcostmask,
+#                                     stm.conservact.restor_n_avoid_both.carbcostmask)
+#
+#names(stm.conservact.carbbenefitmask) <- c("stm_avoiddegrad_carbcostmask",
+#                                           "stm_avoiddeforest_carbcostmask",
+#                                           "stm_avoidboth_carbcostmask",
+#                                           "stm_restor_wo_avoid_carbcostmask",
+#                                           "stm_restor_n_avoid_deforest_carbcostmask",
+#                                           "stm_restor_n_avoid_both_carbcostmask")
+#
+#
+#
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### Global (simple) benefits & costs bar plot ####
+### benefits
+#conservact.benefit.cost.ratio.overview2 <- conservact.benefit.cost.ratio.df %>% group_by(Scenario) %>% 
+#  summarise(
+#    Biodiversity_mean = mean(Biodiversity, na.rm=T),
+#    Carbon_mean = mean(Carbon, na.rm=T),
+#    Costs_mean = mean(Costs, na.rm=T),
+#    Biodiversity_sd = sd(Biodiversity, na.rm=T),
+#    Carbon_sd = sd(Carbon, na.rm=T),
+#    Costs_sd = sd(Costs, na.rm=T),
+#  ) %>% 
+#  ungroup()
+#
+#
+#
+#
+#addline_format <- function(x,...){
+#  gsub('\\s','\n',x)
+#}
+#
+#
+#conservact.benefit.cost.ratio.overview2 %>%
+#  pivot_longer(Biodiversity_mean:Costs_sd,
+#               names_to = c("set", ".value"),
+#               names_pattern = "(.+)_(.+)"
+#  ) %>% 
+#  filter(set != "Costs") %>%
+#  ggplot(aes(x = Scenario, y = mean, fill = set)) +
+#  geom_bar(
+#    stat = "identity", position = position_dodge(), alpha=.7
+#  ) +
+#  scale_fill_manual(values = c("#440154", "#374f00")) +
+#  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd),
+#                width = 0.2, colour = "black",
+#                position = position_dodge(0.9)
+#  ) + 
+#  scale_x_discrete(breaks=unique(conservact.benefit.cost.ratio.overview2$Scenario), 
+#                   labels=addline_format(c("Avoid degradation", 
+#                                           "Avoid deforestation", 
+#                                           "Avoid both",
+#                                           "Restoration without avoid", 
+#                                           "Restoration and avoid deforestation", 
+#                                           "Restoration and avoid both"))) +
+#  labs(x="", y="Benefits") +
+#  theme_bw()+
+#  theme(legend.position = "top",
+#        legend.title = element_blank(),
+#        text = element_text(size = 22, family = "sans"),
+#        axis.title = element_text(face="bold"),
+#        axis.text.x=element_text(size = 18))
+#
+#
+#
+#
+#
+#
+#conservact.benefit.cost.ratio.overview2 %>%
+#  pivot_longer(Biodiversity_mean:Costs_sd,
+#               names_to = c("set", ".value"),
+#               names_pattern = "(.+)_(.+)"
+#  ) %>% 
+#  filter(set == "Costs") %>%
+#  ggplot(aes(x = Scenario, y = mean)) +
+#  geom_bar(
+#    stat = "identity", alpha=.7
+#  ) +
+#  scale_fill_manual(values = "grey25") +
+#  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd),
+#                width = 0.2, colour = "grey25"
+#  ) + 
+#  scale_x_discrete(breaks=unique(conservact.benefit.cost.ratio.overview2$Scenario), 
+#                   labels=addline_format(c("Avoid degradation", 
+#                                           "Avoid deforestation", 
+#                                           "Avoid both",
+#                                           "Restoration without avoid", 
+#                                           "Restoration and avoid deforestation", 
+#                                           "Restoration and avoid both"))) +
+#  labs(x="", y="Costs") +
+#  theme_bw()+
+#  theme(legend.position = "top",
+#        legend.title = element_blank(),
+#        text = element_text(size = 22, family = "sans"),
+#        axis.title = element_text(face="bold"),
+#        axis.text.x=element_text(size = 18))
+#
+#
