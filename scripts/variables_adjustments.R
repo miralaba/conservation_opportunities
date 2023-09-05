@@ -21,7 +21,7 @@ library(virtualspecies)
 pgm.env.explanatory.var.list <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 pgm.env.explanatory.var <- stack(pgm.env.explanatory.var.list)
-names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
+names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
 ##cheking
 #pgm.env.explanatory.var
 #plot(pgm.env.explanatory.var[[1:10]], nc=2)
@@ -32,12 +32,12 @@ names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, 
 stm.env.explanatory.var.list <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 stm.env.explanatory.var <- stack(stm.env.explanatory.var.list)
-names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,80,4)]
+names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
 ##cheking
 #stm.env.explanatory.var
-#plot(stm.env.explanatory.var[[1:10]], nc=2)
-#plot(stm.env.explanatory.var[[11:20]], nc=2)
-
+#plot(stm.env.explanatory.var[[1:8]], nc=2)
+#plot(stm.env.explanatory.var[[9:16]], nc=2)
+#plot(stm.env.explanatory.var[[17:22]], nc=2)
 
 
 # merging pgm and stm 2010
