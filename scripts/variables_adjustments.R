@@ -101,7 +101,7 @@ gc()
 
 #### import data ####
 ## transect data
-transectdata <- read.csv("data/input/RAS_transects_environment_all.csv")
+transectdata <- read.csv("~/raw/RAS_transects_environment_all.csv")
 #head(transectdata)
 #str(transectdata)
 #summary(transectdata)
@@ -112,7 +112,7 @@ transectdata <- transectdata[!transectdata$Transectcode %in% exclude,]
 
 
 ## birds
-birddata <- read.csv("data/input/Bird_data_Standard_NM_26022013_Final.csv")
+birddata <- read.csv("~/raw/Bird_data_Standard_NM_26022013_Final.csv")
 #head(birddata)
 #str(birddata)
 #summary(birddata)
@@ -126,8 +126,8 @@ names(birddata)[5] <- "Transectcode"
 birddata$Group <- "Birds"
 
 ## trees
-pgm.treedata <- read.csv("data/input/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
-stm.treedata <- read.csv("data/input/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
+pgm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
+stm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # include region code
 pgm.treedata$Region <- "PGM"
 stm.treedata$Region <- "STM"
