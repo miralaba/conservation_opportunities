@@ -3277,6 +3277,25 @@ writeRaster(TF.restore10.c, "rasters/PGM/all_forest_mask/PGM_2020_restor_n_avoid
 #save.image("~/conserv_opportunities_jamesthomson/github_repo/pgm_environment.RData")
 rm(list=ls())
 
+#
+
+
+#######################################################################################################################
+
+# passive restoration cost
+# source:
+# pg. xx: ""
+
+pgm.all.forest.2010 <- raster("rasters/PGM/all_forest_mask/PGM_2010_real.tif")
+pgm.all.forest.2020.restor <- raster("rasters/PGM/all_forest_mask/PGM_2020_restor_wo_avoid.tif")
+
+pgm.passive.restor.cost <- pgm.all.forest.2020.restor - pgm.all.forest.2010
+pgm.passive.restor.cost[pgm.passive.restor.cost!=1] <- 0
+pgm.passive.restor.cost[pgm.passive.restor.cost==1] <- 1331.5
+
+writeRaster(pgm.passive.restor.cost, paste0("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
+
+
 
 ##############################################################################################################################################################################################################################################
 
