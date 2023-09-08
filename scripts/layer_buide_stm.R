@@ -3323,6 +3323,26 @@ writeRaster(AF.restore10.c, "rasters/STM/all_forest_mask/STM_2020_restor_n_avoid
 rm(list=ls())
 gc()
 
+#
+
+
+#######################################################################################################################
+
+# passive restoration cost
+# source:
+# pg. xx: ""
+
+stm.all.forest.2010 <- raster("rasters/STM/all_forest_mask/STM_2010_real.tif")
+stm.all.forest.2020.restor <- raster("rasters/STM/all_forest_mask/STM_2020_restor_wo_avoid.tif")
+
+stm.passive.restor.cost <- stm.all.forest.2020.restor - stm.all.forest.2010
+stm.passive.restor.cost[stm.passive.restor.cost!=1] <- 0
+stm.passive.restor.cost[stm.passive.restor.cost==1] <- 1331.5
+
+writeRaster(stm.passive.restor.cost, paste0("models.output/opportunity.costs/STM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
+
+
+
 ##############################################################################################################################################################################################################################################
 
 ##### detecting multicollinearity between exploratory variables ####
