@@ -1032,6 +1032,7 @@ avoid.degrad.cost.shp@data$cost = (as.numeric(2 * (avoid.degrad.cost.shp@data$pe
 
 #convert to raster
 avoid.degrad.cost <- rasterize(avoid.degrad.cost.shp, pgm.degrad.change, field = "cost", fun = "mean")
+avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
 avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
 #plot(avoid.degrad.cost)
 
@@ -3121,7 +3122,7 @@ writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoid_both/distroad.tif", form
 
 #
 
-# [dipgmarket] distance to municipality nucleus
+# [distmarket] distance to municipality nucleus
 
 pgm.munic.nucleus <- data.frame(ID = "pgm", long = -47.35311, lat = -3.00249)
 
@@ -3131,19 +3132,19 @@ pgm.munic.nucleus.coord <- SpatialPointsDataFrame(coords = pgm.munic.nucleus[,c(
 
 pgm.munic.nucleus.coord <- spTransform(pgm.munic.nucleus.coord, crs(std.proj))
 
-dipgmarket <- distanceFromPoints(object = pgm.lulc, xy = pgm.munic.nucleus.coord)
+distmarket <- distanceFromPoints(object = pgm.lulc, xy = pgm.munic.nucleus.coord)
 
-dipgmarket <- mask(dipgmarket, pgm.shp)
+distmarket <- mask(distmarket, pgm.shp)
 
 #saving
-writeRaster(dipgmarket, "rasters/PGM/2010_real/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_real/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_avoiddeforest/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_avoiddegrad/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_avoidboth/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_restor_wo_avoid/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_restor_n_avoid_deforest/dipgmarket.tif", format="GTiff", overwrite=T)
-writeRaster(dipgmarket, "rasters/PGM/2020_restor_n_avoid_both/dipgmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2010_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddeforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddegrad/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoidboth/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_wo_avoid/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoid_deforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoid_both/distmarket.tif", format="GTiff", overwrite=T)
 
 
 
@@ -3292,6 +3293,7 @@ pgm.all.forest.2020.restor <- raster("rasters/PGM/all_forest_mask/PGM_2020_resto
 pgm.passive.restor.cost <- pgm.all.forest.2020.restor - pgm.all.forest.2010
 pgm.passive.restor.cost[pgm.passive.restor.cost!=1] <- 0
 pgm.passive.restor.cost[pgm.passive.restor.cost==1] <- 1331.5
+pgm.passive.restor.cost <- mask(pgm.passive.restor.cost, pgm.shp)
 
 writeRaster(pgm.passive.restor.cost, paste0("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
 
