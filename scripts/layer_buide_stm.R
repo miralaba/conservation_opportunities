@@ -1076,6 +1076,7 @@ avoid.degrad.cost.shp@data$cost = (as.numeric(2 * (avoid.degrad.cost.shp@data$pe
 
 #convert to raster
 avoid.degrad.cost <- rasterize(avoid.degrad.cost.shp, stm.degrad.change, field = "cost", fun = "mean")
+avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
 avoid.degrad.cost <- mask(avoid.degrad.cost, stm.shp)
 #plot(avoid.degrad.cost)
 
@@ -3338,6 +3339,7 @@ stm.all.forest.2020.restor <- raster("rasters/STM/all_forest_mask/STM_2020_resto
 stm.passive.restor.cost <- stm.all.forest.2020.restor - stm.all.forest.2010
 stm.passive.restor.cost[stm.passive.restor.cost!=1] <- 0
 stm.passive.restor.cost[stm.passive.restor.cost==1] <- 1331.5
+stm.passive.restor.cost <- mask(stm.passive.restor.cost, stm.shp)
 
 writeRaster(stm.passive.restor.cost, paste0("models.output/opportunity.costs/STM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
 
