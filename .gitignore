@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.tif
+*TIFF
 *.grd
 *.gri
 *.dbf
