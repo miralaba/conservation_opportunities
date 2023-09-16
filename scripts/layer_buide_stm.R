@@ -332,8 +332,58 @@ stm.car <- stm.car[unlist(lapply(poly_values, function(x) !any(x==0 | x==33))),]
 
 #checking
 #st_crs(stm.car)==st_crs(stm.shp)
-#plot(stm.lulc[["stm.lulc.2010real"]])
-#plot(stm.car, add=T)
+
+
+
+# avoid degradation costs -- adding fire control costs
+# creating and maintaining (e.g., every four years on average) 
+# 6m wide fire breaks at the edge of forested areas
+
+#calculating forest perimeter in each property
+#adding variable for forest cover
+stm.car@data$FOREST_PERIMETER <- NA
+
+j=nrow(stm.car@data)
+for (i in stm.car$COD_IMOVEL) {
+  
+  rural.property <- stm.car[stm.car$COD_IMOVEL==i,]
+  forest.cover <- crop(stm.lulc.2010.forest.class, extent(rural.property))
+  forest.cover <- mask(forest.cover, rural.property)
+  forest.cover[forest.cover!=1]<-NA
+  if(all(is.na(values(forest.cover)))) next
+  #convert raster to polygons
+  forest.cover.shp <- as_Spatial(st_as_sf(st_as_stars(forest.cover), 
+                                          as_points = FALSE, merge = TRUE))
+  
+  #cheking & adjustments
+  #st_crs(forest.cover.shp)==st_crs(stm.shp)
+  #gIsValid(forest.cover.shp)
+  #FALSE here means that you'll need to run the buffer routine:
+  #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
+  
+  #estimating the perimeter
+  stm.car@data[stm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(forest.cover.shp),"MULTILINESTRING")), na.rm=T)
+  
+  
+  j=j-1
+  cat("\n>", j, "out of", nrow(stm.car@data), "properties left<\n")
+  
+}
+
+
+#fire breaks could be cleared at rate of 4.8 meters per hour using a tractor costing R$100 per hour according to Embrapa
+#cost of fire control was 2 x (P x 6)/10000 x 4.8 x 100, where P is the perimeter in meters of forested area not degraded
+stm.car@data$cost <- (as.numeric(2 * (stm.car@data$FOREST_PERIMETER * 6)/10000 * 4.8 * 100)/4)/stm.car@data$NUM_AREA
+
+#convert to raster
+avoid.degrad.cost <- rasterize(stm.car, stm.lulc.2010.forest.class, field = "cost", fun = mean)
+avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
+avoid.degrad.cost <- mask(avoid.degrad.cost, stm.shp)
+#plot(avoid.degrad.cost)
+
+#saving
+writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/STM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
+
 
 #classifying rural proprieties by size
 #according to Brazilian Forest Code
@@ -1040,50 +1090,6 @@ writeRaster(DPF2020.ls, "rasters/STM/2020_restor_wo_avoid/DPFls.tif", format="GT
 writeRaster(DPF2020.ls, "rasters/STM/2020_restor_n_avoid_deforest/DPFls.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("stm.degrad.2020.forest.class", "DPF2020.px", "DPF2020.ls")]) #keeping only raster stack
-gc()
-
-
-#
-
-
-#######################################################################################################################
-
-# avoid degradation costs -- adding fire control costs
-# creating and maintaining (e.g., every four years on average) 
-# 6m wide fire breaks at the edge of forested areas
-
-# isolating areas degraded between 2010 and 2020
-stm.degrad.change <- DPF2020 - DPF2010
-stm.degrad.change[stm.degrad.change!=1] <- NA
-
-#convert raster to polygons
-avoid.degrad.cost.shp <- as_Spatial(st_as_sf(st_as_stars(stm.degrad.change), 
-                                             as_points = FALSE, merge = TRUE))
-
-#cheking & adjustments
-#st_crs(avoid.degrad.cost.shp)==st_crs(stm.shp)
-#gIsValid(avoid.degrad.cost.shp)
-#FALSE here means that you'll need to run the buffer routine:
-#avoid.degrad.cost.shp <- rgeos::gBuffer(avoid.degrad.cost.shp, byid = TRUE, width = 0)
-
-#estimating the perimeter
-avoid.degrad.cost.shp@data$layer <- 1:nrow(avoid.degrad.cost.shp@data)
-avoid.degrad.cost.shp@data$perimeter <- st_length(st_cast(st_as_sf(avoid.degrad.cost.shp),"MULTILINESTRING"))
-
-#fire breaks could be cleared at rate of 4.8 meters per hour using a tractor costing R$100 per hour according to Embrapa
-#cost of fire control was 2 x (P x 6)/10000 x 4.8 x 100, where P is the perimeter in meters of forested area not degraded
-avoid.degrad.cost.shp@data$cost = (as.numeric(2 * (avoid.degrad.cost.shp@data$perimeter * 6)/10000 * 4.8 * 100)/4)
-
-#convert to raster
-avoid.degrad.cost <- rasterize(avoid.degrad.cost.shp, stm.degrad.change, field = "cost", fun = "mean")
-avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
-avoid.degrad.cost <- mask(avoid.degrad.cost, stm.shp)
-#plot(avoid.degrad.cost)
-
-#saving
-writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/STM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
-
-rm(list=ls()[ls() %in% c("avoid.degrad.cost.shp", "stm.degrad.change", "DPF2020.ls")]) #keeping only raster stack
 gc()
 
 
