@@ -3291,9 +3291,9 @@ rm(list=ls())
 
 #######################################################################################################################
 
-# passive restoration cost
-# source:
-# pg. xx: ""
+# passive restoration cost: average per hectare cost associated with implementing natural regeneration with fence
+# 344.07 ± $ 156 US$/ha -- US$1.00 ~ R$3.87 -- R$1331.5
+# source: Bracalion et al. 2019 https://doi.org/10.1016/j.biocon.2019.108274
 
 pgm.all.forest.2010 <- raster("rasters/PGM/all_forest_mask/PGM_2010_real.tif")
 pgm.all.forest.2020.restor <- raster("rasters/PGM/all_forest_mask/PGM_2020_restor_wo_avoid.tif")
