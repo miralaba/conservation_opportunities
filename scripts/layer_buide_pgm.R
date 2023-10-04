@@ -311,58 +311,6 @@ pgm.car <- spTransform(pgm.car, crs(std.proj))
 
 
 
-# avoid degradation costs -- adding fire control costs
-# creating and maintaining (e.g., every four years on average) 
-# 6m wide fire breaks at the edge of forested areas
-
-#calculating forest perimeter in each property
-#adding variable for forest cover
-pgm.car@data$FOREST_PERIMETER <- NA
-
-j=nrow(pgm.car@data)
-for (i in pgm.car$COD_IMOVEL) {
-  
-  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
-  forest.cover <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
-  forest.cover <- mask(forest.cover, rural.property)
-  forest.cover[forest.cover!=1]<-NA
-  if(all(is.na(values(forest.cover)))) next
-  #convert raster to polygons
-  forest.cover.shp <- as_Spatial(st_as_sf(st_as_stars(forest.cover), 
-                                          as_points = FALSE, merge = TRUE))
-  
-  #cheking & adjupgments
-  #st_crs(forest.cover.shp)==st_crs(pgm.shp)
-  #gIsValid(forest.cover.shp)
-  #FALSE here means that you'll need to run the buffer routine:
-  #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
-  
-  #estimating the perimeter
-  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(forest.cover.shp),"MULTILINESTRING")), na.rm=T)
-  
-  
-  j=j-1
-  cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
-  
-}
-
-
-#fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
-#source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
-#cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
-pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$NUM_AREA
-
-#convert to raster
-avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "cost", fun = mean)
-avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
-avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
-#plot(avoid.degrad.cost)
-
-#saving
-writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
-
-
-
 #classifying rural proprieties by size
 #according to Brazilian Forest Code
 #small properties have less than or equal to 4 fiscal modules
@@ -475,7 +423,7 @@ for (i in pgm.car$COD_IMOVEL) {
   rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
   forest.cover <- crop(forest.class, extent(rural.property))
   forest.cover <- mask(forest.cover, rural.property)
-  pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER"] <- tapply(area(forest.cover), forest.cover[], sum, na.rm=T)[2]*100
+  pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER"] <- tapply(raster::area(forest.cover), forest.cover[], sum, na.rm=T)[2]*100
   j=j-1
   cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
   
@@ -526,7 +474,7 @@ for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
   
   forest.cover.increment <- sum(forest.cover, restored.cover, na.rm = T)
   
-  pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
+  pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(raster::area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
   j=j-1
   cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
   
@@ -573,7 +521,7 @@ for (i in pgm.car.restoration.candidates.mt$COD_IMOVEL) {
       
       restored.cover[restored.cover[]==1] <- sample(c(1,0), size = length(restored.cover[restored.cover[]==1]), replace = T, prob = c(0.9,0.1))
       forest.cover.increment <- sum(forest.cover, restored.cover, na.rm = T)
-      pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
+      pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(raster::area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
       pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT_PP"] <- ceiling((pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"]/pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"NUM_AREA"])*100)
       
     }
@@ -587,7 +535,7 @@ for (i in pgm.car.restoration.candidates.mt$COD_IMOVEL) {
       
       restored.cover[restored.cover[]==1] <- sample(c(1,0), size = length(restored.cover[restored.cover[]==1]), replace = T, prob = c(0.9,0.1))
       forest.cover.increment <- sum(forest.cover, restored.cover, na.rm = T)
-      pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
+      pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"] <- tapply(raster::area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)[2]*100
       pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT_PP"] <- ceiling((pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"FOREST_COVER_INCREMENT"]/pgm.car.restoration.candidates.mt@data[pgm.car.restoration.candidates.mt@data$COD_IMOVEL==i,"NUM_AREA"])*100)
       
     }
@@ -680,6 +628,62 @@ candidate.areas.final <- mask(candidate.areas.final, pgm.shp)
 #plot(pgm.car.restoration.candidates, add=T)
 writeRaster(candidate.areas.final, "rasters/PGM/raw/restoration_candidate_areas.tif", format = "GTiff", overwrite = T)
 #candidate.areas.final <- raster("rasters/PGM/raw/restoration_candidate_areas.tif")
+
+
+
+# avoid degradation costs -- adding fire control costs
+# creating and maintaining (e.g., every four years on average) 
+# 6m wide fire breaks at the edge of forested areas
+
+#calculating forest perimeter in each property
+#adding variable for forest cover
+pgm.car@data$FOREST_PERIMETER <- NA
+pgm.car@data$ncell <- NA
+
+j=nrow(pgm.car@data)
+for (i in pgm.car$COD_IMOVEL) {
+  
+  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
+  rural.property.edge <- crop(deforest.dist.copy, extent(rural.property))
+  rural.property.edge <- mask(rural.property.edge, rural.property)
+  rural.property.edge[rural.property.edge > 100]<-NA
+  rural.property.edge[rural.property.edge < 1]<-NA
+  rural.property.edge[rural.property.edge<=100]<-1
+  pgm.car@data[pgm.car$COD_IMOVEL==i,"ncell"] <- ncell(rural.property.edge)
+  if(all(is.na(values(rural.property.edge)))) next
+  #convert raster to polygons
+  rural.property.edge.shp <- as_Spatial(st_as_sf(st_as_stars(rural.property.edge),
+                                                 as_points = FALSE, merge = TRUE))
+  
+  #cheking & adjupgments
+  #st_crs(forest.cover.shp)==st_crs(pgm.shp)
+  #gIsValid(forest.cover.shp)
+  #FALSE here means that you'll need to run the buffer routine:
+  #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
+  
+  #estimating the perimeter
+  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(rural.property.edge.shp),"MULTILINESTRING")), na.rm=T)/2
+  
+  
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+  
+}
+
+
+#fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
+#source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
+#cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
+pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$ncell
+
+#convert to raster
+avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "cost", fun = mean)
+avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
+avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
+#plot(avoid.degrad.cost)
+
+#saving
+writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
 
 
 
