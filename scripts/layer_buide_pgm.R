@@ -35,7 +35,6 @@ dir.create("rasters/PGM/2020_restor_wo_avoid", recursive = T)
 dir.create("rasters/PGM/2020_restor_n_avoid_deforest", recursive = T)
 dir.create("rasters/PGM/2020_restor_n_avoid_both", recursive = T)
 dir.create("models.output/opportunity.costs", recursive = T)
-dir.create("rasters/PGM/all_forest_mask", recursive = T)
 
 
 
@@ -3449,6 +3448,8 @@ writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoid_both/distmarket.tif", f
 
 # Creating forest mask for conservation action costs
 # each land cover category is assigned a value
+dir.create("rasters/PGM/all_forest_mask", recursive = T)
+
 
 # scenario 2010
 UPF2010.mask <- UPF2010
@@ -3591,6 +3592,370 @@ rm(list=ls())
 
 
 #######################################################################################################################
+# creating land-use land-cover maps for each scenario
+#dir.create("rasters/PGM/lulc", recursive = T)
+
+
+#PGM 2010
+#undegradded primary forest == 3
+UPF2010 <- raster("rasters/PGM/input/UPF2010_real.tif")
+UPF2010[UPF2010==1]<-3
+
+#degradded primary forest == 30
+DPF2010 <- raster("rasters/PGM/input/DPF2010_real.tif")
+DPF2010[DPF2010==1]<-30
+
+#secondary forest == 12
+SF2010 <- raster("rasters/PGM/input/SF2010_real.tif")
+SF2010[SF2010==1]<-12
+
+LULC2010 <- UPF2010 + DPF2010 + SF2010
+#LULC2010[LULC2010==15]<-12
+#LULC2010[LULC2010==42]<-12
+#plot(LULC2010)
+#table(values(LULC2010))
+
+
+#PGM 2020
+#undegradded primary forest == 3
+UPF2020 <- raster("rasters/PGM/input/UPF2020_real.tif")
+UPF2020[UPF2020==1]<-3
+
+#degradded primary forest == 30
+DPF2020 <- raster("rasters/PGM/input/DPF2020_real.tif")
+DPF2020[DPF2020==1]<-30
+
+#secondary forest == 12
+SF2020 <- raster("rasters/PGM/input/SF2020_real.tif")
+SF2020[SF2020==1]<-12
+
+LULC2020 <- UPF2020 + DPF2020 + SF2020
+#LULC2020[LULC2020==15]<-12
+#LULC2020[LULC2020==42]<-12
+#plot(LULC2020)
+#table(values(LULC2020))
+
+
+#PGM 2020_avoiddegrad
+#undegradded primary forest == 3
+UPF2020_avoiddegrad <- raster("rasters/PGM/input/UPF2020_avoiddegrad.tif")
+UPF2020_avoiddegrad[UPF2020_avoiddegrad==1]<-3
+
+LULC2020_avoiddegrad <- UPF2020_avoiddegrad + DPF2010 + SF2020
+#LULC2020_avoiddegrad[LULC2020_avoiddegrad==33]<-30
+#LULC2020_avoiddegrad[LULC2020_avoiddegrad==15]<-12
+#LULC2020_avoiddegrad[LULC2020_avoiddegrad==42]<-12
+#plot(LULC2020_avoiddegrad)
+#table(values(LULC2020_avoiddegrad))
+
+
+#PGM 2020_avoiddeforest
+#undegradded primary forest == 3
+UPF2020_avoiddeforest <- raster("rasters/PGM/input/UPF2020_avoiddeforest.tif")
+UPF2020_avoiddeforest[UPF2020_avoiddeforest==1]<-3
+
+LULC2020_avoiddeforest <- UPF2020_avoiddeforest + DPF2020 + SF2010
+#LULC2020_avoiddeforest[LULC2020_avoiddeforest==15]<-12
+#LULC2020_avoiddeforest[LULC2020_avoiddeforest==42]<-12
+#plot(LULC2020_avoiddeforest)
+#table(values(LULC2020_avoiddeforest))
+
+
+#PGM 2020_avoiddeforest upf only
+#undegradded primary forest == 3
+UPF2020_avoiddeforest2 <- raster("rasters/PGM/input/UPF2020_avoiddeforest2.tif")
+UPF2020_avoiddeforest2[UPF2020_avoiddeforest2==1]<-3
+
+LULC2020_avoiddeforest2 <- UPF2020_avoiddeforest2 + DPF2020 + SF2010
+#LULC2020_avoiddeforest2[LULC2020_avoiddeforest2==33]<-30
+#LULC2020_avoiddeforest2[LULC2020_avoiddeforest2==45]<-30
+#LULC2020_avoiddeforest2[LULC2020_avoiddeforest2==15]<-12
+#LULC2020_avoiddeforest2[LULC2020_avoiddeforest2==42]<-12
+#plot(LULC2020_avoiddeforest2)
+#table(values(LULC2020_avoiddeforest2))
+
+
+#PGM 2020_avoidboth
+#undegradded primary forest == 3
+UPF2020_avoidboth <- raster("rasters/PGM/input/UPF2020_avoidboth.tif")
+UPF2020_avoidboth[UPF2020_avoidboth==1]<-3
+
+LULC2020_avoidboth <- UPF2020_avoidboth + DPF2010 + SF2010
+#LULC2020_avoidboth[LULC2020_avoidboth==33]<-30
+#LULC2020_avoidboth[LULC2020_avoidboth==45]<-30
+#LULC2020_avoidboth[LULC2020_avoidboth==15]<-12
+#LULC2020_avoidboth[LULC2020_avoidboth==42]<-12
+#plot(LULC2020_avoidboth)
+#table(values(LULC2020_avoidboth))
+
+
+#PGM 2020_restor_wo_avoid
+#secondary forest == 12
+SF2020.restore10 <- raster("rasters/PGM/input/SF2020_restor_wo_avoid.tif")
+SF2020.restore10[SF2020.restore10==1]<-12
+
+LULC2020_restor_wo_avoid <- UPF2020 + DPF2020 + SF2020.restore10
+#LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==15]<-12
+#LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==42]<-12
+#plot(LULC2020_restor_wo_avoid)
+#table(values(LULC2020_restor_wo_avoid))
+
+
+#PGM 2020_restor_n_avoid_deforest
+#secondary forest == 12
+SF2010.restore10 <- raster("rasters/PGM/input/SF2020_restor_n_avoid.tif")
+SF2010.restore10[SF2010.restore10==1]<-12
+
+LULC2020_restor_n_avoid_deforest <- UPF2020_avoiddeforest + DPF2020 + SF2010.restore10
+#LULC2020_restor_n_avoid_deforest[LULC2020_restor_n_avoid_deforest==15]<-12
+#LULC2020_restor_n_avoid_deforest[LULC2020_restor_n_avoid_deforest==42]<-12
+#plot(LULC2020_restor_n_avoid_deforest)
+#table(values(LULC2020_restor_n_avoid_deforest))
+
+
+#PGM 2020_restor_n_avoid_both
+LULC2020_restor_n_avoid_both <- UPF2020_avoidboth + DPF2010 + SF2010.restore10
+#LULC2020_restor_n_avoid_both[LULC2020_restor_n_avoid_both==33]<-30
+#LULC2020_restor_n_avoid_both[LULC2020_restor_n_avoid_both==45]<-30
+#LULC2020_restor_n_avoid_both[LULC2020_restor_n_avoid_both==15]<-12
+#LULC2020_restor_n_avoid_both[LULC2020_restor_n_avoid_both==42]<-12
+#plot(LULC2020_restor_n_avoid_both)
+#table(values(LULC2020_restor_n_avoid_both))
+
+
+# [transition-plot] sankey diagram
+LULC <- stack(LULC2010, LULC2020, LULC2020_avoiddegrad, LULC2020_avoiddeforest, LULC2020_avoiddeforest2, LULC2020_avoidboth, 
+              LULC2020_restor_wo_avoid, LULC2020_restor_n_avoid_deforest, LULC2020_restor_n_avoid_both)
+LULC <- mask(LULC, pgm.shp)
+names(LULC) <- c("2010_real", "2020_real ", "2020_avoiddegrad", "2020_avoiddeforest", "2020_avoiddeforest2", "2020_avoidboth", 
+             "2020_restor_wo_avoid", "2020_restor_n_avoid_deforest", "2020_restor_n_avoid_both")
+#plot(LULC, nr=2)
+LULC.df <- as.data.frame(LULC, xy = TRUE)
+
+
+pgm.lulc.df <- LULC.df %>% dplyr::select(x, y, X2010_real, X2020_real) %>% 
+  pivot_longer(
+    X2010_real:X2020_real,
+    names_to = "ID",
+    values_to = "Class"
+  ) %>% 
+  mutate(
+    Scenario = factor(case_when(str_detect(ID, "X2010_real")~ "2010 Real",
+                                str_detect(ID, "X2020_real")~ "2020 Real"),
+                      levels = c("2010 Real",
+                                 "2020 Real")),
+    Class = factor(Class, 
+                   levels = c(3, 30, 12, 0), 
+                   labels = c("Undegraded Primary Forest (UPF)", "Degraded Forest (DPF)", "Secondary Forest (SF)", "Non-Forest (Def)"))
+  )
+
+
+real.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+
+gridExtra::grid.arrange(
+  
+  pgm.lulc.df %>% filter(ID == "X2010_real") %>% 
+    ggplot() +
+    geom_raster(aes(x = x, y = y, fill = Class)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22"), na.value = NA) +
+    labs(title = "2010 Real", x = "", y = "Latitude") +
+    theme_minimal() +
+    theme(legend.position = c(.2,.8)),
+  
+  real.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("X2010_real", "X2020_real"), 
+                     breaks=c("X2010_real", "X2020_real"), 
+                     labels=addline_format(c("2010 Real", "2020 Real")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  pgm.lulc.df %>% filter(ID == "X2020_real") %>% 
+    ggplot() +
+    geom_raster(aes(x = x, y = y, fill = Class)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22"), na.value = NA) +
+    labs(title = "2020 Real", x = "Longitude", y = "Latitude") +
+    theme_minimal() +
+    theme(legend.position = "none"),
+  
+  # box plot and scatter plot
+  ncol = 2, nrow = 2, 
+  layout_matrix = rbind(c(1,2), c(3,2))
+  
+)
+
+
+
+avoiddegrad.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_avoiddegrad"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+avoiddeforest.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_avoiddeforest"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+avoiddeforest2.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_avoiddeforest2"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+avoidboth.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_avoidboth"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+restor_wo_avoid.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_restor_wo_avoid"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+restor_n_avoid_deforest.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_restor_n_avoid_deforest"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+restor_n_avoid_both.tp <- data.frame(
+  Period1 = factor(LULC[["X2010_real"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def")),
+  Period2 = factor(LULC[["X2020_restor_n_avoid_both"]][], levels = c(3, 30, 12, 0), labels = c("UPF", "DPF", "SF", "Def"))
+)
+
+
+
+
+
+# Create the alluvial plot
+
+addline_format <- function(x,...){
+  gsub('\\s','\n',x)
+}
+
+cowplot::plot_grid(
+  
+  real.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+  ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+  geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+  geom_stratum(width = .15) +
+  scale_x_discrete(limits = c("Period1", "Period2"), 
+                   breaks=c("Period1", "Period2"), 
+                   labels=addline_format(c("2010 Real", "2020 Real")),
+                   expand = c(.05, .05)) +
+  scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  theme_minimal()+
+  theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  avoiddegrad.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Avoid degradation")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  avoiddeforest.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Avoid deforestation")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  avoiddeforest2.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Avoid deforestation primary forest")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  avoidboth.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Avoid both")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  restor_wo_avoid.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Restoration without avoid")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  restor_n_avoid_deforest.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Restoration and avoid deforestation")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  restor_n_avoid_both.tp %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+    ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+    geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+    geom_stratum(width = .15) +
+    scale_x_discrete(limits = c("Period1", "Period2"), 
+                     breaks=c("Period1", "Period2"), 
+                     labels=addline_format(c("2010 Real", "Restoration and avoid both")),
+                     expand = c(.05, .05)) +
+    scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    theme_minimal()+
+    theme(axis.text.y= element_blank(), legend.position = "none"),
+  
+  ncol = 4, align = "hv")
+  
+
+
+
+
+
+
+
+
 
 
 
