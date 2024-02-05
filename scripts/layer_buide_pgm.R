@@ -145,6 +145,8 @@ deforest[deforest %in% deforestation.class.list] <- NA
 deforest[deforest>1] <- 1
 
 deforest.dist <- distance(deforest, doEdge=T)
+#writeRaster(deforest.dist, "rasters/PGM/raw/pgm-distance-to-forest.tif", format = "GTiff", overwrite = T)
+#deforest.dist <- raster("rasters/PGM/raw/pgm-distance-to-forest.tif")
 
 deforest.dist.copy <- deforest.dist
 #values(deforest.dist)[values(deforest.dist) == 0] <- NA
@@ -161,178 +163,60 @@ gc()
 
 
 #### time since degradation
+#' @description mapbiomas fire is a time-series data from 1985 to present
+#' degrad is the first monitoring system to detect degradation in brazil
+#' it was functional from 2007 to 2016 but does not differentiate between classes of degradation.
+#' deter is the current monitoring system, with data from 2016
+#' see auxiliar.R script for details about combining these data sources
+
+pgm.degrad <- stack(c("rasters/PGM/raw/pgm-2010-deg_tsince0.tif",
+                      "rasters/PGM/raw/pgm-2020-deg_tsince0.tif"))
+names(pgm.degrad) <- c("pgm.degrad.2010real", "pgm.degrad.2020real")
+
+
+#checking
+#st_crs(pgm.degrad)==st_crs(pgm.shp)
+#plot(pgm.degrad)
+#range(values(pgm.degrad[["pgm.degrad.2010real"]]), na.rm=T)
+
+#non-degraded sites will be considered with 300 years following (BIB)
+pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>25] <- 300
+pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>35] <- 300
+
+# isolating degraded primary forest and degraded secondary forest class pixels
+pgm.degrad.2010.forest.class <- pgm.degrad[["pgm.degrad.2010real"]]
+#pgm.degrad.2010.forest.class <- mask(pgm.degrad.2010.forest.class, pgm.lulc.2010.forest.mask)
+pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class>25]<-NA
+pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class<=25]<-1
+
+pgm.degrad.2010.mask <- pgm.degrad.2010.forest.class
+
+pgm.degrad.2010.forest.class[is.na(pgm.degrad.2010.forest.class)]<-0
 
 
 
+pgm.degrad.2020.forest.class <- pgm.degrad[["pgm.degrad.2020real"]]
+#pgm.degrad.2020.forest.class <- mask(pgm.degrad.2020.forest.class, pgm.lulc.2020.forest.mask)
+pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class>35]<-NA
+pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class<=35]<-1
+
+pgm.degrad.2020.mask <- pgm.degrad.2020.forest.class
+
+pgm.degrad.2020.forest.class[is.na(pgm.degrad.2020.forest.class)]<-0
 
 
+#accounting for repeated degradation
+pgm.repeateddegrad.2010.mask <- raster("rasters/PGM/raw/pgm-firefreq-1985_2010.tif")
+pgm.repeateddegrad.2010.mask[pgm.repeateddegrad.2010.mask<2]<-NA
+pgm.repeateddegrad.2010.mask[pgm.repeateddegrad.2010.mask>=2]<-1
 
 
+pgm.repeateddegrad.2020.mask <- raster("rasters/PGM/raw/pgm-firefreq-1985_2020.tif")
+pgm.repeateddegrad.2020.mask[pgm.repeateddegrad.2020.mask<2]<-NA
+pgm.repeateddegrad.2020.mask[pgm.repeateddegrad.2020.mask>=2]<-1
 
-#### time since degradation 2010 data from RAS 
-#### quantitative comparison of manual inspection of satellite images [150m resolution]
-#### and field observations done by two observers (TG and SN)
-#### see RAS environmental explanatory variable guideline document for details
-#### 2010-2020 data from DETER
-#### 
-###pgm.degrad.2010 <- raster("rasters/PGM/raw/pgm-2010-deg_tsince0_150m.grd")
-###
-#### Conversion of rasters into same extent
-###pgm.degrad.2010 <- projectRaster(pgm.degrad.2010, crs = std.proj, method='ngb')
-###pgm.degrad.2010 <- resample(pgm.degrad.2010, pgm.lulc.2010.forest.class, method='ngb')
-###
-####checking
-####st_crs(pgm.degrad.2010)==st_crs(pgm.shp)
-####plot(pgm.degrad.2010)
-####range(values(pgm.degrad.2010), na.rm=T)
-###
-###
-####excluding non-forest areas
-###pgm.degrad.2010 <- mask(pgm.degrad.2010, pgm.lulc.2010.forest.mask)
-###pgm.degrad.2010[is.na(pgm.degrad.2010)] <- 0
-###names(pgm.degrad.2010) <- c("pgm.degrad.2010real")
-###
-#### calculating time since degradation for 2020
-###pgm.degrad.temp <- pgm.degrad.2010
-###
-####creating mask to detect repeated degradation
-###pgm.repeateddegrad.mask <- pgm.degrad.temp
-###pgm.repeateddegrad.mask <- mask(pgm.repeateddegrad.mask, pgm.lulc.2010.forest.mask)
-###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<24] <- 1000
-###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]!=1000] <- NA
-###
-###
-#### deter data between 2011 and 2015
-###deter.2011.15 <- load_degrad(dataset = "degrad", raw_data = T, time_period = 2011:2015)
-###
-###for (year in 1:5) {   #1=2011; 5=2015
-###  
-###  #selecting year-by-year
-###  deter.yearx <- deter.2011.15[[year]] 
-###  deter.yearx <- sf:::as_Spatial(deter.yearx$geometry)
-###  
-###  #croping to study area
-###  pgm.deter.yearx <- crop(deter.yearx, extent(pgm.lulc.2010.forest.mask))
-###  
-###  #converting to raster
-###  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc.2010.forest.mask, field=1000)
-###  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
-###  
-###  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.lulc.2010.forest.mask)
-###  
-###  #count sites with repeated degradation
-###  pgm.repeateddegrad.mask <- sum(pgm.repeateddegrad.mask, pgm.deter.yearx, na.rm = T)
-###  pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<1000] <- NA
-###  
-###  
-###  #counting time since degradation
-###  pgm.degrad.temp <- pgm.degrad.temp+1
-###  pgm.degrad.temp <- sum(pgm.degrad.temp, pgm.deter.yearx, na.rm = T)
-###  pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2010.forest.mask)
-###  pgm.degrad.temp[pgm.degrad.temp[]>1000] <- 0
-###  
-###  cat("\n> year", year, "done! <\n")
-###}
-###
-###
-####par(mfrow=c(1,3))
-####plot(pgm.degrad.temp)
-####plot(pgm.deter.yearx, col=c("white", "black"))
-###
-###
-#### deter data between 2016 and 2020
-###deter.2016.20 <- readOGR(dsn = "rasters/PGM/raw", layer = "deter_public")
-###pgm.deter.2016.20 <- crop(deter.2016.20, extent(pgm.degrad.temp))
-###degradation_cat <- c('CICATRIZ_DE_QUEIMADA', 'CS_DESORDENADO', 'CS_GEOMETRICO') #'DEGRADACAO'
-###pgm.deter.2016.20 <- pgm.deter.2016.20[pgm.deter.2016.20$CLASSNAME %in% degradation_cat,]
-###
-###rm(deter.2016.20); gc()
-###
-###for (year in 2016:2020) {
-###  
-###  #selecting year-by-year
-###  pgm.deter.yearx <- pgm.deter.2016.20[grep(year, pgm.deter.2016.20$VIEW_DATE),]
-###  
-###  #converting to raster
-###  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc.2010.forest.mask, field=1000)
-###  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
-###  
-###  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.lulc.2010.forest.mask)
-###  
-###  #count sites with repeated degradation
-###  pgm.repeateddegrad.mask <- sum(pgm.repeateddegrad.mask, pgm.deter.yearx, na.rm = T)
-###  pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<1000] <- NA
-###  
-###  
-###  #counting time since degradation
-###  pgm.degrad.temp <- pgm.degrad.temp+1
-###  pgm.degrad.temp <- sum(pgm.degrad.temp, pgm.deter.yearx, na.rm = T)
-###  pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2010.forest.mask)
-###  pgm.degrad.temp[pgm.degrad.temp[]>1000] <- 0
-###  
-###  cat("\n> year", year, "done! <\n")
-###}
-###
-###
-####creating mask to detect repeated degradation
-###pgm.repeateddegrad.mask <- mask(pgm.repeateddegrad.mask, pgm.lulc.2020.forest.mask)
-###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]>1000] <- 1
-###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]!=1] <- NA
-###
-###
-###pgm.degrad.2020 <- pgm.degrad.temp
-###
-####excluding non-forest areas
-###pgm.degrad.2020 <- mask(pgm.degrad.2020, pgm.lulc.2020.forest.mask)
-###pgm.degrad.2020[is.na(pgm.degrad.2020)] <- 0
-###names(pgm.degrad.2020) <- "pgm.degrad.2020real"
-###
-####writeRaster(pgm.degrad.2020, "rasters/PGM/raw/pgm-2020-deg_tsince0.tif", format = "GTiff", overwrite = T)
-####pgm.degrad.2020 <- raster("rasters/PGM/raw/pgm-2020-deg_tsince0.tif")
-###
-###
-###
-###pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
-####checking
-####st_crs(pgm.degrad)==st_crs(pgm.shp)
-####plot(pgm.degrad)
-####range(values(pgm.degrad[["pgm.degrad.2010real"]]), na.rm=T)
-###
-####non-degraded sites will be considered with 300 years following (BIB)
-###pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>23] <- 300
-###pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>33] <- 300
-###
-#### isolating degraded primary forest and degraded secondary forest class pixels
-###pgm.degrad.2010.forest.class <- pgm.degrad[["pgm.degrad.2010real"]]
-###pgm.degrad.2010.forest.class <- mask(pgm.degrad.2010.forest.class, pgm.lulc.2010.forest.mask)
-###pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class>23]<-NA
-###pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class<=23]<-1
-###
-###pgm.degrad.2010.mask <- pgm.degrad.2010.forest.class
-###
-###pgm.degrad.2010.forest.class[is.na(pgm.degrad.2010.forest.class)]<-0
-###
-###
-###
-###pgm.degrad.2020.forest.class <- pgm.degrad[["pgm.degrad.2020real"]]
-###pgm.degrad.2020.forest.class <- mask(pgm.degrad.2020.forest.class, pgm.lulc.2020.forest.mask)
-###pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class>33]<-NA
-###pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class<=33]<-1
-###
-###pgm.degrad.2020.mask <- pgm.degrad.2020.forest.class
-###
-###pgm.degrad.2020.forest.class[is.na(pgm.degrad.2020.forest.class)]<-0
-###
-###
-###rm(list=ls()[ls() %in% c("deter.2011.15", "pgm.deter.2016.20", "degradation_cat", "pgm.degrad.2010", "pgm.degrad.2020",
-###                         "pgm.degrad.temp", "deter.yearx", "year")])
-###gc()
-###
-###
-###
-####
-####
-
+#
+#
 
 
 
@@ -1201,6 +1085,176 @@ data_df2 %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
 
 
 #==============================| previous modeling approach
+
+
+#### time since degradation 2010 data from RAS 
+#### quantitative comparison of manual inspection of satellite images [150m resolution]
+#### and field observations done by two observers (TG and SN)
+#### see RAS environmental explanatory variable guideline document for details
+#### 2010-2020 data from DETER
+#### 
+###pgm.degrad.2010 <- raster("rasters/PGM/raw/pgm-2010-deg_tsince0_150m.grd")
+###
+#### Conversion of rasters into same extent
+###pgm.degrad.2010 <- projectRaster(pgm.degrad.2010, crs = std.proj, method='ngb')
+###pgm.degrad.2010 <- resample(pgm.degrad.2010, pgm.lulc.2010.forest.class, method='ngb')
+###
+####checking
+####st_crs(pgm.degrad.2010)==st_crs(pgm.shp)
+####plot(pgm.degrad.2010)
+####range(values(pgm.degrad.2010), na.rm=T)
+###
+###
+####excluding non-forest areas
+###pgm.degrad.2010 <- mask(pgm.degrad.2010, pgm.lulc.2010.forest.mask)
+###pgm.degrad.2010[is.na(pgm.degrad.2010)] <- 0
+###names(pgm.degrad.2010) <- c("pgm.degrad.2010real")
+###
+#### calculating time since degradation for 2020
+###pgm.degrad.temp <- pgm.degrad.2010
+###
+####creating mask to detect repeated degradation
+###pgm.repeateddegrad.mask <- pgm.degrad.temp
+###pgm.repeateddegrad.mask <- mask(pgm.repeateddegrad.mask, pgm.lulc.2010.forest.mask)
+###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<24] <- 1000
+###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]!=1000] <- NA
+###
+###
+#### deter data between 2011 and 2015
+###deter.2011.15 <- load_degrad(dataset = "degrad", raw_data = T, time_period = 2011:2015)
+###
+###for (year in 1:5) {   #1=2011; 5=2015
+###  
+###  #selecting year-by-year
+###  deter.yearx <- deter.2011.15[[year]] 
+###  deter.yearx <- sf:::as_Spatial(deter.yearx$geometry)
+###  
+###  #croping to study area
+###  pgm.deter.yearx <- crop(deter.yearx, extent(pgm.lulc.2010.forest.mask))
+###  
+###  #converting to raster
+###  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc.2010.forest.mask, field=1000)
+###  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+###  
+###  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.lulc.2010.forest.mask)
+###  
+###  #count sites with repeated degradation
+###  pgm.repeateddegrad.mask <- sum(pgm.repeateddegrad.mask, pgm.deter.yearx, na.rm = T)
+###  pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<1000] <- NA
+###  
+###  
+###  #counting time since degradation
+###  pgm.degrad.temp <- pgm.degrad.temp+1
+###  pgm.degrad.temp <- sum(pgm.degrad.temp, pgm.deter.yearx, na.rm = T)
+###  pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2010.forest.mask)
+###  pgm.degrad.temp[pgm.degrad.temp[]>1000] <- 0
+###  
+###  cat("\n> year", year, "done! <\n")
+###}
+###
+###
+####par(mfrow=c(1,3))
+####plot(pgm.degrad.temp)
+####plot(pgm.deter.yearx, col=c("white", "black"))
+###
+###
+#### deter data between 2016 and 2020
+###deter.2016.20 <- readOGR(dsn = "rasters/PGM/raw", layer = "deter_public")
+###pgm.deter.2016.20 <- crop(deter.2016.20, extent(pgm.degrad.temp))
+###degradation_cat <- c('CICATRIZ_DE_QUEIMADA', 'CS_DESORDENADO', 'CS_GEOMETRICO') #'DEGRADACAO'
+###pgm.deter.2016.20 <- pgm.deter.2016.20[pgm.deter.2016.20$CLASSNAME %in% degradation_cat,]
+###
+###rm(deter.2016.20); gc()
+###
+###for (year in 2016:2020) {
+###  
+###  #selecting year-by-year
+###  pgm.deter.yearx <- pgm.deter.2016.20[grep(year, pgm.deter.2016.20$VIEW_DATE),]
+###  
+###  #converting to raster
+###  pgm.deter.yearx <- rasterize(pgm.deter.yearx, pgm.lulc.2010.forest.mask, field=1000)
+###  pgm.deter.yearx[is.na(pgm.deter.yearx)]<-0
+###  
+###  pgm.deter.yearx <- mask(pgm.deter.yearx, pgm.lulc.2010.forest.mask)
+###  
+###  #count sites with repeated degradation
+###  pgm.repeateddegrad.mask <- sum(pgm.repeateddegrad.mask, pgm.deter.yearx, na.rm = T)
+###  pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]<1000] <- NA
+###  
+###  
+###  #counting time since degradation
+###  pgm.degrad.temp <- pgm.degrad.temp+1
+###  pgm.degrad.temp <- sum(pgm.degrad.temp, pgm.deter.yearx, na.rm = T)
+###  pgm.degrad.temp <- mask(pgm.degrad.temp, pgm.lulc.2010.forest.mask)
+###  pgm.degrad.temp[pgm.degrad.temp[]>1000] <- 0
+###  
+###  cat("\n> year", year, "done! <\n")
+###}
+###
+###
+####creating mask to detect repeated degradation
+###pgm.repeateddegrad.mask <- mask(pgm.repeateddegrad.mask, pgm.lulc.2020.forest.mask)
+###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]>1000] <- 1
+###pgm.repeateddegrad.mask[pgm.repeateddegrad.mask[]!=1] <- NA
+###
+###
+###pgm.degrad.2020 <- pgm.degrad.temp
+###
+####excluding non-forest areas
+###pgm.degrad.2020 <- mask(pgm.degrad.2020, pgm.lulc.2020.forest.mask)
+###pgm.degrad.2020[is.na(pgm.degrad.2020)] <- 0
+###names(pgm.degrad.2020) <- "pgm.degrad.2020real"
+###
+####writeRaster(pgm.degrad.2020, "rasters/PGM/raw/pgm-2020-deg_tsince0.tif", format = "GTiff", overwrite = T)
+####pgm.degrad.2020 <- raster("rasters/PGM/raw/pgm-2020-deg_tsince0.tif")
+###
+###
+###
+###pgm.degrad <- stack(pgm.degrad.2010, pgm.degrad.2020)
+####checking
+####st_crs(pgm.degrad)==st_crs(pgm.shp)
+####plot(pgm.degrad)
+####range(values(pgm.degrad[["pgm.degrad.2010real"]]), na.rm=T)
+###
+####non-degraded sites will be considered with 300 years following (BIB)
+###pgm.degrad[["pgm.degrad.2010real"]][pgm.degrad[["pgm.degrad.2010real"]]>23] <- 300
+###pgm.degrad[["pgm.degrad.2020real"]][pgm.degrad[["pgm.degrad.2020real"]]>33] <- 300
+###
+#### isolating degraded primary forest and degraded secondary forest class pixels
+###pgm.degrad.2010.forest.class <- pgm.degrad[["pgm.degrad.2010real"]]
+###pgm.degrad.2010.forest.class <- mask(pgm.degrad.2010.forest.class, pgm.lulc.2010.forest.mask)
+###pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class>23]<-NA
+###pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class<=23]<-1
+###
+###pgm.degrad.2010.mask <- pgm.degrad.2010.forest.class
+###
+###pgm.degrad.2010.forest.class[is.na(pgm.degrad.2010.forest.class)]<-0
+###
+###
+###
+###pgm.degrad.2020.forest.class <- pgm.degrad[["pgm.degrad.2020real"]]
+###pgm.degrad.2020.forest.class <- mask(pgm.degrad.2020.forest.class, pgm.lulc.2020.forest.mask)
+###pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class>33]<-NA
+###pgm.degrad.2020.forest.class[pgm.degrad.2020.forest.class<=33]<-1
+###
+###pgm.degrad.2020.mask <- pgm.degrad.2020.forest.class
+###
+###pgm.degrad.2020.forest.class[is.na(pgm.degrad.2020.forest.class)]<-0
+###
+###
+###rm(list=ls()[ls() %in% c("deter.2011.15", "pgm.deter.2016.20", "degradation_cat", "pgm.degrad.2010", "pgm.degrad.2020",
+###                         "pgm.degrad.temp", "deter.yearx", "year")])
+###gc()
+###
+###
+###
+####
+####
+
+
+
+
+
 
 #######################################################################################################################
 #######################################
