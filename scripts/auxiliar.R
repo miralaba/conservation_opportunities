@@ -199,12 +199,12 @@ for (i in 23:26) {
 }
 
 pgm.2010.time.since.degrad <- pgm.time.since.degrad
-pgm.2010.time.since.degrad <-  mask(pgm.2010.time.since.degrad, pgm.lulc.2020.forest.mask)
+pgm.2010.time.since.degrad <-  mask(pgm.2010.time.since.degrad, pgm.lulc.2010.forest.mask)
 writeRaster(pgm.2010.time.since.degrad, "rasters/PGM/raw/pgm-2010-deg_tsince0.tif", format = "GTiff", overwrite = T)
 
 
 pgm.1985.2010.freq.degrad <- pgm.freq.degrad
-pgm.1985.2010.freq.degrad <-  mask(pgm.1985.2010.freq.degrad, pgm.lulc.2020.forest.mask)
+pgm.1985.2010.freq.degrad <-  mask(pgm.1985.2010.freq.degrad, pgm.lulc.2010.forest.mask)
 writeRaster(pgm.1985.2010.freq.degrad, "rasters/PGM/raw/pgm-firefreq-1985_2010.tif", format = "GTiff", overwrite = T)
 
 ##2011-2015
