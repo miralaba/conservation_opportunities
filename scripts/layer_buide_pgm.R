@@ -276,6 +276,19 @@ pgm.dsf.2020.mask[pgm.dsf.2020.mask<=35]<-1
 
 
 
+# candidate areas for restoration scenarios ==============|
+#see the "restoration_candidate_pgm.R" on the script folder
+#for details on the steps to select candidate areas for restoration
+candidate.areas.final <- raster("rasters/PGM/raw/pgm_forest_cover_after_restoration_2010.tif")
+candidate.areas.final <- sum(pgm.lulc.2010.forest.mask, candidate.areas.final, na.rm = T)
+candidate.areas.final[candidate.areas.final!=1] <- 0
+
+
+
+#
+#
+
+
 
 # building real scenarios ============|
 ##Undegraded primary forest
@@ -287,6 +300,7 @@ UPF2010<-mask(UPF2010, pgm.degrad.2010.mask, inverse=T)
 UPF2010[is.na(UPF2010[])]<-0
 #plot(UPF2010)
 writeRaster(UPF2010, "rasters/PGM/input/LULC/UPF2010_real.tif", format="GTiff", overwrite=T)
+#UPF2010 <- raster("rasters/PGM/input/LULC/UPF2010_real.tif")
 
 ###2020
 UPF2020<-pgm.lulc.2020.forest.class
@@ -296,36 +310,37 @@ UPF2020<-mask(UPF2020, pgm.degrad.2020.mask, inverse=T)
 UPF2020[is.na(UPF2020[])]<-0
 #plot(UPF2020)
 writeRaster(UPF2020, "rasters/PGM/input/LULC/UPF2020_real.tif", format="GTiff", overwrite=T)
+#UPF2020 <- raster("rasters/PGM/input/LULC/UPF2020_real.tif")
 
 
 ##Degraded primary forest
 ###2010
 DPF2010 <- pgm.degrad.2010.forest.class
-#DPF2010<-mask(DPF2010, pgm.sfage.2010.mask, inverse=T)
-#DPF2010[is.na(DPF2010[])]<-0
 uDPF2010<-mask(DPF2010, pgm.repeateddegrad.2010.mask, inverse=T)
 uDPF2010[is.na(uDPF2010[])]<-0
 #plot(uDPF2010)
 writeRaster(uDPF2010, "rasters/PGM/input/LULC/uDPF2010_real.tif", format="GTiff", overwrite=T)
+#uDPF2010 <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
 
 RDPF2010 <- mask(DPF2010, pgm.repeateddegrad.2010.mask)
 RDPF2010[is.na(RDPF2010[])]<-0
 #plot(RDPF2010)
 writeRaster(RDPF2010, "rasters/PGM/input/LULC/RDPF2010_real.tif", format="GTiff", overwrite=T)
+#RDPF2010 <- raster("rasters/PGM/input/LULC/RDPF2010_real.tif")
 
 ###2020
 DPF2020 <- pgm.degrad.2020.forest.class
-#DPF2020<-mask(DPF2020, pgm.sfage.2020.mask, inverse=T)
-#DPF2020[is.na(DPF2020[])]<-0
 uDPF2020<-mask(DPF2020, pgm.repeateddegrad.2020.mask, inverse=T)
 uDPF2020[is.na(uDPF2020[])]<-0
 #plot(uDPF2020)
 writeRaster(uDPF2020, "rasters/PGM/input/LULC/uDPF2020_real.tif", format="GTiff", overwrite=T)
+#uDPF2020 <- raster("rasters/PGM/input/LULC/uDPF2020_real.tif")
 
 RDPF2020 <- mask(DPF2020, pgm.repeateddegrad.2020.mask)
 RDPF2020[is.na(RDPF2020[])]<-0
 #plot(RDPF2020)
 writeRaster(RDPF2020, "rasters/PGM/input/LULC/RDPF2020_real.tif", format="GTiff", overwrite=T)
+#RDPF2020 <- raster("rasters/PGM/input/LULC/RDPF2020_real.tif")
 
 
 
@@ -336,11 +351,13 @@ uSF2010 <- mask(SF2010, pgm.dsf.2010.mask, inverse=T)
 uSF2010[is.na(uSF2010[])]<-0
 #plot(uSF2010)
 writeRaster(uSF2010, "rasters/PGM/input/LULC/uSF2010_real.tif", format="GTiff", overwrite=T)
+#uSF2010 <- raster("rasters/PGM/input/LULC/uSF2010_real.tif")
 
 DSF2010 <- mask(SF2010, pgm.dsf.2010.mask)
 DSF2010[is.na(DSF2010[])]<-0
 #plot(DSF2010)
 writeRaster(DSF2010, "rasters/PGM/input/LULC/DSF2010_real.tif", format="GTiff", overwrite=T)
+#DSF2010 <- raster("rasters/PGM/input/LULC/DSF2010_real.tif")
 
 ### 2020
 SF2020 <- pgm.sfage.2020.all.class
@@ -348,11 +365,13 @@ uSF2020 <- mask(SF2020, pgm.dsf.2020.mask, inverse=T)
 uSF2020[is.na(uSF2020[])]<-0
 #plot(uSF2020)
 writeRaster(uSF2020, "rasters/PGM/input/LULC/uSF2020_real.tif", format="GTiff", overwrite=T)
+#uSF2020 <- raster("rasters/PGM/input/LULC/uSF2020_real.tif")
 
 DSF2020 <- mask(SF2020, pgm.dsf.2020.mask)
 DSF2020[is.na(DSF2020[])]<-0
 #plot(DSF2020)
 writeRaster(DSF2020, "rasters/PGM/input/LULC/DSF2020_real.tif", format="GTiff", overwrite=T)
+#DSF2020 <- raster("rasters/PGM/input/LULC/DSF2020_real.tif")
 
 
 
@@ -478,12 +497,9 @@ data_df <- data.frame(
 )
 
 # Create the alluvial plot
-
 #par(mfrow = c(1, 1))
-
-
+# Loading required package:
 library(ggalluvial)
-#> Loading required package: ggplot2
 library(ggfittext)
 library(scales)
 
@@ -507,6 +523,7 @@ data_df %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
   theme(axis.text.y= element_blank(), legend.position = "none")
 
 
+rm(list=ls()[ls() %in% grep("\\b.class\\b", ls(), value = T)])
 rm(list=ls()[ls() %in% grep("\\b.sk\\b", ls(), value = T)])
 rm(list=ls()[ls() %in% grep("LULC", ls(), value = T)])
 gc()
@@ -547,61 +564,65 @@ plot(LULC2020.mask, col="black", legend=F)
 plot(pgm.shp, add=T)
 
 #excluding impossible situations from scenarios
-SF2010.copy <- SF2010
+#SF2010.copy <- SF2010
 SF2010 <- mask(SF2010, LULC2020.mask, inverse=T)
 SF2010[is.na(SF2010[])]<-0
 
-uSF2010.copy <- uSF2010
+#uSF2010.copy <- uSF2010
 uSF2010 <- mask(uSF2010, LULC2020.mask, inverse=T)
 uSF2010[is.na(uSF2010[])]<-0
 
-DSF2010.copy <- DSF2010
+#DSF2010.copy <- DSF2010
 DSF2010 <- mask(DSF2010, LULC2020.mask, inverse=T)
 DSF2010[is.na(DSF2010[])]<-0
 
-SF2020.copy <- SF2020
+#SF2020.copy <- SF2020
 SF2020 <- mask(SF2020, LULC2020.mask, inverse=T)
 SF2020[is.na(SF2020[])]<-0
 
-uSF2020.copy <- uSF2020
+#uSF2020.copy <- uSF2020
 uSF2020 <- mask(uSF2020, LULC2020.mask, inverse=T)
 uSF2020[is.na(uSF2020[])]<-0
 
-DSF2020.copy <- DSF2020
+#DSF2020.copy <- DSF2020
 DSF2020 <- mask(DSF2020, LULC2020.mask, inverse=T)
 DSF2020[is.na(DSF2020[])]<-0
 
-DPF2010.copy <- DPF2010
+#DPF2010.copy <- DPF2010
 DPF2010 <- mask(DPF2010, LULC2020.mask, inverse=T)
 DPF2010[is.na(DPF2010[])]<-0
 
-uDPF2010.copy <- uDPF2010
+#uDPF2010.copy <- uDPF2010
 uDPF2010 <- mask(uDPF2010, LULC2020.mask, inverse=T)
 uDPF2010[is.na(uDPF2010[])]<-0
 
-RDPF2010.copy <- RDPF2010
+#RDPF2010.copy <- RDPF2010
 RDPF2010 <- mask(RDPF2010, LULC2020.mask, inverse=T)
 RDPF2010[is.na(RDPF2010[])]<-0
 
-DPF2020.copy <- DPF2020
+#DPF2020.copy <- DPF2020
 DPF2020 <- mask(DPF2020, LULC2020.mask, inverse=T)
 DPF2020[is.na(DPF2020[])]<-0
 
-uDPF2020.copy <- uDPF2020
+#uDPF2020.copy <- uDPF2020
 uDPF2020 <- mask(uDPF2020, LULC2020.mask, inverse=T)
 uDPF2020[is.na(uDPF2020[])]<-0
 
-RDPF2020.copy <- RDPF2020
+#RDPF2020.copy <- RDPF2020
 RDPF2020 <- mask(RDPF2020, LULC2020.mask, inverse=T)
 RDPF2020[is.na(RDPF2020[])]<-0
 
-UPF2010.copy <- UPF2010
+#UPF2010.copy <- UPF2010
 UPF2010 <- mask(UPF2010, LULC2020.mask, inverse=T)
 UPF2010[is.na(UPF2010[])]<-0
 
-UPF2020.copy <- UPF2020
+#UPF2020.copy <- UPF2020
 UPF2020 <- mask(UPF2020, LULC2020.mask, inverse=T)
 UPF2020[is.na(UPF2020[])]<-0
+
+#candidate.areas.final.copy <- candidate.areas.final
+candidate.areas.final <- mask(candidate.areas.final, LULC2020.mask, inverse=T)
+candidate.areas.final[is.na(candidate.areas.final[])]<-0
 
 
 #after the adjustments check again the lulc transiotion plot
@@ -618,6 +639,7 @@ UPF2020_avoiddegrad[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, UPF2020_avoidde
 UPF2020_avoiddegrad[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, UPF2020_avoiddegrad[])
 #plot(UPF2020_avoiddegrad)
 writeRaster(UPF2020_avoiddegrad, "rasters/PGM/input/LULC/UPF2020_avoiddegrad.tif", format="GTiff", overwrite=T)
+#UPF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/UPF2020_avoiddegrad.tif")
 
 
 ###Degraded primary forest
@@ -626,12 +648,14 @@ uDPF2020_avoiddegrad[] <- ifelse(uDPF2020[]==1 & UPF2010[]==1, 0, uDPF2020_avoid
 uDPF2020_avoiddegrad[] <- ifelse(uDPF2010[]==1 & RDPF2020[]==1, 1, uDPF2020_avoiddegrad[])
 #plot(uDPF2020_avoiddegrad)
 writeRaster(uDPF2020_avoiddegrad, "rasters/PGM/input/LULC/uDPF2020_avoiddegrad.tif", format="GTiff", overwrite=T)
+#uDPF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/uDPF2020_avoiddegrad.tif")
 
 RDPF2020_avoiddegrad <- RDPF2020
 RDPF2020_avoiddegrad[] <- ifelse(RDPF2020[]==1 & UPF2010[]==1, 0, RDPF2020_avoiddegrad[])
 RDPF2020_avoiddegrad[] <- ifelse(RDPF2020[]==1 & uDPF2010[]==1, 0, RDPF2020_avoiddegrad[])
 #plot(RDPF2020_avoiddegrad)
 writeRaster(RDPF2020_avoiddegrad, "rasters/PGM/input/LULC/RDPF2020_avoiddegrad.tif", format="GTiff", overwrite=T)
+#RDPF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/RDPF2020_avoiddegrad.tif")
 
 
 ###Secondary forest
@@ -639,11 +663,13 @@ uSF2020_avoiddegrad <- uSF2020
 uSF2020_avoiddegrad[] <- ifelse(uSF2010[]==1 & DSF2020[]==1, 1, uSF2020_avoiddegrad[])
 #plot(uSF2020_avoiddegrad)
 writeRaster(uSF2020_avoiddegrad, "rasters/PGM/input/LULC/uSF2020_avoiddegrad.tif", format="GTiff", overwrite=T)
+#uSF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/uSF2020_avoiddegrad.tif")
 
 DSF2020_avoiddegrad <- DSF2020
 DSF2020_avoiddegrad[] <- ifelse(DSF2020[]==1 & uSF2010[]==1, 0, DSF2020_avoiddegrad[])
 #plot(DSF2020_avoiddegrad)
 writeRaster(DSF2020_avoiddegrad, "rasters/PGM/input/LULC/DSF2020_avoiddegrad.tif", format="GTiff", overwrite=T)
+#DSF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/DSF2020_avoiddegrad.tif")
 
 
 
@@ -655,6 +681,7 @@ UPF2020_avoiddegrad2[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, UPF2020_avoidd
 UPF2020_avoiddegrad2[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, UPF2020_avoiddegrad2[])
 #plot(UPF2020_avoiddegrad2)
 writeRaster(UPF2020_avoiddegrad2, "rasters/PGM/input/LULC/UPF2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#UPF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/UPF2020_avoiddegrad2.tif")
 
 
 ###Degraded primary forest
@@ -663,22 +690,26 @@ uDPF2020_avoiddegrad2[] <- ifelse(uDPF2020[]==1 & UPF2010[]==1, 0, uDPF2020_avoi
 uDPF2020_avoiddegrad2[] <- ifelse(uDPF2010[]==1 & RDPF2020[]==1, 1, uDPF2020_avoiddegrad2[])
 #plot(uDPF2020_avoiddegrad2)
 writeRaster(uDPF2020_avoiddegrad2, "rasters/PGM/input/LULC/uDPF2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#uDPF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/uDPF2020_avoiddegrad2.tif")
 
 RDPF2020_avoiddegrad2 <- RDPF2020
 RDPF2020_avoiddegrad2[] <- ifelse(RDPF2020[]==1 & UPF2010[]==1, 0, RDPF2020_avoiddegrad2[])
 RDPF2020_avoiddegrad2[] <- ifelse(RDPF2020[]==1 & uDPF2010[]==1, 0, RDPF2020_avoiddegrad2[])
 #plot(RDPF2020_avoiddegrad2)
 writeRaster(RDPF2020_avoiddegrad2, "rasters/PGM/input/LULC/RDPF2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#RDPF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/RDPF2020_avoiddegrad2.tif")
 
 
 ###Secondary forest
 uSF2020_avoiddegrad2 <- uSF2020
 #plot(uSF2020_avoiddegrad2)
 writeRaster(uSF2020_avoiddegrad2, "rasters/PGM/input/LULC/uSF2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#uSF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/uSF2020_avoiddegrad2.tif")
 
 DSF2020_avoiddegrad2 <- DSF2020
 #plot(DSF2020_avoiddegrad2)
 writeRaster(DSF2020_avoiddegrad2, "rasters/PGM/input/LULC/DSF2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#DSF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/DSF2020_avoiddegrad2.tif")
 
 
 
@@ -688,25 +719,28 @@ writeRaster(DSF2020_avoiddegrad2, "rasters/PGM/input/LULC/DSF2020_avoiddegrad2.t
 UPF2020_avoiddeforest <- UPF2020
 UPF2020_avoiddeforest[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, UPF2020_avoiddeforest[])
 UPF2020_avoiddeforest[] <- ifelse(UPF2010[]==1 & uSF2020[]==1, 1, UPF2020_avoiddeforest[])
-UPF2020_avoiddeforest[] <- ifelse(UPF2010[]==1 & UPF2020[]==0, 1, UPF2020_avoiddeforest[])
+UPF2020_avoiddeforest[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & UPF2020[]==0 & UPF2010[]==1, 1, UPF2020_avoiddeforest[])
 #plot(UPF2020_avoiddeforest)
-#writeRaster(UPF2020_avoiddeforest, "rasters/PGM/input/LULC/UPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+writeRaster(UPF2020_avoiddeforest, "rasters/PGM/input/LULC/UPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+#UPF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/UPF2020_avoiddeforest.tif")
 
 
 ###Degraded primary forest
 uDPF2020_avoiddeforest <- uDPF2020
 uDPF2020_avoiddeforest[] <- ifelse(uDPF2010[]==1 & DSF2020[]==1, 1, uDPF2020_avoiddeforest[])
 uDPF2020_avoiddeforest[] <- ifelse(uDPF2010[]==1 & uSF2020[]==1, 1, uDPF2020_avoiddeforest[])
-uDPF2020_avoiddeforest[] <- ifelse(uDPF2010[]==1 & uDPF2020[]==0, 1, uDPF2020_avoiddeforest[])
+uDPF2020_avoiddeforest[] <- ifelse(RDPF2020[]==0 & uDPF2020[]==0 & uDPF2010[]==1, 1, uDPF2020_avoiddeforest[])
 #plot(uDPF2020_avoiddeforest)
-#writeRaster(uDPF2020_avoiddeforest, "rasters/PGM/input/LULC/uDPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+writeRaster(uDPF2020_avoiddeforest, "rasters/PGM/input/LULC/uDPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+#uDPF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/uDPF2020_avoiddeforest.tif")
 
 RDPF2020_avoiddeforest <- RDPF2020
 RDPF2020_avoiddeforest[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, RDPF2020_avoiddeforest[])
 RDPF2020_avoiddeforest[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, RDPF2020_avoiddeforest[])
-RDPF2020_avoiddeforest[] <- ifelse(RDPF2010[]==1 & RDPF2020[]==0, 1, RDPF2020_avoiddeforest[])
+RDPF2020_avoiddeforest[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, RDPF2020_avoiddeforest[])
 #plot(RDPF2020_avoiddeforest)
-#writeRaster(RDPF2020_avoiddeforest, "rasters/PGM/input/RDPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+writeRaster(RDPF2020_avoiddeforest, "rasters/PGM/input/LULC/RDPF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+#RDPF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/RDPF2020_avoiddeforest.tif")
 
 
 ###Secondary forest
@@ -714,17 +748,109 @@ uSF2020_avoiddeforest <- uSF2020
 uSF2020_avoiddeforest[] <- ifelse(uSF2020[]==1 & UPF2010[]==1, 0, uSF2020_avoiddeforest[])
 uSF2020_avoiddeforest[] <- ifelse(uSF2020[]==1 & uDPF2010[]==1, 0, uSF2020_avoiddeforest[])
 uSF2020_avoiddeforest[] <- ifelse(uSF2020[]==1 & RDPF2010[]==1, 0, uSF2020_avoiddeforest[])
-uSF2020_avoiddeforest[] <- ifelse(uSF2010[]==1 & uSF2020[]==0, 1, uSF2020_avoiddeforest[])
+uSF2020_avoiddeforest[] <- ifelse(DSF2020[]==0 & uSF2020[]==0 & uSF2010[]==1, 1, uSF2020_avoiddeforest[])
 #plot(uSF2020_avoiddeforest)
-#writeRaster(uSF2020_avoiddeforest, "rasters/PGM/input/uSF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+writeRaster(uSF2020_avoiddeforest, "rasters/PGM/input/LULC/uSF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+#uSF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/uSF2020_avoiddeforest.tif")
 
 DSF2020_avoiddeforest <- DSF2020
 DSF2020_avoiddeforest[] <- ifelse(DSF2020[]==1 & UPF2010[]==1, 0, DSF2020_avoiddeforest[])
 DSF2020_avoiddeforest[] <- ifelse(DSF2020[]==1 & uDPF2010[]==1, 0, DSF2020_avoiddeforest[])
 DSF2020_avoiddeforest[] <- ifelse(DSF2020[]==1 & RDPF2010[]==1, 0, DSF2020_avoiddeforest[])
-DSF2020_avoiddeforest[] <- ifelse(DSF2010[]==1 & DSF2020[]==0, 1, DSF2020_avoiddeforest[])
+DSF2020_avoiddeforest[] <- ifelse(uSF2020[]==0 & DSF2020[]==0 & DSF2010[]==1, 1, DSF2020_avoiddeforest[])
 #plot(DSF2020_avoiddeforest)
-#writeRaster(DSF2020_avoiddeforest, "rasters/PGM/input/DSF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+writeRaster(DSF2020_avoiddeforest, "rasters/PGM/input/LULC/DSF2020_avoiddeforest.tif", format="GTiff", overwrite=T)
+#DSF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/DSF2020_avoiddeforest.tif")
+
+
+
+
+##2020 avoid deforestation (Primary forest only)
+###Undegraded primary forest
+UPF2020_avoiddeforest2 <- UPF2020
+UPF2020_avoiddeforest2[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, UPF2020_avoiddeforest2[])
+UPF2020_avoiddeforest2[] <- ifelse(UPF2010[]==1 & uSF2020[]==1, 1, UPF2020_avoiddeforest2[])
+UPF2020_avoiddeforest2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & UPF2020[]==0 & UPF2010[]==1, 1, UPF2020_avoiddeforest2[])
+#plot(UPF2020_avoiddeforest2)
+writeRaster(UPF2020_avoiddeforest2, "rasters/PGM/input/LULC/UPF2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
+#UPF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/UPF2020_avoiddeforest2.tif")
+
+
+###Degraded primary forest
+uDPF2020_avoiddeforest2 <- uDPF2020
+uDPF2020_avoiddeforest2[] <- ifelse(uDPF2010[]==1 & DSF2020[]==1, 1, uDPF2020_avoiddeforest2[])
+uDPF2020_avoiddeforest2[] <- ifelse(uDPF2010[]==1 & uSF2020[]==1, 1, uDPF2020_avoiddeforest2[])
+uDPF2020_avoiddeforest2[] <- ifelse(RDPF2020[]==0 & uDPF2020[]==0 & uDPF2010[]==1, 1, uDPF2020_avoiddeforest2[])
+#plot(uDPF2020_avoiddeforest2)
+writeRaster(uDPF2020_avoiddeforest2, "rasters/PGM/input/LULC/uDPF2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
+#uDPF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/uDPF2020_avoiddeforest2.tif")
+
+RDPF2020_avoiddeforest2 <- RDPF2020
+RDPF2020_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, RDPF2020_avoiddeforest2[])
+RDPF2020_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, RDPF2020_avoiddeforest2[])
+RDPF2020_avoiddeforest2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, RDPF2020_avoiddeforest2[])
+#plot(RDPF2020_avoiddeforest2)
+writeRaster(RDPF2020_avoiddeforest2, "rasters/PGM/input/LULC/RDPF2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
+#RDPF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/RDPF2020_avoiddeforest2.tif")
+
+
+###Secondary forest
+uSF2020_avoiddeforest2 <- uSF2020
+uSF2020_avoiddeforest2[] <- ifelse(uSF2020[]==1 & UPF2010[]==1, 0, uSF2020_avoiddeforest2[])
+uSF2020_avoiddeforest2[] <- ifelse(uSF2020[]==1 & uDPF2010[]==1, 0, uSF2020_avoiddeforest2[])
+uSF2020_avoiddeforest2[] <- ifelse(uSF2020[]==1 & RDPF2010[]==1, 0, uSF2020_avoiddeforest2[])
+#plot(uSF2020_avoiddeforest2)
+writeRaster(uSF2020_avoiddeforest2, "rasters/PGM/input/LULC/uSF2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
+#uSF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/uSF2020_avoiddeforest2.tif")
+
+DSF2020_avoiddeforest2 <- DSF2020
+DSF2020_avoiddeforest2[] <- ifelse(DSF2020[]==1 & UPF2010[]==1, 0, DSF2020_avoiddeforest2[])
+DSF2020_avoiddeforest2[] <- ifelse(DSF2020[]==1 & uDPF2010[]==1, 0, DSF2020_avoiddeforest2[])
+DSF2020_avoiddeforest2[] <- ifelse(DSF2020[]==1 & RDPF2010[]==1, 0, DSF2020_avoiddeforest2[])
+#plot(DSF2020_avoiddeforest2)
+writeRaster(DSF2020_avoiddeforest2, "rasters/PGM/input/LULC/DSF2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
+#DSF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/DSF2020_avoiddeforest2.tif")
+
+
+
+
+##2020 restoration without avoid
+###Secondary forest
+uSF2020_restor_wo_avoid <- sum(uSF2020, candidate.areas.final)
+uSF2020_restor_wo_avoid[] <-  ifelse(uSF2010[]==0 & uSF2020[]==1, 1, uSF2020_restor_wo_avoid[])
+uSF2020_restor_wo_avoid[] <-  ifelse(uSF2020_restor_wo_avoid[]==1 & DSF2020[]==1, 0, uSF2020_restor_wo_avoid[])
+uSF2020_restor_wo_avoid[] <-  ifelse(uSF2020_restor_wo_avoid[]==1 & UPF2020[]==1, 0, uSF2020_restor_wo_avoid[])
+uSF2020_restor_wo_avoid[] <-  ifelse(uSF2020_restor_wo_avoid[]==1 & uDPF2020[]==1, 0, uSF2020_restor_wo_avoid[])
+uSF2020_restor_wo_avoid[] <-  ifelse(uSF2020_restor_wo_avoid[]==1 & RDPF2020[]==1, 0, uSF2020_restor_wo_avoid[])
+#plot(uSF2020_restor_wo_avoid)
+writeRaster(uSF2020_restor_wo_avoid, "rasters/PGM/input/LULC/uSF2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
+#uSF2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/uSF2020_restor_wo_avoid.tif")
+
+DSF2020_restor_wo_avoid <- DSF2020
+#plot(DSF2020_restor_wo_avoid)
+writeRaster(DSF2020_restor_wo_avoid, "rasters/PGM/input/LULC/DSF2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
+#DSF2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/DSF2020_restor_wo_avoid.tif")
+
+
+###Undegraded primary forest
+UPF2020_restor_wo_avoid <- UPF2020
+#plot(UPF2020_restor_wo_avoid)
+writeRaster(UPF2020_restor_wo_avoid, "rasters/PGM/input/LULC/UPF2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
+#UPF2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/UPF2020_restor_wo_avoid.tif")
+
+
+###Degraded primary forest
+uDPF2020_restor_wo_avoid <- uDPF2020
+#plot(uDPF2020_restor_wo_avoid)
+writeRaster(uDPF2020_restor_wo_avoid, "rasters/PGM/input/LULC/uDPF2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
+#uDPF2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/uDPF2020_restor_wo_avoid.tif")
+
+RDPF2020_restor_wo_avoid <- RDPF2020
+#plot(RDPF2020_restor_wo_avoid)
+writeRaster(RDPF2020_restor_wo_avoid, "rasters/PGM/input/LULC/RDPF2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
+#RDPF2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/RDPF2020_restor_wo_avoid.tif")
+
+
 
 
 
@@ -741,58 +867,58 @@ DSF2020_avoiddeforest[] <- ifelse(DSF2010[]==1 & DSF2020[]==0, 1, DSF2020_avoidd
 
 ###checking
 #undegraded primary forest == 1
-UPF2020_avoiddeforest.sk <- UPF2020_avoiddeforest
-#UPF2020_avoiddeforest.sk <- raster("rasters/PGM/input/UPF2020_avoiddeforest.tif")
-#UPF2020_avoiddeforest.sk[UPF2020_avoiddeforest.sk==1]<-1
-UPF2020_avoiddeforest.sk <- mask(UPF2020_avoiddeforest.sk, pgm.shp)
-UPF2020_avoiddeforest.sk[UPF2020_avoiddeforest.sk[]==0] <- 333
-#plot(UPF2020_avoiddeforest.sk, main="undegraded primary forest", legend=F)
+UPF2020_restor_wo_avoid.sk <- UPF2020_restor_wo_avoid
+#UPF2020_restor_wo_avoid.sk <- raster("rasters/PGM/input/UPF2020_restor_wo_avoid.tif")
+#UPF2020_restor_wo_avoid.sk[UPF2020_restor_wo_avoid.sk==1]<-1
+UPF2020_restor_wo_avoid.sk <- mask(UPF2020_restor_wo_avoid.sk, pgm.shp)
+UPF2020_restor_wo_avoid.sk[UPF2020_restor_wo_avoid.sk[]==0] <- 333
+#plot(UPF2020_restor_wo_avoid.sk, main="undegraded primary forest", legend=F)
 
 #degraded primary forest == 10
-uDPF2020_avoiddeforest.sk <- uDPF2020_avoiddeforest
-#DPF2020_avoiddeforest.sk <- raster("rasters/PGM/input/uDPF2020_avoiddeforest.tif")
-uDPF2020_avoiddeforest.sk[uDPF2020_avoiddeforest.sk==1]<-10
-uDPF2020_avoiddeforest.sk <- mask(uDPF2020_avoiddeforest.sk, pgm.shp)
-uDPF2020_avoiddeforest.sk[uDPF2020_avoiddeforest.sk[]==0] <- 333
-#plot(uDPF2020_avoiddeforest.sk, main="degraded primary forest", legend=F)
+uDPF2020_restor_wo_avoid.sk <- uDPF2020_restor_wo_avoid
+#DPF2020_restor_wo_avoid.sk <- raster("rasters/PGM/input/uDPF2020_restor_wo_avoid.tif")
+uDPF2020_restor_wo_avoid.sk[uDPF2020_restor_wo_avoid.sk==1]<-10
+uDPF2020_restor_wo_avoid.sk <- mask(uDPF2020_restor_wo_avoid.sk, pgm.shp)
+uDPF2020_restor_wo_avoid.sk[uDPF2020_restor_wo_avoid.sk[]==0] <- 333
+#plot(uDPF2020_restor_wo_avoid.sk, main="degraded primary forest", legend=F)
 
 #repeated degraded primary forest == 25
-RDPF2020_avoiddeforest.sk <- RDPF2020_avoiddeforest
-#RDPF2020_avoiddeforest.sk <- raster("rasters/PGM/input/RDPF2020_avoiddeforest.tif")
-RDPF2020_avoiddeforest.sk[RDPF2020_avoiddeforest.sk==1]<-25
-RDPF2020_avoiddeforest.sk <- mask(RDPF2020_avoiddeforest.sk, pgm.shp)
-RDPF2020_avoiddeforest.sk[RDPF2020_avoiddeforest.sk[]==0] <- 333
-#plot(RDPF2020_avoiddeforest.sk, main="degraded primary forest", legend=F)
+RDPF2020_restor_wo_avoid.sk <- RDPF2020_restor_wo_avoid
+#RDPF2020_restor_wo_avoid.sk <- raster("rasters/PGM/input/RDPF2020_restor_wo_avoid.tif")
+RDPF2020_restor_wo_avoid.sk[RDPF2020_restor_wo_avoid.sk==1]<-25
+RDPF2020_restor_wo_avoid.sk <- mask(RDPF2020_restor_wo_avoid.sk, pgm.shp)
+RDPF2020_restor_wo_avoid.sk[RDPF2020_restor_wo_avoid.sk[]==0] <- 333
+#plot(RDPF2020_restor_wo_avoid.sk, main="degraded primary forest", legend=F)
 
 #secondary forest == 100
-uSF2020_avoiddeforest.sk <- uSF2020_avoiddeforest
-#uSF2020_avoiddeforest.sk <- raster("rasters/PGM/input/uSF2020_avoiddeforest.tif")
-uSF2020_avoiddeforest.sk[uSF2020_avoiddeforest.sk==1]<-100
-uSF2020_avoiddeforest.sk <- mask(uSF2020_avoiddeforest.sk, pgm.shp)
-uSF2020_avoiddeforest.sk[uSF2020_avoiddeforest.sk[]==0] <- 333
-#plot(uSF2020_avoiddeforest.sk, main="secondary forest", legend=F)
+uSF2020_restor_wo_avoid.sk <- uSF2020_restor_wo_avoid
+#uSF2020_restor_wo_avoid.sk <- raster("rasters/PGM/input/uSF2020_restor_wo_avoid.tif")
+uSF2020_restor_wo_avoid.sk[uSF2020_restor_wo_avoid.sk==1]<-100
+uSF2020_restor_wo_avoid.sk <- mask(uSF2020_restor_wo_avoid.sk, pgm.shp)
+uSF2020_restor_wo_avoid.sk[uSF2020_restor_wo_avoid.sk[]==0] <- 333
+#plot(uSF2020_restor_wo_avoid.sk, main="secondary forest", legend=F)
 
 #degraded secondary forest == 125
-DSF2020_avoiddeforest.sk <- DSF2020_avoiddeforest
-#DSF2020_avoiddeforest.sk <- raster("rasters/PGM/input/DSF2020_avoiddeforest.tif")
-DSF2020_avoiddeforest.sk[DSF2020_avoiddeforest.sk==1]<-125
-DSF2020_avoiddeforest.sk <- mask(DSF2020_avoiddeforest.sk, pgm.shp)
-DSF2020_avoiddeforest.sk[DSF2020_avoiddeforest.sk[]==0] <- 333
-#plot(DSF2020_avoiddeforest.sk, main="secondary forest", legend=F)
+DSF2020_restor_wo_avoid.sk <- DSF2020_restor_wo_avoid
+#DSF2020_restor_wo_avoid.sk <- raster("rasters/PGM/input/DSF2020_restor_wo_avoid.tif")
+DSF2020_restor_wo_avoid.sk[DSF2020_restor_wo_avoid.sk==1]<-125
+DSF2020_restor_wo_avoid.sk <- mask(DSF2020_restor_wo_avoid.sk, pgm.shp)
+DSF2020_restor_wo_avoid.sk[DSF2020_restor_wo_avoid.sk[]==0] <- 333
+#plot(DSF2020_restor_wo_avoid.sk, main="secondary forest", legend=F)
 
-LULC2020_avoiddeforest <- sum(UPF2020_avoiddeforest.sk, uSF2020_avoiddeforest.sk, na.rm = T)
-LULC2020_avoiddeforest <- sum(LULC2020_avoiddeforest, DSF2020_avoiddeforest.sk, na.rm = T)
-LULC2020_avoiddeforest <- sum(LULC2020_avoiddeforest, uDPF2020_avoiddeforest.sk, na.rm = T)
-LULC2020_avoiddeforest <- sum(LULC2020_avoiddeforest, RDPF2020_avoiddeforest.sk, na.rm = T)
-LULC2020_avoiddeforest <- mask(LULC2020_avoiddeforest, pgm.shp)
-#sort(unique(LULC2020_avoiddeforest[]))
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1333]<-1
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1342]<-10
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1357]<-25
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1432]<-100
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1457]<-125
-LULC2020_avoiddeforest[LULC2020_avoiddeforest==1665 ]<-0
-#plot(LULC2020_avoiddeforest, main="forest cover 2020", legend=F)
+LULC2020_restor_wo_avoid <- sum(UPF2020_restor_wo_avoid.sk, uSF2020_restor_wo_avoid.sk, na.rm = T)
+LULC2020_restor_wo_avoid <- sum(LULC2020_restor_wo_avoid, DSF2020_restor_wo_avoid.sk, na.rm = T)
+LULC2020_restor_wo_avoid <- sum(LULC2020_restor_wo_avoid, uDPF2020_restor_wo_avoid.sk, na.rm = T)
+LULC2020_restor_wo_avoid <- sum(LULC2020_restor_wo_avoid, RDPF2020_restor_wo_avoid.sk, na.rm = T)
+LULC2020_restor_wo_avoid <- mask(LULC2020_restor_wo_avoid, pgm.shp)
+#sort(unique(LULC2020_restor_wo_avoid[]))
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1333]<-1
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1342]<-10
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1357]<-25
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1432]<-100
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1457]<-125
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid==1665 ]<-0
+#plot(LULC2020_restor_wo_avoid, main="forest cover 2020", legend=F)
 
 
 
@@ -803,7 +929,10 @@ data_df2 <- data.frame(
   Period1 = data_df$Period1,
   #Period2 = factor(LULC2020[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_avoiddegrad[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
-  Period2 = factor(LULC2020_avoiddegrad2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddegrad2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddeforest2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  Period2 = factor(LULC2020_restor_wo_avoid[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   )
 
 
@@ -815,7 +944,7 @@ data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
   geom_stratum(width = .15) +
   scale_x_discrete(limits = c("Period1", "Period2"), 
                    breaks=c("Period1", "Period2"), 
-                   labels=addline_format(c("2010 Real", "2020 avoid degradation (PF_only)")),
+                   labels=addline_format(c("2010 Real", "2020 restoration without avoiding")), # (PF_only)
                    expand = c(.05, .05)) +
   scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", "#B19470", "#789461", "#F97B22")) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
@@ -1089,14 +1218,6 @@ gc()
 #
 #
 
-
-
-# candidate areas for restoration scenarios ==============|
-#see the "restoration_candidate_pgm.R" on the script folder
-#for details on the steps to select candidate areas for restoration
-candidate.areas.final <- raster("rasters/PGM/raw/pgm_forest_cover_after_restoration_2010.tif")
-candidate.areas.final <- sum(pgm.lulc.2010.forest.mask, candidate.areas.final, na.rm = T)
-candidate.areas.final[candidate.areas.final!=1] <- 0
 
 
 # function to make sure all raster are fully stacked
