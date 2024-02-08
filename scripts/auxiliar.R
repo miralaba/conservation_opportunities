@@ -1,6 +1,18 @@
+#### loading required packages ####
+library(tidyverse)
+library(raster)
+library(rgdal)
+library(rgeos)
+library(sf)
+library(spatialEco)
+library(scales)
+library(virtualspecies)
+library(usdm)
+library(datazoom.amazonia)
+library(stars)
+library(lwgeom)
 
-
-# importing raw rasters ===================================|
+# importing raw rasters ===================================
 ## standard projection
 std.proj <- "+proj=longlat +datum=WGS84 +units=m +no_defs"
 
@@ -45,7 +57,55 @@ pgm.lulc.2020.forest.mask[pgm.lulc.2020.forest.mask==0] <- NA
 #
 
 
-# creating time since degradation based on mapbiomas fire, degrad and deter ====================|
+
+
+
+# secondary forest age from Silva Jr. et al 2020  [2010 and 2020]
+# [DOI: 10.1038/s41597-020-00600-4]
+# [PGM] paragominas
+pgm.sfage <- stack(c("rasters/PGM/raw/pgm-2010-sfage-mapbiomas-brazil-collection-60.tif",
+                     "rasters/PGM/raw/pgm-2020-sfage-mapbiomas-brazil-collection-60.tif"))
+names(pgm.sfage) <- c("pgm.sfage.2010real", "pgm.sfage.2020real")
+
+#checking
+#st_crs(pgm.sfage)==st_crs(pgm.shp)
+#plot(pgm.sfage)
+#range(values(pgm.sfage[["pgm.sfage.2010real"]]), na.rm = T)
+
+# Conversion of rasters into same extent
+#pgm.sfage <- resample(pgm.sfage, pgm.lulc.100, method='ngb')
+
+#excluding non-forest areas
+pgm.sfage[["pgm.sfage.2010real"]] <- mask(pgm.sfage[["pgm.sfage.2010real"]], pgm.lulc.2010.forest.mask)
+pgm.sfage[["pgm.sfage.2010real"]][is.na(pgm.sfage[["pgm.sfage.2010real"]])] <- 0
+
+
+pgm.sfage[["pgm.sfage.2020real"]] <- mask(pgm.sfage[["pgm.sfage.2020real"]], pgm.lulc.2020.forest.mask)
+pgm.sfage[["pgm.sfage.2020real"]][is.na(pgm.sfage[["pgm.sfage.2020real"]])] <- 0
+
+
+
+# isolating secondary forest class pixels
+pgm.sfage.2010.all.class <- pgm.sfage[["pgm.sfage.2010real"]]
+pgm.sfage.2010.all.class[pgm.sfage.2010.all.class>0] <- 1
+pgm.sfage.2010.all.class[pgm.sfage.2010.all.class<1] <- 0
+
+pgm.sfage.2010.mask <- pgm.sfage.2010.all.class
+pgm.sfage.2010.mask[pgm.sfage.2010.mask==0] <- NA
+
+pgm.sfage.2020.all.class <- pgm.sfage[["pgm.sfage.2020real"]]
+pgm.sfage.2020.all.class[pgm.sfage.2020.all.class>0] <- 1
+pgm.sfage.2020.all.class[pgm.sfage.2020.all.class<1] <- 0
+
+pgm.sfage.2020.mask <- pgm.sfage.2020.all.class
+pgm.sfage.2020.mask[pgm.sfage.2020.mask==0] <- NA
+
+
+#
+#
+
+
+# gathering time series degradation based on mapbiomas fire, degrad and deter ====================
 #' @description mapbiomas fire is a time-series data from 1985 to present
 #' degrad is the first monitoring system to detect degradation in brazil
 #' it was functional from 2007 to 2016 but does not differentiate between classes of degradation.
@@ -104,21 +164,21 @@ gc()
 
 
 
-# import fire time series from mapbiomas =============================|
+## import fire time series from mapbiomas
 pgm.raw.fire.list <- list.files("C:/Users/miral/Dropbox/MAPBIOMAS-EXPORT/fogo-time-series/PGM",
                                 pattern = "mapbiomas", full.names = T, recursive = T)
 
 
 pgm.raw.fire <- raster::stack(pgm.raw.fire.list)
 
-
+## import degradation time series from degrad [inpe 2007-2016]
 pgm.degrad.list <- list.files("C:/Users/miral/Dropbox/MAPBIOMAS-EXPORT/fogo-time-series/PGM",
                                 pattern = "degrad", full.names = T, recursive = T)
 
 
 pgm.degrad <- raster::stack(pgm.degrad.list)
 
-
+## import degradation time series from deter-b [inpe 201-2020]
 pgm.deter.list <- list.files("C:/Users/miral/Dropbox/MAPBIOMAS-EXPORT/fogo-time-series/PGM",
                               pattern = "deter", full.names = T, recursive = T)
 
@@ -130,7 +190,7 @@ pgm.deter <- raster::stack(pgm.deter.list)
 
 
 
-
+# building time since degradation =========================================
 ##1985-2006 (only fire)
 #count for multiple degradation
 pgm.freq.degrad <- pgm.raw.fire[[1]]
@@ -162,7 +222,9 @@ for (i in 1:22) {
 }
 
 
-##2007-2010 (combining fire and degradation)
+##2007-2010 
+#combining fire and degradation for primary forests
+#only fire for secondary forests
 for (i in 23:26) {
   
   #selecting year-by-year
@@ -170,27 +232,30 @@ for (i in 23:26) {
     fire.yearx <- pgm.raw.fire[[i]]
     
     #degradation
-    inpe.yearx1 <- pgm.degrad[[i-22]]
-    inpe.yearx2 <- pgm.degrad[[i-21]]
-    inpe.yearx3 <- pgm.degrad[[i-20]]
+    inpe.yearx <- pgm.degrad[[i-22]]
     
-    inpe.yearx <- sum(inpe.yearx1, inpe.yearx2)
-    inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-    inpe.yearx[inpe.yearx!=3] <- 0
-    inpe.yearx[inpe.yearx==3] <- 1
     
     degrad.yearx <- sum(inpe.yearx, fire.yearx)
     degrad.yearx[degrad.yearx>1] <- 1
     
-  #count for multiple fires
+  #count for multiple degradation events
+  pgm.freq.fire <- sum(pgm.freq.degrad, fire.yearx)
   pgm.freq.degrad <- sum(pgm.freq.degrad, degrad.yearx)
   
-  #assign time since fire
+  #assign time since degradation
+  fire.yearx[fire.yearx!=1] <- NA
+  fire.yearx[fire.yearx==1] <- 1000
+  fire.yearx[is.na(fire.yearx[])] <- 0
+  
   degrad.yearx[degrad.yearx!=1] <- NA
   degrad.yearx[degrad.yearx==1] <- 1000
   degrad.yearx[is.na(degrad.yearx[])] <- 0
   
   #counting time since degradation
+  pgm.time.since.degrad.sf <- pgm.time.since.degrad+1
+  pgm.time.since.degrad.sf <- sum(pgm.time.since.degrad.sf, fire.yearx, na.rm = T)
+  pgm.time.since.degrad.sf[pgm.time.since.degrad.sf[]>1000] <- 0  
+  
   pgm.time.since.degrad <- pgm.time.since.degrad+1
   pgm.time.since.degrad <- sum(pgm.time.since.degrad, degrad.yearx, na.rm = T)
   pgm.time.since.degrad[pgm.time.since.degrad[]>1000] <- 0  
@@ -198,14 +263,19 @@ for (i in 23:26) {
  cat("\n> year", 1984+i, "done! <\n")
 }
 
+pgm.2010.time.since.degrad.sf <- pgm.time.since.degrad.sf
+pgm.2010.time.since.degrad.sf <-  mask(pgm.2010.time.since.degrad.sf, pgm.sfage.2010.mask)
+writeRaster(pgm.2010.time.since.degrad.sf, "rasters/PGM/raw/pgm-2010-dsf-tsince0.tif", format = "GTiff", overwrite = T)
+
 pgm.2010.time.since.degrad <- pgm.time.since.degrad
 pgm.2010.time.since.degrad <-  mask(pgm.2010.time.since.degrad, pgm.lulc.2010.forest.mask)
-writeRaster(pgm.2010.time.since.degrad, "rasters/PGM/raw/pgm-2010-deg_tsince0.tif", format = "GTiff", overwrite = T)
+pgm.2010.time.since.degrad <-  mask(pgm.2010.time.since.degrad, pgm.sfage.2010.mask, inverse = T)
+writeRaster(pgm.2010.time.since.degrad, "rasters/PGM/raw/pgm-2010-dpf-tsince0.tif", format = "GTiff", overwrite = T)
 
 
 pgm.1985.2010.freq.degrad <- pgm.freq.degrad
 pgm.1985.2010.freq.degrad <-  mask(pgm.1985.2010.freq.degrad, pgm.lulc.2010.forest.mask)
-writeRaster(pgm.1985.2010.freq.degrad, "rasters/PGM/raw/pgm-firefreq-1985_2010.tif", format = "GTiff", overwrite = T)
+writeRaster(pgm.1985.2010.freq.degrad, "rasters/PGM/raw/pgm-degfreq-1985_2010.tif", format = "GTiff", overwrite = T)
 
 ##2011-2015
 for (i in 27:31) {
@@ -217,41 +287,28 @@ for (i in 27:31) {
   #degradation
   inpe.yearx1 <- pgm.degrad[[i-22]]
   
-  if(i!=31){
-    inpe.yearx2 <- pgm.degrad[[i-21]]
-    inpe.yearx3 <- pgm.degrad[[i-20]]
-    
-    inpe.yearx <- sum(inpe.yearx1, inpe.yearx2)
-    inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-    inpe.yearx[inpe.yearx!=3] <- 0
-    inpe.yearx[inpe.yearx==3] <- 1
-  }
-  else
-    {
-      inpe.yearx2a <- pgm.degrad[[i-21]]
-      inpe.yearx2b <- pgm.deter[[i-30]]
-      inpe.yearx3 <- pgm.deter[[i-29]]
-    
-      inpe.yearx <- sum(inpe.yearx1, inpe.yearx2a)
-      inpe.yearx <- sum(inpe.yearx, inpe.yearx2b)
-      inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-      inpe.yearx[inpe.yearx!=4] <- 0
-      inpe.yearx[inpe.yearx==4] <- 1
-  }
-  
   
   degrad.yearx <- sum(inpe.yearx, fire.yearx)
   degrad.yearx[degrad.yearx>1] <- 1
   
-  #count for multiple fires
+  #count for multiple degradation events
+  pgm.freq.fire <- sum(pgm.freq.fire, fire.yearx)
   pgm.freq.degrad <- sum(pgm.freq.degrad, degrad.yearx)
   
-  #assign time since fire
+  #assign time since degradation
+  fire.yearx[fire.yearx!=1] <- NA
+  fire.yearx[fire.yearx==1] <- 1000
+  fire.yearx[is.na(fire.yearx[])] <- 0
+  
   degrad.yearx[degrad.yearx!=1] <- NA
   degrad.yearx[degrad.yearx==1] <- 1000
   degrad.yearx[is.na(degrad.yearx[])] <- 0
   
   #counting time since degradation
+  pgm.time.since.degrad.sf <- pgm.time.since.degrad.sf+1
+  pgm.time.since.degrad.sf <- sum(pgm.time.since.degrad.sf, fire.yearx, na.rm = T)
+  pgm.time.since.degrad.sf[pgm.time.since.degrad.sf[]>1000] <- 0  
+  
   pgm.time.since.degrad <- pgm.time.since.degrad+1
   pgm.time.since.degrad <- sum(pgm.time.since.degrad, degrad.yearx, na.rm = T)
   pgm.time.since.degrad[pgm.time.since.degrad[]>1000] <- 0  
@@ -269,47 +326,28 @@ for (i in 32:36) {
   #degradation
   inpe.yearx1 <- pgm.deter[[i-31]]
   
-  if(i<35){
-    inpe.yearx2 <- pgm.deter[[i-30]]
-    inpe.yearx3 <- pgm.deter[[i-29]]
-    
-    inpe.yearx <- sum(inpe.yearx1, inpe.yearx2)
-    inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-    inpe.yearx[inpe.yearx!=3] <- 0
-    inpe.yearx[inpe.yearx==3] <- 1
-  }
-  if(i==35){
-    inpe.yearx2 <- pgm.deter[[i-32]]
-    inpe.yearx3 <- pgm.deter[[i-30]]
-    
-    inpe.yearx <- sum(inpe.yearx1, inpe.yearx2)
-    inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-    inpe.yearx[inpe.yearx!=3] <- 0
-    inpe.yearx[inpe.yearx==3] <- 1
-  }
-  if(i==36){
-    inpe.yearx2 <- pgm.deter[[i-32]]
-    inpe.yearx3 <- pgm.deter[[i-33]]
-    
-    inpe.yearx <- sum(inpe.yearx1, inpe.yearx2)
-    inpe.yearx <- sum(inpe.yearx, inpe.yearx3)
-    inpe.yearx[inpe.yearx!=3] <- 0
-    inpe.yearx[inpe.yearx==3] <- 1
-  }
-  
   
   degrad.yearx <- sum(inpe.yearx, fire.yearx)
   degrad.yearx[degrad.yearx>1] <- 1
   
-  #count for multiple fires
+  #count for multiple degradation events
+  pgm.freq.fire <- sum(pgm.freq.fire, fire.yearx)
   pgm.freq.degrad <- sum(pgm.freq.degrad, degrad.yearx)
   
-  #assign time since fire
+  #assign time since degradation
+  fire.yearx[fire.yearx!=1] <- NA
+  fire.yearx[fire.yearx==1] <- 1000
+  fire.yearx[is.na(fire.yearx[])] <- 0
+  
   degrad.yearx[degrad.yearx!=1] <- NA
   degrad.yearx[degrad.yearx==1] <- 1000
   degrad.yearx[is.na(degrad.yearx[])] <- 0
   
   #counting time since degradation
+  pgm.time.since.degrad.sf <- pgm.time.since.degrad.sf+1
+  pgm.time.since.degrad.sf <- sum(pgm.time.since.degrad.sf, fire.yearx, na.rm = T)
+  pgm.time.since.degrad.sf[pgm.time.since.degrad.sf[]>1000] <- 0  
+  
   pgm.time.since.degrad <- pgm.time.since.degrad+1
   pgm.time.since.degrad <- sum(pgm.time.since.degrad, degrad.yearx, na.rm = T)
   pgm.time.since.degrad[pgm.time.since.degrad[]>1000] <- 0  
@@ -317,21 +355,33 @@ for (i in 32:36) {
   cat("\n> year", 1984+i, "done! <\n")
 }
 
+pgm.2020.time.since.degrad.sf <- pgm.time.since.degrad.sf
+pgm.2020.time.since.degrad.sf <-  mask(pgm.2020.time.since.degrad.sf, pgm.sfage.2020.mask)
+writeRaster(pgm.2020.time.since.degrad.sf, "rasters/PGM/raw/pgm-2020-dsf-tsince0.tif", format = "GTiff", overwrite = T)
+
 pgm.2020.time.since.degrad <- pgm.time.since.degrad
 pgm.2020.time.since.degrad <-  mask(pgm.2020.time.since.degrad, pgm.lulc.2020.forest.mask)
-writeRaster(pgm.2020.time.since.degrad, "rasters/PGM/raw/pgm-2020-deg_tsince0.tif", format = "GTiff", overwrite = T)
+pgm.2020.time.since.degrad <-  mask(pgm.2020.time.since.degrad, pgm.sfage.2020.mask, inverse = T)
+writeRaster(pgm.2020.time.since.degrad, "rasters/PGM/raw/pgm-2020-dpf-tsince0.tif", format = "GTiff", overwrite = T)
 
 
 pgm.1985.2020.freq.degrad <- pgm.freq.degrad
 pgm.1985.2020.freq.degrad <-  mask(pgm.1985.2020.freq.degrad, pgm.lulc.2020.forest.mask)
-writeRaster(pgm.1985.2020.freq.degrad, "rasters/PGM/raw/pgm-firefreq-1985_2020.tif", format = "GTiff", overwrite = T)
+writeRaster(pgm.1985.2020.freq.degrad, "rasters/PGM/raw/pgm-degfreq-1985_2020.tif", format = "GTiff", overwrite = T)
 
 rm(list=ls()[ls() %in% c("pgm.raw.fire.list", "pgm.raw.fire", "pgm.degrad.list", "pgm.degrad",
-                         "pgm.deter.list", "pgm.deter", "degrad.yearx", "fire.yearx", "inpe.yearx", "inpe.yearx1", 
-                         "inpe.yearx2", "inpe.yearx2a", "inpe.yearx2b", "inpe.yearx3", "i")])
+                         "pgm.deter.list", "pgm.deter", "degrad.yearx", "fire.yearx", "inpe.yearx", "i")])
 gc()
 #
 #
+
+
+
+
+
+
+
+
 
 
 
