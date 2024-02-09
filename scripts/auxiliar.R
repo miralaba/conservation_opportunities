@@ -379,6 +379,771 @@ gc()
 
 
 
+# candidate areas for restoration scenarios ==============|
+#' @description 
+#' 
+# land use land cover from mapbiomas collection 8 [2007, 2010 and 2022]
+# 30m resolution raster
+pgm.lulc <- stack(c("rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2007.tif",
+                    "rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2010.tif"))
+names(pgm.lulc) <- c("pgm.lulc.2007real", "pgm.lulc.2010real", "pgm.lulc.2022real")
+
+
+
+# isolating forest class pixels
+pgm.lulc.2007.forest.class <- pgm.lulc[["pgm.lulc.2007real"]]
+pgm.lulc.2007.forest.class[pgm.lulc.2007.forest.class==3] <- 1
+pgm.lulc.2007.forest.class[pgm.lulc.2007.forest.class>1] <- 0
+
+
+pgm.lulc.2007.forest.mask <- pgm.lulc.2007.forest.class
+pgm.lulc.2007.forest.mask[pgm.lulc.2007.forest.mask==0] <- NA
+
+
+pgm.lulc.2010.forest.class <- pgm.lulc[["pgm.lulc.2010real"]]
+pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class==3] <- 1
+pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class>1] <- 0
+
+
+pgm.lulc.2010.forest.mask <- pgm.lulc.2010.forest.class
+pgm.lulc.2010.forest.mask[pgm.lulc.2010.forest.mask==0] <- NA
+#
+#
+
+
+
+#deforestation class pixels (15 == pasture & 19 == soybean)
+deforestation.class.list <- c(15,35,39,41)
+
+converted.area.2007 <- pgm.lulc[["pgm.lulc.2007real"]]
+
+converted.area.2007[converted.area.2007[] %in% deforestation.class.list] = 1
+converted.area.2007[converted.area.2007[] > 1] = 0
+names(converted.area.2007) <- "converted.area.2007"
+#plot(converted.area.2007, col=c("#ffffff","brown"), legend = F)
+#length(converted.area.2007[converted.area.2007[]==1])
+
+
+converted.area.2010 <- pgm.lulc[["pgm.lulc.2010real"]]
+
+converted.area.2010[converted.area.2010[] %in% deforestation.class.list] = 1
+converted.area.2010[converted.area.2010[] > 1] = 0
+names(converted.area.2010) <- "converted.area.2010"
+#plot(converted.area.2010, col=c("#ffffff","brown"), legend = F)
+#length(converted.area.2010[converted.area.2010[]==1])
+converted.area.2010.mask <- converted.area.2010
+converted.area.2010.mask[converted.area.2010.mask[] != 1] <- NA
+#
+#
+
+
+
+#identifying consolidated areas (areas deforested before 2008)
+consolidated.areas <- sum(converted.area.2007, converted.area.2010, na.rm = T)
+consolidated.areas[consolidated.areas[] < 2] <- 0
+consolidated.areas[consolidated.areas[] == 2] <- 1
+names(consolidated.areas) <- "consolidated.areas"
+#plot(consolidated.areas, col=c("#ffffff","brown"), legend = F)
+#length(consolidated.areas[consolidated.areas[]==1])
+consolidated.areas.mask <- consolidated.areas
+consolidated.areas.mask[consolidated.areas.mask[] != 1] <- NA
+#
+#
+
+
+
+# Rivers
+# source1: ANA -  https://metadados.snirh.gov.br/geonetwork/srv/api/records/0f57c8a0-6a0f-4283-8ce3-114ba904b9fe
+# source2: HydroSHEDS - https://www.hydrosheds.org/hydroatlas
+# Permanent Protection Areas [APPs]
+# According to Brazilian Forest Code (Law n. 12.651/2012)
+# In general[*]:
+# river width <10m, APP == 30
+# river width 10-50m, APP == 50m
+# river width 50-200m, APP == 100m
+# river width 200-600m, APP == 200m
+# river width +600m, APP == 500m
+#
+# [*] there are some exceptions, according to property size, 
+# and if the area were converted before 2008 (see the law for details)
+#
+
+pgm.river <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_RiverATLAS_v10")
+#head(pgm.river@data)
+pgm.river@data <- pgm.river@data %>% dplyr::select(HYRIV_ID:LENGTH_KM, ria_ha_csu, ria_ha_usu) %>% 
+  mutate(
+    ril_m = LENGTH_KM * 1000, #converting to meters
+    ria_m2 = ria_ha_csu * 10000, #converting to square meters
+    riw_m = (ria_m2 / ril_m), #estimating the mean river segment width
+    riapp = ifelse(riw_m<10, 30, #applying forest code rules
+                   ifelse(riw_m>=10 & riw_m<50, 50,
+                          ifelse(riw_m >=50 & riw_m<200, 100,
+                                 ifelse(riw_m>=200 & riw_m<600, 200, 500)))), 
+    buffer = (riw_m + (2*riapp))/111111 #buffering APP area on both river margins and converting to decimal
+  )
+
+
+pgm.appList <- vector("list", length(pgm.river))
+for (i in 1:length(pgm.river)) {
+  a <- gBuffer(pgm.river[i,], width = pgm.river$buffer[i])
+  a$id = pgm.river$HYRIV_ID[i]
+  pgm.appList[[i]] <- a
+}
+
+pgm.app <- do.call("rbind", pgm.appList)
+
+#checking
+#st_crs(pgm.app)==st_crs(pgm.app)
+#plot(pgm.lulc[["pgm.lulc.2010real"]])
+#plot(pgm.river, add=T)
+#plot(pgm.app, add=T)
+
+#rm(list=ls()[ls() %in% c("pgm.appList", "a", "i")])
+#gc()
+
+
+
+#
+#
+
+
+
+#import rural properties shapefiles and data from SISCAR
+#https://www.car.gov.br/publico/municipios/downloads
+pgm.car <- readOGR(dsn = "rasters/PGM/raw/SHAPE_1505502_CAR_Paragominas", layer = "AREA_IMOVEL")
+pgm.car <- spTransform(pgm.car, crs(std.proj))
+
+#checking
+#st_crs(pgm.car)==st_crs(pgm.shp)
+
+
+#creating a copy
+pgm.car.copy <- pgm.car
+#pgm.car <- pgm.car.copy
+
+#reducing overlap
+#properties have the same CAR code
+pgm.car <- pgm.car[!duplicated(pgm.car@data$COD_IMOVEL),]
+#properties occupy exactly the same area
+coord_poly <- lapply(pgm.car@polygons, function(x){lapply(x@Polygons, function(x){coordinates(x)})}) 
+pgm.car <- pgm.car[!duplicated(coord_poly),]
+
+
+#
+pgm.car@data$keep <- NA
+
+combos <- combn(nrow(pgm.car),2)
+
+
+suppressMessages(
+  for(k in seq_along(combos[1,])){
+    i <- combos[1,k]
+    j <- combos[2,k]
+    #print(paste("intersecting",i,j))
+    
+    si <- pgm.car[i,c(1,2,6)]
+    sj <- pgm.car[j,c(1,2,6)]
+    names(sj) <- c("COD_IMOVEL.1","NUM_AREA.1","TIPO_IMOVE.1")
+    
+    #if (nrow(st_intersection(st_as_sf(pgm.car[i,]), st_as_sf(pgm.car[j,]))) == 0) next
+    
+    teste <- try(intersect(si, sj), TRUE)
+    
+    if (class(teste)=="try-error") next
+    
+    teste$intersect_area <- area(teste)*0.0001
+    teste$coverage <- teste$intersect_area/teste$NUM_AREA
+    teste$coverage1 <- teste$intersect_area/teste$NUM_AREA.1
+    
+    
+    #teste <- st_intersection(st_as_sf(pgm.car[i,]), st_as_sf(pgm.car[j,])) %>% # shape of overlap area
+    #              mutate(intersect_area = st_area(.)*0.0001, # create new column with shape area
+    #                     coverage = as.numeric(intersect_area/NUM_AREA), # calculate coverage
+    #                     coverage1 = as.numeric(intersect_area/NUM_AREA.1)) %>%
+    #              st_drop_geometry()
+    
+    #properties with an overlap larger than 30% with protected area or agrarian reform settlements were excluded;
+    if(teste$TIPO_IMOVE=="IRU" & teste$TIPO_IMOVE.1!="IRU" & teste$coverage > .3) {
+      print(paste0("excluding ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"COD_IMOVEL"], " due to overlap with areas not suitable for registry: ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL.1,"COD_IMOVEL"]))
+      pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"keep"] <- F
+    }
+    
+    
+    #where overlap was greater than 80%, the smallest property is excluded;
+    if(teste$TIPO_IMOVE=="IRU" & teste$TIPO_IMOVE.1=="IRU" & teste$coverage > .8 & teste$NUM_AREA<teste$NUM_AREA.1){ 
+      print(paste0("excluding ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"COD_IMOVEL"], " due to overlap area is greater than 80%: ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL.1,"COD_IMOVEL"]))
+      pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"keep"] <- F
+    }
+    
+    if(teste$TIPO_IMOVE=="IRU" & teste$TIPO_IMOVE.1=="IRU" & teste$coverage1 > .8 & teste$NUM_AREA.1<teste$NUM_AREA){ 
+      print(paste0("excluding ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"COD_IMOVEL"], " due to overlap area is greater than 80%: ", pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL,"COD_IMOVEL"]))
+      pgm.car@data[pgm.car@data$COD_IMOVEL==teste$COD_IMOVEL.1,"keep"] <- F
+    }
+    
+    
+  }
+)
+
+
+#writeOGR(pgm.car, dsn="rasters/PGM", layer = "pgm.car.ed2", driver = "ESRI Shapefile")
+#pgm.car <- readOGR(dsn = "rasters/PGM", layer = "pgm.car.ed2")
+
+View(pgm.car@data)
+nrow(pgm.car@data[is.na(pgm.car@data$keep),])
+
+pgm.car <- pgm.car[is.na(pgm.car@data$keep),]
+
+#writeOGR(pgm.car, dsn="rasters/PGM", layer = "pgm.car.ed3", driver = "ESRI Shapefile")
+#pgm.car <- readOGR(dsn = "rasters/PGM", layer = "pgm.car.ed3")
+
+
+#recalculating the size and number of fiscal modules and
+#comparing property size between the value declared by the owner on attribute table 
+#and the value calculated based on the polygon -- 0 == there is no significant difference; 1 == different by more than 3ha
+pgm.car@data <- pgm.car@data %>% mutate(num_area_ha = raster::area(pgm.car)*0.0001,
+                                        num_modulo_new = num_area_ha/55,
+                                        num_area_flag = ifelse(abs(NUM_AREA-num_area_ha) < 3, 0, 1)) %>% 
+                           dplyr::select(-keep)
+
+#View(pgm.car@data)
+#table(pgm.car@data$num_area_flag)
+
+#checking how many properties have less than 30x30m
+nrow(pgm.car@data[pgm.car@data$num_area_ha<.1,])
+#excluding
+pgm.car <- pgm.car[which(pgm.car@data$num_area_ha>=.1),]
+
+
+#checking
+#st_crs(pgm.car)==st_crs(pgm.shp)
+#plot(pgm.lulc[["pgm.lulc.2010real"]])
+#plot(pgm.car, add=T)
+
+
+#calculating forest cover (ha) in each property
+#adding variable for forest cover
+pgm.car@data$FOREST_COVER_2007 <- NA
+#creating layer with forest class
+forest.class.2007 <- pgm.lulc.2007.forest.mask
+
+j=nrow(pgm.car@data)
+n=0
+for (i in pgm.car$COD_IMOVEL) {
+  
+  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
+  
+  forest.cover.2007 <- crop(forest.class.2007, extent(rural.property))
+  forest.cover.2007 <- mask(forest.cover.2007, rural.property)
+  
+  if(all(is.na(forest.cover.2007[])))
+  {
+    
+    pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER_2007"] <- 0
+    j=j-1
+    n=n+1
+    cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER_2007"] <- tapply(raster::area(forest.cover.2007), forest.cover.2007[], sum, na.rm=T)*100
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+    
+  }
+  
+}
+
+#calculating the percentage of forest cover in relation to property size
+pgm.car@data$FOREST_COVER_2007_PP <- pgm.car@data$FOREST_COVER_2007/pgm.car@data$num_area_ha
+
+#View(pgm.car@data)
+
+
+#calculating forest cover (ha) in each property
+#adding variable for forest cover
+pgm.car@data$FOREST_COVER_2010 <- NA
+#creating layer with forest class
+forest.class.2010 <- pgm.lulc.2010.forest.mask
+
+j=nrow(pgm.car@data)
+n=0
+for (i in pgm.car$COD_IMOVEL) {
+  
+  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
+  
+  forest.cover.2010 <- crop(forest.class.2010, extent(rural.property))
+  forest.cover.2010 <- mask(forest.cover.2010, rural.property)
+  
+  if(all(is.na(forest.cover.2010[])))
+  {
+    
+    pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER_2010"] <- 0
+    j=j-1
+    n=n+1
+    cat("\n>there are no forests in property", i, "in 2010 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    pgm.car[pgm.car$COD_IMOVEL==i,"FOREST_COVER_2010"] <- tapply(raster::area(forest.cover.2010), forest.cover.2010[], sum, na.rm=T)*100
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+    
+  }
+  
+}
+
+#calculating the percentage of forest cover in relation to property size
+pgm.car@data$FOREST_COVER_2010_PP <- pgm.car@data$FOREST_COVER_2010/pgm.car@data$num_area_ha
+
+#View(pgm.car@data)
+
+#checking
+#anyNA(pgm.car@data$FOREST_COVER_2010_PP)
+#length(which(is.na(pgm.car$FOREST_COVER_2010_PP)))
+#pgm.car.restoration.candidates <- pgm.car[!is.na(pgm.car$FOREST_COVER_2010_PP),]
+
+
+#creating a copy
+pgm.car.restoration.candidates <- pgm.car
+
+
+#select properties based on threshold
+#if the area is big/medium properties with less than 50%
+pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration.candidates@data$num_modulo_new > 4 & 
+                                                               pgm.car.restoration.candidates@data$FOREST_COVER_2010_PP < .5, 1, 0)
+
+#if the area is small properties with less the 2007 forest cover
+pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2010_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2010_PP < pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2010_PP >= pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 0, pgm.car.restoration.candidates@data$NEED_INCREMENT)
+
+#if the area is an agrarian reform settlements, 
+#it was treated as small property
+pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration.candidates$TIPO_IMOVE=="AST" &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                               pgm.car.restoration.candidates$FOREST_COVER_2010_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT)
+
+#View(pgm.car.restoration.candidates@data)
+#table(pgm.car.restoration.candidates$NEED_INCREMENT)
+
+
+
+#
+#
+
+
+
+
+#### candidate areas for restoration considering app ####
+
+#select pixels based on APPs 
+candidate.areas.water <- converted.area.2010
+candidate.areas.water <- mask(candidate.areas.water, pgm.app)
+#excluding consolidated areas
+candidate.areas.water <- mask(candidate.areas.water, consolidated.areas.mask, inverse=T)
+candidate.areas.water[candidate.areas.water[]!=1] <- NA
+#plot(candidate.areas.water, col=c("#ffffff","brown"), legend = F)
+#plot(pgm.shp, add=T)
+#length(candidate.areas.water[candidate.areas.water[]==1])
+#tapply(raster::area(candidate.areas.water), candidate.areas.water[], sum, na.rm=T)*100
+
+
+#select remaining pixels based on converted areas
+candidate.areas.rl <- converted.area.2010
+#excluding consolidated areas
+candidate.areas.rl <- mask(candidate.areas.rl, consolidated.areas.mask, inverse=T)
+#excluding app areas
+candidate.areas.rl <- mask(candidate.areas.rl, candidate.areas.water, inverse=T)
+candidate.areas.rl[candidate.areas.rl[]!=1] <- NA
+#plot(candidate.areas.rl, col=c("#ffffff","brown"), legend = F)
+#plot(pgm.shp, add=T)
+#length(candidate.areas.rl[candidate.areas.rl[]==1])
+#tapply(raster::area(candidate.areas.rl), candidate.areas.rl[], sum, na.rm=T)*100
+#
+#
+
+
+
+
+################################################################################
+##select pixels based on slope                                                 #
+##obs: there are no deforested areas in PGM with slope >=45o                   #
+##slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)    #
+##values(slope)[values(slope) < 45] = NA                                       #
+##values(slope)[values(slope) >= 45] = 1                                       #
+###plot(slope)                                                                 #
+##                                                                             #
+##candidate.areas.slope <- candidate.areas.total                               #
+##candidate.areas.slope <- mask(candidate.areas.slope, slope)                  #
+##values(candidate.areas.slope)[is.na(values(candidate.areas.slope))] = 0      #
+###plot(candidate.areas.slope, col="#ffffff")                                  #
+################################################################################
+
+
+
+
+#forest cover increment -- adding the app candidate areas to forest cover
+pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT <- NA
+j=nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT==1,])
+n=0
+#i="PA-1505502-39CCE4418D2D487F9AC0FD3045A374CF"
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  if(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"NEED_INCREMENT"] != 1) next
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  forest.cover.2010 <- crop(forest.class.2010, extent(rural.property))
+  forest.cover.2010 <- mask(forest.cover.2010, rural.property)
+  
+  restored.cover <- crop(candidate.areas.water, extent(rural.property))
+  restored.cover <- mask(restored.cover, rural.property)
+  
+  forest.cover.increment <- sum(forest.cover.2010, restored.cover, na.rm = T)
+  forest.cover.increment[forest.cover.increment[]>1]<-1
+  forest.cover.increment[forest.cover.increment[]!=1]<-NA
+  
+  if(all(is.na(forest.cover.increment[])))
+  {
+    
+    pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"APP_FOREST_COVER_INCREMENT"] <- pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"FOREST_COVER_2010"]
+    j=j-1
+    n=n+1
+    cat("\n>there are no forests in property", i, "<\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT==1,]), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"APP_FOREST_COVER_INCREMENT"] <- tapply(raster::area(forest.cover.increment), forest.cover.increment[], sum, na.rm=T)*100
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT==1,]), "properties left<\n")
+    
+  }
+  
+}
+
+#checking
+#View(pgm.car.restoration.candidates@data)
+#anyNA(pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT)
+#length(which(is.na(pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT)))
+
+pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT <- ifelse(is.na(pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT),
+                                                                         pgm.car.restoration.candidates@data$FOREST_COVER_2010, pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT)
+
+#calculating the percentage of forest cover in relation to property size
+pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT_PP <- pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT/pgm.car.restoration.candidates@data$num_area_ha
+
+
+
+
+#select properties based on threshold
+#if the area is big/medium properties with less than 50%
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP <- ifelse(pgm.car.restoration.candidates@data$num_modulo_new > 4 &
+                                                                         pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT_PP < .5, 1, 0)
+
+#if the area is small properties with less the 2007 forest cover
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                                         pgm.car.restoration.candidates$APP_FOREST_COVER_INCREMENT_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                                         pgm.car.restoration.candidates$APP_FOREST_COVER_INCREMENT_PP < pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                                         pgm.car.restoration.candidates$APP_FOREST_COVER_INCREMENT_PP >= pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 0, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP)
+
+#if the area is an agrarian reform settlements, 
+#it was treated as small property
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP <- ifelse(pgm.car.restoration.candidates$TIPO_IMOVE=="AST" &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                                         pgm.car.restoration.candidates$APP_FOREST_COVER_INCREMENT_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP)
+
+#View(pgm.car.restoration.candidates@data)
+#table(pgm.car.restoration.candidates$NEED_INCREMENT_AFTER_APP)
+
+
+
+
+#creating a copy
+pgm.car.restoration.candidates.app <- pgm.car.restoration.candidates
+#pgm.car.restoration.candidates <- pgm.car.restoration.candidates.app
+
+
+#writeOGR(pgm.car.restoration.candidates, dsn="rasters/PGM", layer = "pgm.car.ed4", driver = "ESRI Shapefile", morphToESRI=T)
+#pgm.car.restoration.candidates <- readOGR(dsn = "rasters/PGM", layer = "pgm.car.ed4")
+#names(pgm.car.restoration.candidates@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+#                                                "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+#                                                "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP")
+
+
+#forest cover increment -- adding the legal reserve candidate areas to forest cover
+forest.class.202X <- forest.class.2010
+pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT <- NA
+j=nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP==1,])
+n=0
+#i="PA-1505502-10BE5221CA6E414BAC1F28DC4739CBA4"
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  if(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"NEED_INCREMENT_AFTER_APP"] != 1) next
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  forest.cover.2010 <- crop(forest.class.2010, extent(rural.property))
+  forest.cover.2010 <- mask(forest.cover.2010, rural.property)
+  
+  restored.cover.app <- crop(candidate.areas.water, extent(rural.property))
+  restored.cover.app <- mask(restored.cover.app, rural.property)
+  
+  forest.cover.increment.app <- sum(forest.cover.2010, restored.cover.app, na.rm = T)
+  forest.cover.increment.app[forest.cover.increment.app[]>1]<-1
+  forest.cover.increment.app[forest.cover.increment.app[]!=1]<-NA
+  
+  restored.cover.arl <- crop(candidate.areas.rl, extent(rural.property))
+  restored.cover.arl <- mask(restored.cover.arl, rural.property)
+  
+  forest.cover.increment.arl <- sum(forest.cover.increment.app, restored.cover.arl, na.rm = T)
+  forest.cover.increment.arl[forest.cover.increment.arl[]>1]<-1
+  forest.cover.increment.arl[forest.cover.increment.arl[]!=1]<-NA
+  
+  if(all(is.na(forest.cover.increment.arl[])))
+  {
+    
+    pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"ARL_FOREST_COVER_INCREMENT"] <- pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"APP_FOREST_COVER_INCREMENT"]
+    j=j-1
+    n=n+1
+    cat("\n>there are no forests in property", i, "<\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP==1,]), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    rural.property.5kmbuffer <- gBuffer(rural.property, width = 0.04500005)
+    
+    landscape.forest.cover.2010 <- crop(forest.class.2010, extent(rural.property.5kmbuffer))
+    #landscape.forest.cover.2010 <- mask(landscape.forest.cover.2010, rural.property)
+    
+    landscape.restored.cover.app <- crop(candidate.areas.water, extent(rural.property.5kmbuffer))
+    #landscape.restored.cover.app <- mask(landscape.restored.cover.app, rural.property)
+    
+    landscape.forest.cover.increment.app <- sum(landscape.forest.cover.2010, landscape.restored.cover.app, na.rm = T)
+    landscape.forest.cover.increment.app[landscape.forest.cover.increment.app[]>1]<-1
+    landscape.forest.cover.increment.app[landscape.forest.cover.increment.app[]!=1]<-NA
+    
+    deforest.dist <- raster::distance(landscape.forest.cover.increment.app, doEdge=T)
+    
+    forest.increment.mask <- crop(deforest.dist, extent(rural.property))
+    forest.increment.mask <- mask(forest.increment.mask, rural.property)
+    #forest.increment.mask <- mask(forest.increment.mask, forest.cover.increment.app, inverse=T)
+    
+    
+    if(rural.property@data$num_modulo_new > 4 & rural.property@data$APP_FOREST_COVER_INCREMENT_PP < .5)
+    {
+      
+      cat("\n>", i, "is a big property with less than 50% forest cover after checking for app<\n")
+      
+      target_forest_cells <- 0.5 * ncell(forest.increment.mask[!is.na(forest.increment.mask[])])
+      
+      #sorted_cells <- order(forest.increment.mask[forest.increment.mask[]!=0])
+      
+      current_forest_cells <- sum(values(forest.cover.increment.app) == 1, na.rm = T)
+      current_forest_raster <- forest.cover.increment.app
+      
+      distance_threshold <- 30
+      
+      while (current_forest_cells < target_forest_cells) {
+        # Identify the cells within the distance threshold
+        cells_to_add <- which(!is.na(values(forest.increment.mask)) & values(forest.increment.mask) != 0 & values(forest.increment.mask) <= distance_threshold)
+        
+        # Increment the forest cover for the selected cells
+        current_forest_raster[cells_to_add] <- 1
+        
+        # Update the count of forested cells
+        current_forest_cells <- sum(values(current_forest_raster) == 1, na.rm = T)
+        
+        # Update the distance threshold for the next iteration
+        distance_threshold <- distance_threshold + 30
+      }
+      
+    }
+    
+    
+    if(rural.property@data$num_modulo_new <= 4 & rural.property@data$FOREST_COVER_2007_PP >= .5 & rural.property@data$APP_FOREST_COVER_INCREMENT_PP < .5)
+    {
+      
+      cat("\n>", i, "is a small property with more than 50% forest cover in 2008 but less than 50% forest cover today after checking for app<\n")
+      
+      target_forest_cells <- 0.5 * ncell(forest.increment.mask[!is.na(forest.increment.mask[])])
+      
+      #sorted_cells <- order(forest.increment.mask[forest.increment.mask[]!=0])
+      
+      current_forest_cells <- sum(values(forest.cover.increment.app) == 1, na.rm = T)
+      current_forest_raster <- forest.cover.increment.app
+      
+      distance_threshold <- 30
+      
+      while (current_forest_cells < target_forest_cells) {
+        # Identify the cells within the distance threshold
+        cells_to_add <- which(!is.na(values(forest.increment.mask)) & values(forest.increment.mask) != 0 & values(forest.increment.mask) <= distance_threshold)
+        
+        # Increment the forest cover for the selected cells
+        current_forest_raster[cells_to_add] <- 1
+        
+        # Update the count of forested cells
+        current_forest_cells <- sum(values(current_forest_raster) == 1, na.rm = T)
+        
+        # Update the distance threshold for the next iteration
+        distance_threshold <- distance_threshold + 30
+      }
+      
+    }
+    
+    
+    if(rural.property@data$num_modulo_new <= 4 & rural.property@data$FOREST_COVER_2007_PP < .5 & rural.property@data$APP_FOREST_COVER_INCREMENT_PP < rural.property@data$FOREST_COVER_2007_PP)
+    {
+      
+      cat("\n>", i, "is a small property with less than 50% forest cover in 2008 and less forest cover than 2008 after checking for app<\n")
+      
+      target_forest_cells <- rural.property@data$FOREST_COVER_2007_PP * ncell(forest.increment.mask[!is.na(forest.increment.mask[])])
+      
+      #sorted_cells <- order(forest.increment.mask[forest.increment.mask[]!=0])
+      
+      current_forest_cells <- sum(values(forest.cover.increment.app) == 1, na.rm = T)
+      current_forest_raster <- forest.cover.increment.app
+      
+      distance_threshold <- 30
+      
+      while (current_forest_cells < target_forest_cells) {
+        # Identify the cells within the distance threshold
+        cells_to_add <- which(!is.na(values(forest.increment.mask)) & values(forest.increment.mask) != 0 & values(forest.increment.mask) <= distance_threshold)
+        
+        # Increment the forest cover for the selected cells
+        current_forest_raster[cells_to_add] <- 1
+        
+        # Update the count of forested cells
+        current_forest_cells <- sum(values(current_forest_raster) == 1, na.rm = T)
+        
+        # Update the distance threshold for the next iteration
+        distance_threshold <- distance_threshold + 30
+      }
+      
+    }
+    
+    
+    
+    
+    
+    
+    
+    pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$COD_IMOVEL==i,"ARL_FOREST_COVER_INCREMENT"] <- tapply(raster::area(current_forest_raster), current_forest_raster[], sum, na.rm=T)*100
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data[pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_APP==1,]), "properties left<\n")
+    
+    
+  }
+  
+  
+  forest.class.202X[!is.na(current_forest_raster) & current_forest_raster == 1] <- 1
+  
+  
+}
+
+
+
+#checking
+#length(forest.class.2010[forest.class.2010[]==1])
+#tapply(raster::area(forest.class.2010), forest.class.2010[], sum, na.rm=T)*100
+#length(forest.class.202X[forest.class.202X[]==1])
+#tapply(raster::area(forest.class.202X), forest.class.202X[], sum, na.rm=T)*100
+# Plot the original forest and the updated forest
+#par(mfrow = c(1, 2))
+#plot(forest.class.2010, main = "Original Forested Area", col = c("white", "green"), legend=F)
+#plot(forest.class.202X, main = "Updated Forested Area", col = c("white", "green"), legend=F)
+
+writeRaster(forest.class.202X, "results/pgm_forest_cover_after_restoration.tif", fomrat = "GTiff")
+
+
+#View(pgm.car.restoration.candidates@data)
+#anyNA(pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT)
+#length(which(is.na(pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT)))
+
+pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT <- ifelse(is.na(pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT),
+                                                                         pgm.car.restoration.candidates@data$APP_FOREST_COVER_INCREMENT, pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT)
+
+#calculating the percentage of forest cover in relation to property size
+pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT_PP <- pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT/pgm.car.restoration.candidates@data$num_area_ha
+
+
+
+
+#select properties based on threshold
+#if the area is big/medium properties with less than 50%
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL <- ifelse(pgm.car.restoration.candidates@data$num_modulo_new > 4 &
+                                                                         pgm.car.restoration.candidates@data$ARL_FOREST_COVER_INCREMENT_PP < .5, 1, 0)
+
+#if the area is small properties with less the 2007 forest cover
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                                         pgm.car.restoration.candidates$ARL_FOREST_COVER_INCREMENT_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                                         pgm.car.restoration.candidates$ARL_FOREST_COVER_INCREMENT_PP < pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL)
+
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL <- ifelse(pgm.car.restoration.candidates$num_modulo_new <= 4 &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP < .5 &
+                                                                         pgm.car.restoration.candidates$ARL_FOREST_COVER_INCREMENT_PP >= pgm.car.restoration.candidates$FOREST_COVER_2007_PP, 0, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL)
+
+#if the area is an agrarian reform settlements, 
+#it was treated as small property
+pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL <- ifelse(pgm.car.restoration.candidates$TIPO_IMOVE=="AST" &
+                                                                         pgm.car.restoration.candidates$FOREST_COVER_2007_PP >= .5 &
+                                                                         pgm.car.restoration.candidates$ARL_FOREST_COVER_INCREMENT_PP < .5, 1, pgm.car.restoration.candidates@data$NEED_INCREMENT_AFTER_ARL)
+
+#View(pgm.car.restoration.candidates@data)
+#table(pgm.car.restoration.candidates$NEED_INCREMENT_AFTER_ARL)
+
+
+
+
+
+
+
+writeOGR(pgm.car.restoration.candidates, dsn="results", layer = "pgm_car_after_restoration", driver = "ESRI Shapefile", morphToESRI=T)
+#pgm.car.restoration.candidates <- readOGR(dsn = "results/", layer = "pgm_car_after_restoration")
+#names(pgm.car.restoration.candidates@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+#                                                "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+#                                                "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
+#                                                "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
+
+
+rm(list=ls()[ls() %in% c("[...]")])
+gc()
+#
+#
+
+
+
+
+
 
 
 
