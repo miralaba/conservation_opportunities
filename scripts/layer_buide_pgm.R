@@ -23,19 +23,20 @@ library(stars)
 library(lwgeom)
 
 
-#### creating directories ####
+# creating directories =========================================================
 dir.create("rasters/PGM/input/LULC", recursive = T)
 
 
 
-#### importing raw rasters ####
-#standard projection
+# importing raw rasters ========================================================
+## standard projection
 std.proj <- "+proj=longlat +datum=WGS84 +units=m +no_defs"
 
-# shapefile paragominas
+## shapefile paragominas
 pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
 proj4string(pgm.shp) <- CRS(std.proj)
 pgm.shp <- spTransform(pgm.shp, crs(std.proj))
+pgm.shp2 <- gBuffer(pgm.shp, width = 0.02700003)
 
 # 100m resolution raster
 #pgm.lulc.100 <- raster("rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2022-100res.tif")
@@ -44,8 +45,8 @@ pgm.shp <- spTransform(pgm.shp, crs(std.proj))
 
 
 
-# land use land cover from mapbiomas collection 7, 30m res [2010 and 2020]
-# [PGM] paragominas
+## land use land cover from mapbiomas collection 7, 30m res [2010 and 2020]
+
 pgm.lulc <- stack(c("rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2010.tif",
                     "rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2020.tif"))
 names(pgm.lulc) <- c("pgm.lulc.2010real", "pgm.lulc.2020real")
@@ -74,18 +75,26 @@ names(pgm.lulc) <- c("pgm.lulc.2010real", "pgm.lulc.2020real")
 
 #pgm.lulc.2020.df <- as.data.frame(pgm.lulc[["pgm.lulc.2020real"]], xy = TRUE)
 #breakpoints <- sort(unique(pgm.lulc.2020.df$pgm.lulc.2020real))
-#labels.legend <- c("Non Observed", "Forest Formation", "Savanna Formation", "Floodable Forest", "Forest Plantation", "Wetland", "Grassland",
-#                   "Pasture", "Urban Area", "Mining", "Water", "Palm Oil", "Soybean", "Other Temporary Crops")
-#mapbiomas.legend <- c("#ffffff", "#1f8d49", "#7dc975", "#026975", "#7a5900", "#519799", "#d6bc74", "#edde8e", "#d4271e", "#9c0027",
-#                      "#2532e4", "#9065d0", "#f5b3c8", "#f54ca9")
+#labels.legend <- c("Non Observed", "Forest Formation", "Savanna Formation", 
+#                   "Floodable Forest", "Forest Plantation", "Wetland", "Grassland",
+#                   "Pasture", "Urban Area", "Mining", "Water", "Palm Oil", 
+#                   "Soybean", "Other Temporary Crops")
+#mapbiomas.legend <- c("#ffffff", "#1f8d49", "#7dc975", 
+#                      "#026975", "#7a5900", "#519799", "#d6bc74", 
+#                      "#edde8e", "#d4271e", "#9c0027", "#2532e4", "#9065d0", 
+#                      "#f5b3c8", "#f54ca9")
 #
 #ggplot() +
-#  geom_raster(data = pgm.lulc.2020.df , aes(x = x, y = y, fill = factor(pgm.lulc.2020real))) + 
-#  scale_fill_manual(breaks = breakpoints, values = mapbiomas.legend, labels = labels.legend, name = "LULC Classes") +
+#  geom_raster(data = pgm.lulc.2020.df , 
+#               aes(x = x, y = y, fill = factor(pgm.lulc.2020real))) + 
+#  scale_fill_manual(breaks = breakpoints, 
+#                    values = mapbiomas.legend, 
+#                    labels = labels.legend, 
+#                    name = "LULC Classes") +
 #  theme_void()
 
 
-# isolating forest class pixels
+### isolating forest class pixels
 pgm.lulc.2010.forest.class <- pgm.lulc[["pgm.lulc.2010real"]]
 pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class==3] <- 1
 pgm.lulc.2010.forest.class[pgm.lulc.2010.forest.class>1] <- 0
@@ -107,7 +116,7 @@ pgm.lulc.2020.forest.mask[pgm.lulc.2020.forest.mask==0] <- NA
 
 
 
-#isolating deforestation class pixels (crops, pasture)
+### isolating deforestation class pixels (crops, pasture)
 deforestation.class.list <- c(15,39,41,48)
 
 pgm.lulc.2010.deforestation.class <- pgm.lulc[["pgm.lulc.2010real"]]
@@ -129,7 +138,7 @@ pgm.lulc.2020.deforestation.mask[pgm.lulc.2020.deforestation.mask==0] <- NA
 
 
 
-#select pixels based on proximity to forest
+### select pixels based on proximity to forest
 pgm.deforest <- pgm.lulc[["pgm.lulc.2010real"]]
 pgm.deforest[deforest %in% deforestation.class.list] <- NA
 pgm.deforest[deforest>1] <- 1
@@ -152,7 +161,7 @@ gc()
 
 
 
-#### time since degradation
+## time since degradation
 #' @description mapbiomas fire is a time-series data from 1985 to present
 #' degrad is the first monitoring system to detect degradation in brazil
 #' it was functional from 2007 to 2016 but does not differentiate between classes of degradation.
@@ -169,11 +178,11 @@ names(pgm.degrad.pf) <- c("pgm.degrad.2010real", "pgm.degrad.2020real")
 #plot(pgm.degrad.pf)
 #range(values(pgm.degrad.pf[["pgm.degrad.2010real"]]), na.rm=T)
 
-#non-degraded sites will be considered with 300 years following (BIB)
+### non-degraded sites will be considered with 300 years following (BIB)
 pgm.degrad.pf[["pgm.degrad.2010real"]][pgm.degrad.pf[["pgm.degrad.2010real"]]>25] <- 300
 pgm.degrad.pf[["pgm.degrad.2020real"]][pgm.degrad.pf[["pgm.degrad.2020real"]]>35] <- 300
 
-# isolating degraded primary forest class pixels
+### isolating degraded primary forest class pixels
 pgm.degrad.2010.forest.class <- pgm.degrad.pf[["pgm.degrad.2010real"]]
 #pgm.degrad.2010.forest.class <- mask(pgm.degrad.2010.forest.class, pgm.lulc.2010.forest.mask)
 pgm.degrad.2010.forest.class[pgm.degrad.2010.forest.class>25]<-NA
@@ -195,7 +204,7 @@ pgm.degrad.2020.mask <- pgm.degrad.2020.forest.class
 pgm.degrad.2020.forest.class[is.na(pgm.degrad.2020.forest.class)]<-0
 
 
-#accounting for repeated degradation
+### accounting for repeated degradation
 pgm.repeateddegrad.2010.mask <- raster("rasters/PGM/raw/pgm-degfreq-1985_2010.tif")
 pgm.repeateddegrad.2010.mask[pgm.repeateddegrad.2010.mask<2]<-NA
 pgm.repeateddegrad.2010.mask[pgm.repeateddegrad.2010.mask>=2]<-1
@@ -212,9 +221,9 @@ pgm.repeateddegrad.2020.mask[pgm.repeateddegrad.2020.mask>=2]<-1
 
 
 
-# secondary forest age from Silva Jr. et al 2020  [2010 and 2020]
-# [DOI: 10.1038/s41597-020-00600-4]
-# [PGM] paragominas
+## secondary forest age  [2010 and 2020]
+#' source: Silva Jr. et al 2020 [DOI: 10.1038/s41597-020-00600-4]
+
 pgm.sfage <- stack(c("rasters/PGM/raw/pgm-2010-sfage-mapbiomas-brazil-collection-60.tif",
                      "rasters/PGM/raw/pgm-2020-sfage-mapbiomas-brazil-collection-60.tif"))
 names(pgm.sfage) <- c("pgm.sfage.2010real", "pgm.sfage.2020real")
@@ -227,7 +236,7 @@ names(pgm.sfage) <- c("pgm.sfage.2010real", "pgm.sfage.2020real")
 # Conversion of rasters into same extent
 #pgm.sfage <- resample(pgm.sfage, pgm.lulc.100, method='ngb')
 
-#excluding non-forest areas
+### excluding non-forest areas
 pgm.sfage[["pgm.sfage.2010real"]] <- mask(pgm.sfage[["pgm.sfage.2010real"]], pgm.lulc.2010.forest.mask)
 pgm.sfage[["pgm.sfage.2010real"]][is.na(pgm.sfage[["pgm.sfage.2010real"]])] <- 0
 
@@ -237,7 +246,7 @@ pgm.sfage[["pgm.sfage.2020real"]][is.na(pgm.sfage[["pgm.sfage.2020real"]])] <- 0
 
 
 
-# isolating secondary forest class pixels
+### isolating secondary forest class pixels
 pgm.sfage.2010.all.class <- pgm.sfage[["pgm.sfage.2010real"]]
 pgm.sfage.2010.all.class[pgm.sfage.2010.all.class>0] <- 1
 pgm.sfage.2010.all.class[pgm.sfage.2010.all.class<1] <- 0
@@ -253,13 +262,13 @@ pgm.sfage.2020.mask <- pgm.sfage.2020.all.class
 pgm.sfage.2020.mask[pgm.sfage.2020.mask==0] <- NA
 
 
-# degraded secondary forest
+## degraded secondary forest
 pgm.degrad.sf <- stack(c("rasters/PGM/raw/pgm-2010-dsf-tsince0.tif",
                          "rasters/PGM/raw/pgm-2020-dsf-tsince0.tif"))
 names(pgm.degrad.sf) <- c("pgm.degradsf.2010real", "pgm.degradsf.2020real")
 
 
-# isolating degraded secondary forest class pixels
+### isolating degraded secondary forest class pixels
 pgm.dsf.2010.mask <- pgm.degrad.sf[["pgm.degradsf.2010real"]]
 pgm.dsf.2010.mask[pgm.dsf.2010.mask>25]<-NA
 pgm.dsf.2010.mask[pgm.dsf.2010.mask<=25]<-1
@@ -277,7 +286,7 @@ pgm.dsf.2020.mask[pgm.dsf.2020.mask<=35]<-1
 
 
 # candidate areas for restoration scenarios ==============|
-#' @description 
+#' @description [...] (provide a brief description)
 #' 
 #' see auxiliar.R script for details about the steps to select candidate areas for restoration
 candidate.areas.final <- raster("rasters/PGM/raw/pgm_forest_cover_after_restoration_2010.tif")
@@ -291,7 +300,7 @@ candidate.areas.final[candidate.areas.final!=1] <- 0
 
 
 
-# building real scenarios ============|
+# building real scenarios ======================================================
 ##Undegraded primary forest
 ###2010
 UPF2010<-pgm.lulc.2010.forest.class
@@ -493,8 +502,10 @@ LULC2020[LULC2020==1665 ]<-0
 
 # create a data frame with the transition data
 data_df <- data.frame(
-  Period1 = factor(LULC2010[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D")),
-  Period2 = factor(LULC2020[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  Period1 = factor(LULC2010[], levels = c(1, 10, 25, 125, 100, 0), 
+                   labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D")),
+  Period2 = factor(LULC2020[], levels = c(1, 10, 25, 125, 100, 0), 
+                   labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
 )
 
 # Create the alluvial plot
@@ -518,7 +529,8 @@ data_df %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
                    breaks=c("Period1", "Period2"), 
                    labels=addline_format(c("2010 Real", "2020 real")),
                    expand = c(.05, .05)) +
-  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", "#B19470", "#789461", "#F97B22")) +
+  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", 
+                               "#B19470", "#789461", "#F97B22")) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
   theme_minimal()+
   theme(axis.text.y= element_blank(), legend.position = "none")
@@ -632,7 +644,7 @@ candidate.areas.final[is.na(candidate.areas.final[])]<-0
 
 
 
-# building contractual  scenarios ============
+# building contractual  scenarios ==============================================
 ##2020 avoid degradation (all)
 ###Undegraded primary forest
 UPF2020_avoiddegrad <- UPF2020
@@ -1291,7 +1303,8 @@ data_df2 <- data.frame(
   #Period2 = factor(LULC2020_restor_n_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_restor_n_avoiddeforest2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_restor_n_avoidboth[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
-  Period2 = factor(LULC2020_restor_n_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  Period2 = factor(LULC2020_restor_n_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), 
+                   labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   )
 
 
@@ -1305,7 +1318,8 @@ data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
                    breaks=c("Period1", "Period2"), 
                    labels=addline_format(c("2010 Real", "2020 restoration and avoid both (PF_only)")), # (PF_only)
                    expand = c(.05, .05)) +
-  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", "#B19470", "#789461", "#F97B22")) +
+  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", 
+                               "#B19470", "#789461", "#F97B22")) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
   theme_minimal()+
   theme(axis.text.y= element_blank(), legend.position = "none")
@@ -1322,8 +1336,8 @@ gc()
 
 
 
-# setting variables ============
-## creating directories ####
+# setting variables ============================================================
+## creating directories
 dir.create("rasters/PGM/2010_real", recursive = T)
 dir.create("rasters/PGM/2020_real", recursive = T)
 dir.create("rasters/PGM/2020_avoiddeforest", recursive = T)
@@ -1341,60 +1355,86 @@ dir.create("models.output/costs", recursive = T)
 
 
 
+## [meantemp] annual average temperature from nasa earth observation
+#' download and save global data
+# urls <- c("https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755469&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-01"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755470&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-02"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755471&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-03"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755472&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-04"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755473&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-05"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755474&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-06"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755475&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-07"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755476&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-08"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755477&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-09"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755478&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-10"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755479&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-11"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1755480&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-12"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1784090&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-01"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1785058&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-02"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1785890&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-03"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1786979&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-04"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1794500&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-05"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1795357&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-06"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1796358&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-07"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1797155&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-08"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1799174&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-09"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1799941&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-10"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1800680&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-11"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1801650&cs=rgb&format=TIFF&width=3600&height=1800") #"2020-12"
+# 
+# dir.create("rasters/PGM/input/climate")
 
 
+### scenario 2010
+temp.list <- list.files("rasters/PGM/raw/climate", "LSTD", full.names = T, recursive = T)
 
+temp2010.list <- grep("2010", temp.list, value = T)
+temp2010 <- stack(temp2010.list)
+#plot(temp2010)
 
+meantemp2010 <- mean(temp2010, na.rm=T)
+pgm.meantemp2010 <- crop(meantemp2010, extent(pgm.lulc[[1]]))
+#plot(pgm.meantemp2010)
+#plot(pgm.shp, add=T)
 
+pgm.meantemp2010 <- resample(pgm.meantemp2010, pgm.lulc[[1]], method='bilinear')
+pgm.meantemp2010[] <- ifelse(pgm.lulc[[1]][]==0, NA, pgm.meantemp2010[])
+#plot(pgm.meantemp2010)
 
-
-
-# Rivers & Permanent Protection Areas [APPs]
-# source2: HydroSHEDS - https://www.hydrosheds.org/hydroatlas
-# According to Brazilian Forest Code (Law n. 12.651/2012)
-# In general[*]:
-# rivers with 10-50m width, APP area is 50m
-# rivers with 50-200m width, APP area is 100m
-# rivers with 200-600m width, APP area is 200m
-# rivers with +600m width, APP area is 500m
+#saving
+writeRaster(pgm.meantemp2010, "rasters/PGM/2010_real/meantemps.tif", format="GTiff", overwrite=T)
 #
-# In PGM we are considering most of the rivers are less than 50m width, 
-# but Capim and Gurupi is 100-200m wide
+
+### scenario 2020
+temp2020.list <- grep("2020", temp.list, value = T)
+temp2020 <- stack(temp2020.list)
+#plot(temp2020)
+
+meantemp2020 <- mean(temp2020, na.rm=T)
+pgm.meantemp2020 <- crop(meantemp2020, extent(pgm.lulc[[2]]))
+#plot(pgm.meantemp2020)
+#plot(pgm.shp, add=T)
+
+pgm.meantemp2020 <- resample(pgm.meantemp2020, pgm.lulc[[2]], method='bilinear')
+pgm.meantemp2020[] <- ifelse(pgm.lulc[[2]][]==0, NA, pgm.meantemp2020[])
+#plot(pgm.meantemp2020)
+
+#saving
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_real/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddeforest/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddeforest2/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddegrad/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoiddegrad2/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoidboth/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_avoidboth2/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_wo_avoid/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoiddeforest/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoiddeforest2/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoidboth/meantemps.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meantemp2020, "rasters/PGM/2020_restor_n_avoidboth2/meantemps.tif", format="GTiff", overwrite=T)
 #
-# [*] there are some exceptions, according to property size, 
-# and if the area were converted before 2008 (see the law for details)
 
-
-pgm.river <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_RiverATLAS_v10")
-#head(pgm.river@data)
-pgm.river@data <- pgm.river@data %>% dplyr::select(HYRIV_ID:LENGTH_KM, ria_ha_csu, ria_ha_usu) %>% 
-  mutate(
-    ril_m = LENGTH_KM * 1000, #converting to meters
-    ria_m2 = ria_ha_csu * 10000, #converting to square meters
-    riw_m = (ria_m2 / ril_m), #estimating the mean river segment width
-    riapp = ifelse(riw_m<10, 30, #applying forest code rules
-                   ifelse(riw_m>=10 & riw_m<50, 50,
-                          ifelse(riw_m >=50 & riw_m<200, 100,
-                                 ifelse(riw_m>=200 & riw_m<600, 200, 500)))), 
-    buffer = (riw_m + (2*riapp))/111111 #buffering APP area on both river margins and converting to decimal
-  )
-
-
-pgm.appList <- vector("list", length(pgm.river))
-for (i in 1:length(pgm.river)) {
-  a <- gBuffer(pgm.river[i,], width = pgm.river$buffer[i])
-  a$id = pgm.river$HYRIV_ID[i]
-  pgm.appList[[i]] <- a
-}
-
-pgm.app <- do.call("rbind", pgm.appList)
-
-#checking
-#st_crs(pgm.app)==st_crs(pgm.shp)
-#plot(pgm.lulc[["pgm.lulc.2010real"]])
-#plot(pgm.app, add=T)
-
-rm(list=ls()[ls() %in% c("pgm.appList", "a", "i")])
+rm(list=ls()[ls() %in% c("temp.list", "temp2010.list", "meantemp2010", "temp2020.list", "meantemp2020")]) #keeping only raster stack
 gc()
 
 
@@ -1404,16 +1444,264 @@ gc()
 
 
 
-#import rural properties shapefiles and data from SISCAR
-#https://www.car.gov.br/publico/municipios/downloads
-#see the "restoration_candidate_pgm.R" on the script folder
-#for details on reducing overlap between properties and 
-#the steps to select candidate areas for restoration
+
+## [meanprecip] annual average precipitation from nasa earth observation
+#' download and save global data
+# urls <- c("https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843747&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-01"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843749&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-02"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843751&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-03"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843755&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-04"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843735&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-05"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843745&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-06"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843753&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-07"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843759&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-08"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843761&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-09"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843763&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-10"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843765&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-11"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843769&cs=rgb&format=TIFF&width=3600&height=1800", #"2010-12"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843983&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-01"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843985&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-02"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843987&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-03"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843989&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-04"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843991&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-05"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843993&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-06"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843995&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-07"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843997&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-08"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1843999&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-09"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844001&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-10"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844003&cs=rgb&format=TIFF&width=3600&height=1800", #"2020-11"
+#           "https://neo.gsfc.nasa.gov/servlet/RenderData?si=1844005&cs=rgb&format=TIFF&width=3600&height=1800") #"2020-12"
+# 
+
+
+### scenario 2010
+precip.list <- list.files("rasters/PGM/raw/climate", "GPM", full.names = T, recursive = T)
+
+precip2010.list <- grep("2010", precip.list, value = T)
+precip2010 <- stack(precip2010.list)
+#plot(precip2010)
+
+meanprecip2010 <- mean(precip2010, na.rm=T)
+pgm.meanprecip2010 <- crop(meanprecip2010, extent(pgm.lulc[[1]]))
+#plot(pgm.meanprecip2010)
+#plot(pgm.shp, add=T)
+
+pgm.meanprecip2010 <- resample(pgm.meanprecip2010, pgm.lulc[[1]], method='bilinear')
+pgm.meanprecip2010[] <- ifelse(pgm.lulc[[1]][]==0, NA, pgm.meanprecip2010[])
+#plot(pgm.meanprecip2010)
+
+#saving
+writeRaster(pgm.meanprecip2010, "rasters/PGM/2010_real/meanprecips.tif", format="GTiff", overwrite=T)
+#
+
+### scenario 2020
+precip2020.list <- grep("2020", precip.list, value = T)
+precip2020 <- stack(precip2020.list)
+#plot(precip2020)
+
+
+meanprecip2020 <- mean(precip2020, na.rm=T)
+pgm.meanprecip2020 <- crop(meanprecip2020, extent(pgm.lulc[[2]]))
+#plot(pgm.meanprecip2020)
+#plot(pgm.shp, add=T)
+
+pgm.meanprecip2020 <- resample(pgm.meanprecip2020, pgm.lulc[[2]], method='bilinear')
+pgm.meanprecip2020[] <- ifelse(pgm.lulc[[2]][]==0, NA, pgm.meanprecip2020[])
+#plot(pgm.meanprecip2020)
+
+#saving
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_real/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddeforest/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddeforest2/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddegrad/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoiddegrad2/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoidboth/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_avoidboth2/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_wo_avoid/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoiddeforest/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoiddeforest2/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoidboth/meanprecips.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.meanprecip2020, "rasters/PGM/2020_restor_n_avoidboth2/meanprecips.tif", format="GTiff", overwrite=T)
+#
+
+rm(list=ls()[ls() %in% c("precip.list", "precip2010.list", "meanprecip2010", "precip2020.list", "meanprecip2020")])
+gc()
+
+
+
+#
+#
+
+
+
+
+## [elevation]
+elevation <- raster("rasters/PGM/raw/pgm-elevation.tif")
+elevation <- projectRaster(elevation, crs = std.proj)
+elevation <- resample(elevation, pgm.lulc[[1]], method='bilinear')
+elevation[] <- ifelse(pgm.lulc[[1]][]==0, NA, elevation[])
+
+#saving
+writeRaster(elevation, "rasters/PGM/2010_real/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_real/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoiddeforest/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoiddeforest2/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoiddegrad/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoiddegrad2/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoidboth/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_avoidboth2/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_wo_avoid/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_n_avoiddeforest/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_n_avoiddeforest2/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_n_avoidboth/elevation.tif", format="GTiff", overwrite=T)
+writeRaster(elevation, "rasters/PGM/2020_restor_n_avoidboth2/elevation.tif", format="GTiff", overwrite=T)
+
+
+
+#
+#
+
+
+
+
+## [distroad] distance to roads
+dist.road <- raster("rasters/PGM/raw/pgm-distance-to-road.tif")
+dist.road <- projectRaster(dist.road, crs = std.proj)
+dist.road <- resample(dist.road, pgm.lulc[[1]], method='bilinear')
+dist.road[] <- ifelse(pgm.lulc[[1]][]==0, NA, dist.road[])
+
+#saving
+writeRaster(dist.road, "rasters/PGM/2010_real/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_real/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoiddeforest/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoiddeforest2/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoiddegrad/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoiddegrad2/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoidboth/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_avoidboth2/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_wo_avoid/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoiddeforest/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoiddeforest2/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoidboth/distroad.tif", format="GTiff", overwrite=T)
+writeRaster(dist.road, "rasters/PGM/2020_restor_n_avoidboth2/distroad.tif", format="GTiff", overwrite=T)
+
+
+
+#
+#
+
+
+
+
+## Rivers
+#' source: HydroSHEDS - https://www.hydrosheds.org/hydroatlas
+pgm.river <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_RiverATLAS_v10")
+#head(pgm.river@data)
+
+### selecting variables and creating river width attribute
+pgm.river@data <- pgm.river@data %>% dplyr::select(HYRIV_ID:LENGTH_KM, ria_ha_csu, ria_ha_usu) %>% 
+  mutate(
+    ril_m = LENGTH_KM * 1000, #converting to meters
+    ria_m2 = ria_ha_csu * 10000, #converting to square meters
+    riw_m = (ria_m2 / ril_m) #estimating the mean river segment width
+    )
+
+
+#checking
+#st_crs(pgm.river)==st_crs(pgm.shp)
+#plot(pgm.lulc[["pgm.lulc.2010real"]])
+#plot(pgm.river, add=T)
+
+#rm(list=ls()[ls() %in% c("pgm.appList", "a", "i")])
+#gc()
+
+
+### [distriver] distance to rivers
+pgm.river.raster <- rasterize(pgm.river, pgm.lulc[[1]], field = 1, background = 0)
+pgm.river.raster.mask <- pgm.river.raster
+pgm.river.raster.mask[pgm.river.raster.mask==0] <- NA
+#checking
+#inv.pgm.river
+#plot(pgm.river.raster.mask, col="black")
+
+dist.river <- distance(pgm.river.raster.mask, doEdge=T)
+dist.river[] <- ifelse(pgm.lulc[[1]][]==0, NA, dist.river[])
+##cheking
+#dist.river
+#anyNA(dist.river[])
+#plot(dist.river)
+
+#saving
+writeRaster(dist.river, "rasters/PGM/2010_real/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_real/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoiddeforest/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoiddeforest2/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoiddegrad/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoiddegrad2/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoidboth/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_avoidboth2/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_wo_avoid/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoiddeforest/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoiddeforest2/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoidboth/distriver.tif", format="GTiff", overwrite=T)
+writeRaster(dist.river, "rasters/PGM/2020_restor_n_avoidboth2/distriver.tif", format="GTiff", overwrite=T)
+
+
+
+#
+#
+
+
+
+
+## [distmarket] distance to municipality nucleus
+pgm.munic.nucleus <- data.frame(ID = "pgm", long = -47.35311, lat = -3.00249)
+
+pgm.munic.nucleus.coord <- SpatialPointsDataFrame(coords = pgm.munic.nucleus[,c("long","lat")], 
+                                                  data = pgm.munic.nucleus, 
+                                                  proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+pgm.munic.nucleus.coord <- spTransform(pgm.munic.nucleus.coord, crs(std.proj))
+
+
+distmarket <- distanceFromPoints(object = pgm.lulc[[1]], xy = pgm.munic.nucleus.coord)
+distmarket[] <- ifelse(pgm.lulc[[1]][]==0, NA, distmarket[])
+
+#saving
+writeRaster(distmarket, "rasters/PGM/2010_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_real/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddeforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddeforest2/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddegrad/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoiddegrad2/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoidboth/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_avoidboth2/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_wo_avoid/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoiddeforest/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoiddeforest2/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoidboth/distmarket.tif", format="GTiff", overwrite=T)
+writeRaster(distmarket, "rasters/PGM/2020_restor_n_avoidboth2/distmarket.tif", format="GTiff", overwrite=T)
+#
+
+rm(list=ls()[ls() %in% c("pgm.munic.nucleus", "pgm.munic.nucleus.coord")])
+gc()
+
+
+
+#
+#
+
+
+
+
+## import rural properties shapefiles and data from SISCAR
+#' https://www.car.gov.br/publico/municipios/downloads
+#' see the "restoration_candidate_pgm.R" on the script folder
+#' for details on reducing overlap between properties and 
 pgm.car <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_car_after_restoration_2010")
-#names(pgm.car@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
-#                         "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
-#                         "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
-#                         "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
+names(pgm.car@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+                         "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+                         "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
+                         "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
 pgm.car <- spTransform(pgm.car, crs(std.proj))
 
 #checking
@@ -1428,33 +1716,42 @@ pgm.car <- spTransform(pgm.car, crs(std.proj))
 #in PGM, 1 fiscal module = 55ha [or 550000m2]
 
 
-#transforming the properties polygons into rasters
-#which cell value is the property size
-pgm.car.raster <- rasterize(pgm.car, pgm.lulc.2010.forest.mask, field = "num_area_ha", fun = "mean", background = 0)
+## [propertysize]
+# transforming the properties polygons into rasters
+# cell value is the property size
+pgm.car.raster <- rasterize(pgm.car, pgm.lulc[[1]], field = "num_area_ha", fun = "mean", background = 0)
+pgm.car.raster[] <- ifelse(pgm.lulc[[1]][]==0, NA, pgm.car.raster[])
 #checking
 #st_crs(pgm.car.raster)==st_crs(pgm.shp)
 #plot(pgm.car.raster)
 #plot(pgm.car, add=T)
 
 #saving
-writeRaster(pgm.car.raster, "rasters/PGM/2010_real/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_real/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest2/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_wo_avoid/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoid_deforest/property.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoid_both/property.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2010_real/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_real/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_wo_avoid/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
 
+
+
+#
 #
 
 
 
 
-# avoid degradation costs -- adding fire control costs
-# creating and maintaining (i.e., every four years on average) 
-# 6m wide fire breaks at the edge of forested areas
+## avoid degradation costs -- adding fire control costs
+#' creating and maintaining (i.e., every four years on average) 
+#' 6m wide fire breaks at the edge of forested areas
 
 #calculating forest perimeter in each property
 #adding variable for forest cover
@@ -1465,7 +1762,7 @@ j=nrow(pgm.car@data)
 for (i in pgm.car$COD_IMOVEL) {
   
   rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
-  rural.property.edge <- crop(deforest.dist.copy, extent(rural.property))
+  rural.property.edge <- crop(pgm.deforest.dist.copy, extent(rural.property))
   rural.property.edge <- mask(rural.property.edge, rural.property)
   rural.property.edge[rural.property.edge > 100]<-NA
   rural.property.edge[rural.property.edge < 1]<-NA
@@ -1492,9 +1789,9 @@ for (i in pgm.car$COD_IMOVEL) {
 }
 
 
-#fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
-#source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
-#cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
+#' @description fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
+#' source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
+#' cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
 pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$ncell
 
 #convert to raster
@@ -1508,14 +1805,20 @@ writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_ba
 
 
 
-#passive restoration cost: average per hectare cost associated with:
-#natural regeneration without fence
-#48.87 ± 0.7 US$/ha -- US$1.00 ~ R$3.87 -- R$189.13
-#natural regeneration with fence
-#344.07 ± 156 US$/ha -- US$1.00 ~ R$3.87 -- R$1331.55
-#active restoration
-#2041.27 ± 728 US$/ha -- US$1.00 ~ R$3.87 -- R$7899.71
-#source: Bracalion et al. 2019 https://doi.org/10.1016/j.biocon.2019.108274
+#
+#
+
+
+
+
+## passive restoration cost: average per hectare cost associated with:
+#' natural regeneration without fence
+#' 48.87 ± 0.7 US$/ha -- US$1.00 ~ R$3.87 -- R$189.13
+#' natural regeneration with fence
+#' 344.07 ± 156 US$/ha -- US$1.00 ~ R$3.87 -- R$1331.55
+#' active restoration
+#' 2041.27 ± 728 US$/ha -- US$1.00 ~ R$3.87 -- R$7899.71
+#' source: Bracalion et al. 2019 https://doi.org/10.1016/j.biocon.2019.108274
 
 
 #natural regeneration without fence
@@ -1580,6 +1883,93 @@ gc()
 
 #
 #
+
+
+
+
+## Undegraded primary forest
+
+
+
+
+
+# mean upf cover in pixel scale (60m)
+UPF2010.px <- focal(UPF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(UPF2010.px)<-"UPFpx"
+UPF2010.px[is.nan(UPF2010.px)] <- 0
+#UPF2010.px <- mask(UPF2010.px, pgm.shp)
+
+#saving
+writeRaster(UPF2010.px, "rasters/PGM/2010_real/UPFpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (1000m)
+UPF2010.ls <- focal(UPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(UPF2010.ls)<-"UPFls"
+UPF2010.ls[is.nan(UPF2010.ls)] <- 0
+#UPF2010.ls <- mask(UPF2010.ls, pgm.shp)
+
+#saving
+writeRaster(UPF2010.ls, "rasters/PGM/2010_real/UPFls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("UPF2010.px", "UPF2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
+
+
+
+
+## Degraded primary forest
+
+
+
+
+## Time since degradation
+
+
+
+
+## Secondary forest
+
+
+
+
+## Secondary forest age
+
+
+
+
+## Total forest (UPF + DPF + SF>2yr)
+
+
+
+
+## Total mature forest (UPF + DPF + SF>5yr)
+
+
+
+
+## Total mature forest (UPF + DPF + SF>5yr)
+
+
+
+
+# [edgedist] distance to forest edge
+#' this variable is the euclidean distance between mature forest 
+#' to the nearest cell that is not MF
+
+
+
+
+# Forest edge
+
+
+
+
+
 
 
 
