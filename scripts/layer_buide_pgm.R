@@ -1886,28 +1886,23 @@ gc()
 
 
 
+## Scenario: 2010 Real =========================================================
+### Undegraded primary forest
+#UPF2010 <- raster("rasters/PGM/input/LULC/UPF2010_real.tif")
 
-## Undegraded primary forest
-
-
-
-
-
-# mean upf cover in pixel scale (60m)
+### mean upf cover in local scale (90m)
 UPF2010.px <- focal(UPF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
 names(UPF2010.px)<-"UPFpx"
 UPF2010.px[is.nan(UPF2010.px)] <- 0
-#UPF2010.px <- mask(UPF2010.px, pgm.shp)
-
+UPF2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, UPF2010.px[])
 #saving
 writeRaster(UPF2010.px, "rasters/PGM/2010_real/UPFpx.tif", format="GTiff", overwrite=T)
 
-# mean upf cover in landscape scale (1000m)
+# mean upf cover in landscape scale (~1000m)
 UPF2010.ls <- focal(UPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
 names(UPF2010.ls)<-"UPFls"
 UPF2010.ls[is.nan(UPF2010.ls)] <- 0
-#UPF2010.ls <- mask(UPF2010.ls, pgm.shp)
-
+UPF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, UPF2010.ls[])
 #saving
 writeRaster(UPF2010.ls, "rasters/PGM/2010_real/UPFls.tif", format="GTiff", overwrite=T)
 
@@ -1922,37 +1917,206 @@ gc()
 
 
 
-## Degraded primary forest
+### Degraded primary forest
+#uDPF2010 <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
+#RDPF2010 <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
+DPF2010 <- sum(uDPF2010, RDPF2010)
+
+### mean upf cover in local scale (90m)
+DPF2010.px <- focal(DPF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(DPF2010.px)<-"DPFpx"
+DPF2010.px[is.nan(DPF2010.px)] <- 0
+DPF2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, DPF2010.px[])
+#saving
+writeRaster(DPF2010.px, "rasters/PGM/2010_real/DPFpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+DPF2010.ls <- focal(DPF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(DPF2010.ls)<-"DPFls"
+DPF2010.ls[is.nan(DPF2010.ls)] <- 0
+DPF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, DPF2010.ls[])
+#saving
+writeRaster(DPF2010.ls, "rasters/PGM/2010_real/DPFls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("DPF2010.px", "DPF2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
 
 
 
 
 ## Time since degradation
+TSD2010.pf <- pgm.degrad.pf[["pgm.degrad.2010real"]]
+TSD2010.pf[is.na(TSD2010.pf)] <- 0
+
+TSD2010.sf <- pgm.degrad.sf[["pgm.degradsf.2010real"]]
+TSD2010.sf[is.na(TSD2010.sf)] <- 0
+
+TSD2010 <- sum(TSD2010.pf, TSD2010.sf)
+writeRaster(TSD2010, "rasters/PGM/input/TSD2010.tif", format="GTiff", overwrite=T)
+
+### mean upf cover in local scale (90m)
+TSD2010.px <- focal(TSD2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(TSD2010.px)<-"TSDpx"
+TSD2010.px[is.nan(TSD2010.px)] <- 0
+TSD2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, TSD2010.px[])
+#saving
+writeRaster(TSD2010.px, "rasters/PGM/2010_real/TSDpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+TSD2010.ls <- focal(TSD2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(TSD2010.ls)<-"TSDls"
+TSD2010.ls[is.nan(TSD2010.ls)] <- 0
+TSD2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TSD2010.ls[])
+#saving
+writeRaster(TSD2010.ls, "rasters/PGM/2010_real/TSDls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("TSD2010.px", "TSD2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
 
 
 
 
 ## Secondary forest
+#uSF2010 <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
+#DSF2010 <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
+SF2010 <- sum(uSF2010, DSF2010)
+
+### mean upf cover in local scale (90m)
+SF2010.px <- focal(SF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(SF2010.px)<-"SFpx"
+SF2010.px[is.nan(SF2010.px)] <- 0
+SF2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, SF2010.px[])
+#saving
+writeRaster(SF2010.px, "rasters/PGM/2010_real/SFpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+SF2010.ls <- focal(SF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(SF2010.ls)<-"SFls"
+SF2010.ls[is.nan(SF2010.ls)] <- 0
+SF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, SF2010.ls[])
+#saving
+writeRaster(SF2010.ls, "rasters/PGM/2010_real/SFls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("SF2010.px", "SF2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
 
 
 
 
 ## Secondary forest age
+SFAge2010 <- pgm.sfage[["pgm.sfage.2010real"]]
+writeRaster(SFAge2010, "rasters/PGM/input/SFAge2010.tif", format="GTiff", overwrite=T)
+
+### mean upf cover in local scale (90m)
+SFAge2010.px <- focal(SFAge2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(SFAge2010.px)<-"SFAgepx"
+SFAge2010.px[is.nan(SFAge2010.px)] <- 0
+SFAge2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, SFAge2010.px[])
+#saving
+writeRaster(SFAge2010.px, "rasters/PGM/2010_real/SFAgepx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+SFAge2010.ls <- focal(SFAge2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(SFAge2010.ls)<-"SFAgels"
+SFAge2010.ls[is.nan(SFAge2010.ls)] <- 0
+SFAge2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, SFAge2010.ls[])
+#saving
+writeRaster(SFAge2010.ls, "rasters/PGM/2010_real/SFAgels.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("SFAge2010.px", "SFAge2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
 
 
 
 
 ## Total forest (UPF + DPF + SF>2yr)
+SF2010young <- SFAge2010
+SF2010young[] <- ifelse(SF2010young[]>2, 1, 0)
+writeRaster(SF2010young, "rasters/PGM/input/SF2010young.tif", format="GTiff", overwrite=T)
+
+TF2010 <- sum(UPF2010, DPF2010)
+TF2010 <- sum(TF2010, SF2010young)
+writeRaster(TF2010, "rasters/PGM/input/TF2010.tif", format="GTiff", overwrite=T)
+  
+### mean upf cover in local scale (90m)
+TF2010.px <- focal(TF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(TF2010.px)<-"TFpx"
+TF2010.px[is.nan(TF2010.px)] <- 0
+TF2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2010.px[])
+#saving
+writeRaster(TF2010.px, "rasters/PGM/2010_real/TFpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+TF2010.ls <- focal(TF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(TF2010.ls)<-"TFls"
+TF2010.ls[is.nan(TF2010.ls)] <- 0
+TF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2010.ls[])
+#saving
+writeRaster(TF2010.ls, "rasters/PGM/2010_real/TFls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("SF2010young", "SFAge2010.px", "SFAge2010.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
 
 
 
 
 ## Total mature forest (UPF + DPF + SF>5yr)
+SF2010mature <- SFAge2010
+SF2010mature[] <- ifelse(SF2010mature[]>5, 1, 0)
+writeRaster(SF2010mature, "rasters/PGM/input/SF2010mature.tif", format="GTiff", overwrite=T)
+
+MF2010 <- sum(UPF2010, DPF2010)
+MF2010 <- sum(MF2010, SF2010mature)
+writeRaster(MF2010, "rasters/PGM/input/MF2010.tif", format="GTiff", overwrite=T)
+
+### mean upf cover in local scale (90m)
+MF2010.px <- focal(MF2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(MF2010.px)<-"MFpx"
+MF2010.px[is.nan(MF2010.px)] <- 0
+MF2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2010.px[])
+#saving
+writeRaster(MF2010.px, "rasters/PGM/2010_real/MFpx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+MF2010.ls <- focal(MF2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(MF2010.ls)<-"MFls"
+MF2010.ls[is.nan(MF2010.ls)] <- 0
+MF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2010.ls[])
+#saving
+writeRaster(MF2010.ls, "rasters/PGM/2010_real/MFls.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("SF2010mature", "SFAge2010.px", "SFAge2010.ls")]) #keeping only raster stack
+gc()
 
 
 
-
-## Total mature forest (UPF + DPF + SF>5yr)
+#
+#
 
 
 
@@ -1960,15 +2124,60 @@ gc()
 # [edgedist] distance to forest edge
 #' this variable is the euclidean distance between mature forest 
 #' to the nearest cell that is not MF
+#MF2010 <- raster("rasters/PGM/input/MF2010.tif")
+inv.MF2010 <- MF2010
+inv.MF2010[inv.MF2010==1]<-NA
+#cheking
+#inv.MF2010
+#plot(inv.MF2010)
+
+edge.dist.2010 <- distance(inv.MF2010, doEdge=T)
+names(edge.dist.2010)<-"edgedist"
+edge.dist.2010[is.nan(edge.dist.2010)] <- 0
+edge.dist.2010[] <- ifelse(pgm.lulc[[1]][]==0, NA, edge.dist.2010[])
+#saving
+writeRaster(edge.dist.2010, "rasters/PGM/2010_real/edgedist.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("inv.MF2010")])
+gc()
+
+
+
+#
+#
 
 
 
 
 # Forest edge
+# marking edge and core areas
+edge2010 <- edge.dist.2010
+edge2010[] <- ifelse(edge2010[]>=300, 0, 1)
+writeRaster(edge2010, "rasters/PGM/input/edge2010_real.tif", format="GTiff", overwrite=T)
+
+### mean upf cover in local scale (90m)
+edge2010.px <- focal(edge2010, matrix(1,ncol=3,nrow=3), fun=mean, na.rm=T)
+names(edge2010.px)<-"edgepx"
+edge2010.px[is.nan(edge2010.px)] <- 0
+edge2010.px[] <- ifelse(pgm.lulc[[1]][]==0, NA, edge2010.px[])
+#saving
+writeRaster(edge2010.px, "rasters/PGM/2010_real/edgepx.tif", format="GTiff", overwrite=T)
+
+# mean upf cover in landscape scale (~1000m)
+edge2010.ls <- focal(edge2010, matrix(1,ncol=35,nrow=35), fun=mean, na.rm=T)
+names(edge2010.ls)<-"edgels"
+edge2010.ls[is.nan(edge2010.ls)] <- 0
+edge2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, edge2010.ls[])
+#saving
+writeRaster(edge2010.ls, "rasters/PGM/2010_real/edgels.tif", format="GTiff", overwrite=T)
+
+rm(list=ls()[ls() %in% c("edge2010.px", "edge2010.ls")]) #keeping only raster stack
+gc()
 
 
 
-
+#
+#
 
 
 
