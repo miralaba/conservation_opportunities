@@ -1750,144 +1750,6 @@ writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth2/propertysize.t
 
 
 
-
-## avoid degradation costs -- adding fire control costs
-#' creating and maintaining (i.e., every four years on average) 
-#' 6m wide fire breaks at the edge of forested areas
-
-#calculating forest perimeter in each property
-#adding variable for forest cover
-pgm.car@data$FOREST_PERIMETER <- NA
-pgm.car@data$ncell <- NA
-
-j=nrow(pgm.car@data)
-for (i in pgm.car$COD_IMOVEL) {
-  
-  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
-  rural.property.edge <- crop(pgm.deforest.dist.copy, extent(rural.property))
-  rural.property.edge <- mask(rural.property.edge, rural.property)
-  rural.property.edge[rural.property.edge > 100]<-NA
-  rural.property.edge[rural.property.edge < 1]<-NA
-  rural.property.edge[rural.property.edge<=100]<-1
-  pgm.car@data[pgm.car$COD_IMOVEL==i,"ncell"] <- ncell(rural.property.edge)
-  if(all(is.na(values(rural.property.edge)))) next
-  #convert raster to polygons
-  rural.property.edge.shp <- as_Spatial(st_as_sf(st_as_stars(rural.property.edge),
-                                                 as_points = FALSE, merge = TRUE))
-  
-  #cheking & adjupgments
-  #st_crs(forest.cover.shp)==st_crs(pgm.shp)
-  #gIsValid(forest.cover.shp)
-  #FALSE here means that you'll need to run the buffer routine:
-  #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
-  
-  #estimating the perimeter
-  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(rural.property.edge.shp),"MULTILINESTRING")), na.rm=T)/2
-  
-  
-  j=j-1
-  cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
-  
-}
-
-
-#' @description fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
-#' source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
-#' cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
-pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$ncell
-
-#convert to raster
-avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "cost", fun = mean)
-avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
-avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
-#plot(avoid.degrad.cost)
-
-#saving
-writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
-
-
-
-#
-#
-
-
-
-
-## passive restoration cost: average per hectare cost associated with:
-#' natural regeneration without fence
-#' 48.87 ± 0.7 US$/ha -- US$1.00 ~ R$3.87 -- R$189.13
-#' natural regeneration with fence
-#' 344.07 ± 156 US$/ha -- US$1.00 ~ R$3.87 -- R$1331.55
-#' active restoration
-#' 2041.27 ± 728 US$/ha -- US$1.00 ~ R$3.87 -- R$7899.71
-#' source: Bracalion et al. 2019 https://doi.org/10.1016/j.biocon.2019.108274
-
-
-#natural regeneration without fence
-agro.class <- c(39,41,48)
-
-restor.cost1 <- pgm.lulc[["pgm.lulc.2010real"]]
-
-values(restor.cost1)[values(restor.cost1) %in% agro.class] <- 1
-values(restor.cost1)[values(restor.cost1) > 1] <- 0
-names(restor.cost1) <- "restoration.no.fences"
-
-
-restor.cost1.deforest.dist <- deforest.dist.copy
-values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) == 0] <- NA
-values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) > 500] <- NA
-values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) <= 500] <- 1
-
-restor.cost1 <- mask(restor.cost1, restor.cost1.deforest.dist)
-restor.cost1[is.na(restor.cost1)] <- 0
-restor.cost1[restor.cost1==1] <- 189.13
-
-#natural regeneration with fence
-restor.cost2 <- pgm.lulc[["pgm.lulc.2010real"]]
-
-restor.cost2[restor.cost2 == 15] <- 1
-restor.cost2[restor.cost2 > 1] <- 0
-names(restor.cost2) <- "restoration.fences"
-
-
-restor.cost2 <- mask(restor.cost2, restor.cost1.deforest.dist)
-restor.cost2[is.na(restor.cost2)] <- 0
-restor.cost2[restor.cost2==1] <- 1331.55
-
-#active restoration
-restor.cost3 <- pgm.lulc[["pgm.lulc.2010real"]]
-
-values(restor.cost3)[values(restor.cost3) %in% deforestation.class.list] <- 1
-values(restor.cost3)[values(restor.cost3) > 1] <- 0
-names(restor.cost3) <- "restoration.active"
-
-
-restor.cost3.deforest.dist <- deforest.dist.copy
-values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) <= 500] <- NA
-values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) > 500] <- 1
-
-restor.cost3 <- mask(restor.cost3, restor.cost3.deforest.dist)
-restor.cost3[is.na(restor.cost3)] <- 0
-restor.cost3[restor.cost3==1] <- 7899.71
-
-#restoration cost layer
-restor.cost.final <- sum(restor.cost1, restor.cost2, restor.cost3)
-restor.cost.final <- mask(restor.cost.final, candidate.areas.final)
-
-writeRaster(restor.cost.final, paste0("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
-
-
-
-rm(list=ls()[!ls() %in% c("...")]) #keeping only raster stack
-gc()
-
-
-
-#
-#
-
-
-
 ## Scenario: 2010 Real =========================================================
 ### Undegraded primary forest
 #UPF2010 <- raster("rasters/PGM/input/LULC/UPF2010_real.tif")
@@ -2154,7 +2016,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2010 <- edge.dist.2010
-edge2010[] <- ifelse(edge2010[]>=300, 0, 1)
+edge2010[] <- ifelse(edge2010[] < 200, 0, ifelse(edge2010[]>300, 0, 1))
 writeRaster(edge2010, "rasters/PGM/input/edge2010_real.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -2449,7 +2311,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020 <- edge.dist.2020
-edge2020[] <- ifelse(edge2020[]>=300, 0, 1)
+edge2020[] <- ifelse(edge2020[] < 200, 0, ifelse(edge2020[]>300, 0, 1))
 writeRaster(edge2020, "rasters/PGM/input/edge2020_real.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -2744,7 +2606,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoiddegrad <- edge.dist.2020_avoiddegrad
-edge2020_avoiddegrad[] <- ifelse(edge2020_avoiddegrad[]>=300, 0, 1)
+edge2020_avoiddegrad[] <- ifelse(edge2020_avoiddegrad[] < 200, 0, ifelse(edge2020_avoiddegrad[]>300, 0, 1))
 writeRaster(edge2020_avoiddegrad, "rasters/PGM/input/edge2020_avoiddegrad.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -3040,7 +2902,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoiddegrad2 <- edge.dist.2020_avoiddegrad2
-edge2020_avoiddegrad2[] <- ifelse(edge2020_avoiddegrad2[]>=300, 0, 1)
+edge2020_avoiddegrad2[] <- ifelse(edge2020_avoiddegrad2[] < 200, 0, ifelse(edge2020_avoiddegrad2[]>300, 0, 1))
 writeRaster(edge2020_avoiddegrad2, "rasters/PGM/input/edge2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -3329,7 +3191,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoiddeforest <- edge.dist.2020_avoiddeforest
-edge2020_avoiddeforest[] <- ifelse(edge2020_avoiddeforest[]>=300, 0, 1)
+edge2020_avoiddeforest[] <- ifelse(edge2020_avoiddeforest[] < 200, 0, ifelse(edge2020_avoiddeforest[]>300, 0, 1))
 writeRaster(edge2020_avoiddeforest, "rasters/PGM/input/edge2020_avoiddeforest.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -3619,7 +3481,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoiddeforest2 <- edge.dist.2020_avoiddeforest2
-edge2020_avoiddeforest2[] <- ifelse(edge2020_avoiddeforest2[]>=300, 0, 1)
+edge2020_avoiddeforest2[] <- ifelse(edge2020_avoiddeforest2[] < 200, 0, ifelse(edge2020_avoiddeforest2[]>300, 0, 1))
 writeRaster(edge2020_avoiddeforest2, "rasters/PGM/input/edge2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -3909,7 +3771,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_restor_wo_avoid <- edge.dist.2020_restor_wo_avoid
-edge2020_restor_wo_avoid[] <- ifelse(edge2020_restor_wo_avoid[]>=300, 0, 1)
+edge2020_restor_wo_avoid[] <- ifelse(edge2020_restor_wo_avoid[] < 200, 0, ifelse(edge2020_restor_wo_avoid[]>300, 0, 1))
 writeRaster(edge2020_restor_wo_avoid, "rasters/PGM/input/edge2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -4198,7 +4060,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoidboth <- edge.dist.2020_avoidboth
-edge2020_avoidboth[] <- ifelse(edge2020_avoidboth[]>=300, 0, 1)
+edge2020_avoidboth[] <- ifelse(edge2020_avoidboth[] < 200, 0, ifelse(edge2020_avoidboth[]>300, 0, 1))
 writeRaster(edge2020_avoidboth, "rasters/PGM/input/edge2020_avoidboth.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -4487,7 +4349,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_avoidboth2 <- edge.dist.2020_avoidboth2
-edge2020_avoidboth2[] <- ifelse(edge2020_avoidboth2[]>=300, 0, 1)
+edge2020_avoidboth2[] <- ifelse(edge2020_avoidboth2[] < 200, 0, ifelse(edge2020_avoidboth2[]>300, 0, 1))
 writeRaster(edge2020_avoidboth2, "rasters/PGM/input/edge2020_avoidboth2.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -4777,7 +4639,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_restor_n_avoiddeforest <- edge.dist.2020_restor_n_avoiddeforest
-edge2020_restor_n_avoiddeforest[] <- ifelse(edge2020_restor_n_avoiddeforest[]>=300, 0, 1)
+edge2020_restor_n_avoiddeforest[] <- ifelse(edge2020_restor_n_avoiddeforest[] < 200, 0, ifelse(edge2020_restor_n_avoiddeforest[]>300, 0, 1))
 writeRaster(edge2020_restor_n_avoiddeforest, "rasters/PGM/input/edge2020_restor_n_avoiddeforest.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -5067,7 +4929,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_restor_n_avoiddeforest2 <- edge.dist.2020_restor_n_avoiddeforest2
-edge2020_restor_n_avoiddeforest2[] <- ifelse(edge2020_restor_n_avoiddeforest2[]>=300, 0, 1)
+edge2020_restor_n_avoiddeforest2[] <- ifelse(edge2020_restor_n_avoiddeforest2[] < 200, 0, ifelse(edge2020_restor_n_avoiddeforest2[]>300, 0, 1))
 writeRaster(edge2020_restor_n_avoiddeforest2, "rasters/PGM/input/edge2020_restor_n_avoiddeforest2.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -5357,7 +5219,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_restor_n_avoidboth <- edge.dist.2020_restor_n_avoidboth
-edge2020_restor_n_avoidboth[] <- ifelse(edge2020_restor_n_avoidboth[]>=300, 0, 1)
+edge2020_restor_n_avoidboth[] <- ifelse(edge2020_restor_n_avoidboth[] < 200, 0, ifelse(edge2020_restor_n_avoidboth[]>300, 0, 1))
 writeRaster(edge2020_restor_n_avoidboth, "rasters/PGM/input/edge2020_restor_n_avoidboth.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -5647,7 +5509,7 @@ gc()
 # Forest edge
 # marking edge and core areas
 edge2020_restor_n_avoidboth2 <- edge.dist.2020_restor_n_avoidboth2
-edge2020_restor_n_avoidboth2[] <- ifelse(edge2020_restor_n_avoidboth2[]>=300, 0, 1)
+edge2020_restor_n_avoidboth2[] <- ifelse(edge2020_restor_n_avoidboth2[] < 200, 0, ifelse(edge2020_restor_n_avoidboth2[]>300, 0, 1))
 writeRaster(edge2020_restor_n_avoidboth2, "rasters/PGM/input/edge2020_restor_n_avoidboth2.tif", format="GTiff", overwrite=T)
 
 ### mean edge cover in local scale (90m)
@@ -5667,6 +5529,144 @@ edge2020_restor_n_avoidboth2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, edge2020_res
 writeRaster(edge2020_restor_n_avoidboth2.ls, "rasters/PGM/2020_restor_n_avoidboth2/edgels.tif", format="GTiff", overwrite=T)
 
 rm(list=ls()[ls() %in% c("edge2020_restor_n_avoidboth2.px", "edge2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
+gc()
+
+
+
+#
+#
+
+
+
+## Fixed costs =================================================================
+## avoid degradation costs -- adding fire control costs
+#' creating and maintaining (i.e., every four years on average) 
+#' 6m wide fire breaks at the edge of forested areas
+
+#calculating forest perimeter in each property
+#adding variable for forest cover
+pgm.car@data$FOREST_PERIMETER <- NA
+pgm.car@data$ncell <- NA
+
+j=nrow(pgm.car@data)
+for (i in pgm.car$COD_IMOVEL) {
+  
+  rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
+  rural.property.edge <- crop(pgm.deforest.dist.copy, extent(rural.property))
+  rural.property.edge <- mask(rural.property.edge, rural.property)
+  rural.property.edge[rural.property.edge > 100]<-NA
+  rural.property.edge[rural.property.edge < 1]<-NA
+  rural.property.edge[rural.property.edge<=100]<-1
+  pgm.car@data[pgm.car$COD_IMOVEL==i,"ncell"] <- ncell(rural.property.edge)
+  if(all(is.na(values(rural.property.edge)))) next
+  #convert raster to polygons
+  rural.property.edge.shp <- as_Spatial(st_as_sf(st_as_stars(rural.property.edge),
+                                                 as_points = FALSE, merge = TRUE))
+  
+  #cheking & adjupgments
+  #st_crs(forest.cover.shp)==st_crs(pgm.shp)
+  #gIsValid(forest.cover.shp)
+  #FALSE here means that you'll need to run the buffer routine:
+  #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
+  
+  #estimating the perimeter
+  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(rural.property.edge.shp),"MULTILINESTRING")), na.rm=T)/2
+  
+  
+  j=j-1
+  cat("\n>", j, "out of", nrow(pgm.car@data), "properties left<\n")
+  
+}
+
+
+#' @description fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
+#' source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
+#' cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
+pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$ncell
+
+#convert to raster
+avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "cost", fun = mean)
+avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
+avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
+#plot(avoid.degrad.cost)
+
+#saving
+writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
+
+
+
+#
+#
+
+
+
+
+## passive restoration cost: average per hectare cost associated with:
+#' natural regeneration without fence
+#' 48.87 ± 0.7 US$/ha -- US$1.00 ~ R$3.87 -- R$189.13
+#' natural regeneration with fence
+#' 344.07 ± 156 US$/ha -- US$1.00 ~ R$3.87 -- R$1331.55
+#' active restoration
+#' 2041.27 ± 728 US$/ha -- US$1.00 ~ R$3.87 -- R$7899.71
+#' source: Bracalion et al. 2019 https://doi.org/10.1016/j.biocon.2019.108274
+
+
+#natural regeneration without fence
+agro.class <- c(39,41,48)
+
+restor.cost1 <- pgm.lulc[["pgm.lulc.2010real"]]
+
+values(restor.cost1)[values(restor.cost1) %in% agro.class] <- 1
+values(restor.cost1)[values(restor.cost1) > 1] <- 0
+names(restor.cost1) <- "restoration.no.fences"
+
+
+restor.cost1.deforest.dist <- deforest.dist.copy
+values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) == 0] <- NA
+values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) > 500] <- NA
+values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) <= 500] <- 1
+
+restor.cost1 <- mask(restor.cost1, restor.cost1.deforest.dist)
+restor.cost1[is.na(restor.cost1)] <- 0
+restor.cost1[restor.cost1==1] <- 189.13
+
+#natural regeneration with fence
+restor.cost2 <- pgm.lulc[["pgm.lulc.2010real"]]
+
+restor.cost2[restor.cost2 == 15] <- 1
+restor.cost2[restor.cost2 > 1] <- 0
+names(restor.cost2) <- "restoration.fences"
+
+
+restor.cost2 <- mask(restor.cost2, restor.cost1.deforest.dist)
+restor.cost2[is.na(restor.cost2)] <- 0
+restor.cost2[restor.cost2==1] <- 1331.55
+
+#active restoration
+restor.cost3 <- pgm.lulc[["pgm.lulc.2010real"]]
+
+values(restor.cost3)[values(restor.cost3) %in% deforestation.class.list] <- 1
+values(restor.cost3)[values(restor.cost3) > 1] <- 0
+names(restor.cost3) <- "restoration.active"
+
+
+restor.cost3.deforest.dist <- deforest.dist.copy
+values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) <= 500] <- NA
+values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) > 500] <- 1
+
+restor.cost3 <- mask(restor.cost3, restor.cost3.deforest.dist)
+restor.cost3[is.na(restor.cost3)] <- 0
+restor.cost3[restor.cost3==1] <- 7899.71
+
+#restoration cost layer
+restor.cost.final <- sum(restor.cost1, restor.cost2, restor.cost3)
+restor.cost.final <- mask(restor.cost.final, candidate.areas.final)
+
+writeRaster(restor.cost.final, paste0("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
+
+
+
+rm(list=ls()[!ls() %in% c("...")]) #keeping only raster stack
 gc()
 
 
