@@ -19,9 +19,8 @@ library(virtualspecies)
 
 #### detecting multicollinearity between exploratory variables ####
 pgm.env.explanatory.var.list <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
-
 pgm.env.explanatory.var <- stack(pgm.env.explanatory.var.list)
-names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
+#names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
 ##cheking
 #pgm.env.explanatory.var
 #plot(pgm.env.explanatory.var[[1:10]], nc=2)
@@ -30,9 +29,8 @@ names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, 
 
 
 stm.env.explanatory.var.list <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
-
 stm.env.explanatory.var <- stack(stm.env.explanatory.var.list)
-names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
+#names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
 ##cheking
 #stm.env.explanatory.var
 #plot(stm.env.explanatory.var[[1:8]], nc=2)
@@ -79,6 +77,9 @@ sel.var.df <- data.frame(rbind(cbind(VAR=inflated.var@results$Variables, VIF=inf
                                cbind(VAR=inflated.var@excluded, VIF=NA)))
 
 sel.var.df[sel.var.df$VAR=="TSDls", "VIF"] <- 999
+sel.var.df[sel.var.df$VAR=="UPFpx", "VIF"] <- 999
+sel.var.df$Type <- "environment"
+sel.var.df[sel.var.df$VAR %in% c("distmarket", "propertysize"), "Type"] <- "economic"
 
 write.csv(sel.var.df, "rasters/selected_environmental_explanatory_variables_byVIF.csv", row.names = F)
 
