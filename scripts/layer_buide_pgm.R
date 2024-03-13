@@ -5546,31 +5546,33 @@ writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth2/propertysize.t
 #calculating forest perimeter in each property
 #adding variable for forest cover
 pgm.car@data$FOREST_PERIMETER <- NA
-pgm.car@data$ncell <- NA
 
 j=nrow(pgm.car@data)
 for (i in pgm.car$COD_IMOVEL) {
   
   rural.property <- pgm.car[pgm.car$COD_IMOVEL==i,]
-  rural.property.edge <- crop(pgm.deforest.dist.copy, extent(rural.property))
+  
+  rural.property.edge <- crop(pgm.lulc.2010.forest.class, extent(rural.property))
   rural.property.edge <- mask(rural.property.edge, rural.property)
-  rural.property.edge[rural.property.edge > 100]<-NA
-  rural.property.edge[rural.property.edge < 1]<-NA
-  rural.property.edge[rural.property.edge<=100]<-1
-  pgm.car@data[pgm.car$COD_IMOVEL==i,"ncell"] <- ncell(rural.property.edge)
+  
   if(all(is.na(values(rural.property.edge)))) next
   #convert raster to polygons
   rural.property.edge.shp <- as_Spatial(st_as_sf(st_as_stars(rural.property.edge),
                                                  as_points = FALSE, merge = TRUE))
-  
   #cheking & adjupgments
   #st_crs(forest.cover.shp)==st_crs(pgm.shp)
   #gIsValid(forest.cover.shp)
   #FALSE here means that you'll need to run the buffer routine:
   #forest.cover.shp <- rgeos::gBuffer(forest.cover.shp, byid = TRUE, width = 0)
   
+  rural.property.edge.shp <- gDifference(as(rural.property.edge.shp,"SpatialLines"),
+                                         as(gUnaryUnion(rural.property.edge.shp),"SpatialLines"),
+                                         byid=TRUE)
+  
+  if(is.null(rural.property.edge.shp)) next
+  
   #estimating the perimeter
-  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- sum(st_length(st_cast(st_as_sf(rural.property.edge.shp),"MULTILINESTRING")), na.rm=T)/2
+  pgm.car@data[pgm.car$COD_IMOVEL==i,"FOREST_PERIMETER"] <- gLength(rural.property.edge.shp)*111111
   
   
   j=j-1
@@ -5582,16 +5584,19 @@ for (i in pgm.car$COD_IMOVEL) {
 #' @description fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
 #' source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
 #' cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
-pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))/pgm.car@data$ncell
+pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))
+pgm.car@data$cost <- ifelse(is.na(pgm.car@data$cost), 0, pgm.car@data$cost)
+
+#calculating the costs per area per year
+pgm.car@data$final_cost <- (pgm.car@data$cost/pgm.car@data$num_area_ha)/4
 
 #convert to raster
-avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "cost", fun = mean)
-avoid.degrad.cost[is.na(avoid.degrad.cost)] <- 0
-avoid.degrad.cost <- mask(avoid.degrad.cost, pgm.shp)
+avoid.degrad.cost <- rasterize(pgm.car, pgm.lulc.2010.forest.class, field = "final_cost", fun = mean)
+avoid.degrad.cost[] <- ifelse(pgm.lulc[[1]][]==0, NA, avoid.degrad.cost[])
 #plot(avoid.degrad.cost)
 
 #saving
-writeRaster(avoid.degrad.cost, "models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
+writeRaster(avoid.degrad.cost, "models.output/costs/PGM_2010_real_base_firecontrol.tif", format="GTiff", overwrite=T)
 
 
 
@@ -5621,7 +5626,7 @@ values(restor.cost1)[values(restor.cost1) > 1] <- 0
 names(restor.cost1) <- "restoration.no.fences"
 
 
-restor.cost1.deforest.dist <- deforest.dist.copy
+restor.cost1.deforest.dist <- pgm.deforest.dist.copy
 values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) == 0] <- NA
 values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) > 500] <- NA
 values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) <= 500] <- 1
@@ -5650,7 +5655,7 @@ values(restor.cost3)[values(restor.cost3) > 1] <- 0
 names(restor.cost3) <- "restoration.active"
 
 
-restor.cost3.deforest.dist <- deforest.dist.copy
+restor.cost3.deforest.dist <- pgm.deforest.dist.copy
 values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) <= 500] <- NA
 values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) > 500] <- 1
 
@@ -5660,9 +5665,16 @@ restor.cost3[restor.cost3==1] <- 7899.71
 
 #restoration cost layer
 restor.cost.final <- sum(restor.cost1, restor.cost2, restor.cost3)
-restor.cost.final <- mask(restor.cost.final, candidate.areas.final)
 
-writeRaster(restor.cost.final, paste0("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif"), format = "GTiff", overwrite = T)
+candidate.areas.final.mask <- candidate.areas.final
+candidate.areas.final.mask[candidate.areas.final.mask==0] <- NA
+
+restor.cost.final <- mask(restor.cost.final, candidate.areas.final.mask)
+
+restor.cost.final[is.na(restor.cost.final)] <- 0
+restor.cost.final[] <- ifelse(pgm.lulc[[1]][]==0, NA, restor.cost.final[])
+
+writeRaster(restor.cost.final, paste0("models.output/costs/PGM_2010_real_base_restoration.tif"), format = "GTiff", overwrite = T)
 
 
 
