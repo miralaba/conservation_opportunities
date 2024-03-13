@@ -1694,62 +1694,6 @@ gc()
 
 
 
-
-## import rural properties shapefiles and data from SISCAR
-#' https://www.car.gov.br/publico/municipios/downloads
-#' see the "restoration_candidate_pgm.R" on the script folder
-#' for details on reducing overlap between properties and 
-pgm.car <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_car_after_restoration_2010")
-names(pgm.car@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
-                         "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
-                         "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
-                         "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
-pgm.car <- spTransform(pgm.car, crs(std.proj))
-
-#checking
-#nrow(pgm.car)
-#nrow(pgm.car@data[pgm.car@data$NEED_INCREMENT==1,])
-#head(pgm.car@data[,"num_area_ha"])
-
-#note:
-#according to Brazilian Forest Code
-#small properties have less than or equal to 4 fiscal modules
-#medium/big properties heave more than 4 fiscal modules
-#in PGM, 1 fiscal module = 55ha [or 550000m2]
-
-
-## [propertysize]
-# transforming the properties polygons into rasters
-# cell value is the property size
-pgm.car.raster <- rasterize(pgm.car, pgm.lulc[[1]], field = "num_area_ha", fun = "mean", background = 0)
-pgm.car.raster[] <- ifelse(pgm.lulc[[1]][]==0, NA, pgm.car.raster[])
-#checking
-#st_crs(pgm.car.raster)==st_crs(pgm.shp)
-#plot(pgm.car.raster)
-#plot(pgm.car, add=T)
-
-#saving
-writeRaster(pgm.car.raster, "rasters/PGM/2010_real/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_real/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad2/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_wo_avoid/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
-writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
-
-
-
-#
-#
-
-
-
 ## Scenario: 2010 Real =========================================================
 ### Undegraded primary forest
 #UPF2010 <- raster("rasters/PGM/input/LULC/UPF2010_real.tif")
@@ -1938,7 +1882,7 @@ TF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2010.ls[])
 #saving
 writeRaster(TF2010.ls, "rasters/PGM/2010_real/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2010young", "SFAge2010.px", "SFAge2010.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2010young", "TF2010.px", "TF2010.ls")]) #keeping only raster stack
 gc()
 
 
@@ -1974,7 +1918,7 @@ MF2010.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2010.ls[])
 #saving
 writeRaster(MF2010.ls, "rasters/PGM/2010_real/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2010mature", "SFAge2010.px", "SFAge2010.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2010mature", "MF2010.px", "MF2010.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2233,7 +2177,7 @@ TF2020.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020.ls[])
 #saving
 writeRaster(TF2020.ls, "rasters/PGM/2020_real/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020young", "SFAge2020.px", "SFAge2020.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020young", "TF2020.px", "TF2020.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2269,7 +2213,7 @@ MF2020.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020.ls[])
 #saving
 writeRaster(MF2020.ls, "rasters/PGM/2020_real/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020mature", "SFAge2020.px", "SFAge2020.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020mature", "MF2020.px", "MF2020.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2528,7 +2472,7 @@ TF2020_avoiddegrad.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoiddegrad.ls[
 #saving
 writeRaster(TF2020_avoiddegrad.ls, "rasters/PGM/2020_avoiddegrad/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddegradyoung", "SFAge2020_avoiddegrad.px", "SFAge2020_avoiddegrad.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddegradyoung", "TF2020_avoiddegrad.px", "TF2020_avoiddegrad.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2564,7 +2508,7 @@ MF2020_avoiddegrad.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoiddegrad.ls[
 #saving
 writeRaster(MF2020_avoiddegrad.ls, "rasters/PGM/2020_avoiddegrad/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddegradmature", "SFAge2020_avoiddegrad.px", "SFAge2020_avoiddegrad.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddegradmature", "MF2020_avoiddegrad.px", "MF2020_avoiddegrad.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2824,7 +2768,7 @@ TF2020_avoiddegrad2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoiddegrad2.l
 #saving
 writeRaster(TF2020_avoiddegrad2.ls, "rasters/PGM/2020_avoiddegrad2/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddegrad2young", "SFAge2020_avoiddegrad2.px", "SFAge2020_avoiddegrad2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddegrad2young", "TF2020_avoiddegrad2.px", "TF2020_avoiddegrad2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -2860,7 +2804,7 @@ MF2020_avoiddegrad2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoiddegrad2.l
 #saving
 writeRaster(MF2020_avoiddegrad2.ls, "rasters/PGM/2020_avoiddegrad2/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddegrad2mature", "SFAge2020_avoiddegrad2.px", "SFAge2020_avoiddegrad2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddegrad2mature", "MF2020_avoiddegrad2.px", "MF2020_avoiddegrad2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3113,7 +3057,7 @@ TF2020_avoiddeforest.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoiddeforest
 #saving
 writeRaster(TF2020_avoiddeforest.ls, "rasters/PGM/2020_avoiddeforest/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddeforestyoung", "SFAge2020_avoiddeforest.px", "SFAge2020_avoiddeforest.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddeforestyoung", "TF2020_avoiddeforest.px", "TF2020_avoiddeforest.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3149,7 +3093,7 @@ MF2020_avoiddeforest.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoiddeforest
 #saving
 writeRaster(MF2020_avoiddeforest.ls, "rasters/PGM/2020_avoiddeforest/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddeforestmature", "SFAge2020_avoiddeforest.px", "SFAge2020_avoiddeforest.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddeforestmature", "MF2020_avoiddeforest.px", "MF2020_avoiddeforest.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3403,7 +3347,7 @@ TF2020_avoiddeforest2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoiddefores
 #saving
 writeRaster(TF2020_avoiddeforest2.ls, "rasters/PGM/2020_avoiddeforest2/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddeforest2young", "SFAge2020_avoiddeforest2.px", "SFAge2020_avoiddeforest2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddeforest2young", "TF2020_avoiddeforest2.px", "TF2020_avoiddeforest2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3439,7 +3383,7 @@ MF2020_avoiddeforest2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoiddefores
 #saving
 writeRaster(MF2020_avoiddeforest2.ls, "rasters/PGM/2020_avoiddeforest2/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoiddeforest2mature", "SFAge2020_avoiddeforest2.px", "SFAge2020_avoiddeforest2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoiddeforest2mature", "MF2020_avoiddeforest2.px", "MF2020_avoiddeforest2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3693,7 +3637,7 @@ TF2020_restor_wo_avoid.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_restor_wo_a
 #saving
 writeRaster(TF2020_restor_wo_avoid.ls, "rasters/PGM/2020_restor_wo_avoid/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_wo_avoidyoung", "SFAge2020_restor_wo_avoid.px", "SFAge2020_restor_wo_avoid.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_wo_avoidyoung", "TF2020_restor_wo_avoid.px", "TF2020_restor_wo_avoid.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3729,7 +3673,7 @@ MF2020_restor_wo_avoid.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_restor_wo_a
 #saving
 writeRaster(MF2020_restor_wo_avoid.ls, "rasters/PGM/2020_restor_wo_avoid/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_wo_avoidmature", "SFAge2020_restor_wo_avoid.px", "SFAge2020_restor_wo_avoid.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_wo_avoidmature", "MF2020_restor_wo_avoid.px", "MF2020_restor_wo_avoid.ls")]) #keeping only raster stack
 gc()
 
 
@@ -3982,7 +3926,7 @@ TF2020_avoidboth.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoidboth.ls[])
 #saving
 writeRaster(TF2020_avoidboth.ls, "rasters/PGM/2020_avoidboth/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoidbothyoung", "SFAge2020_avoidboth.px", "SFAge2020_avoidboth.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoidbothyoung", "TF2020_avoidboth.px", "TF2020_avoidboth.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4018,7 +3962,7 @@ MF2020_avoidboth.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoidboth.ls[])
 #saving
 writeRaster(MF2020_avoidboth.ls, "rasters/PGM/2020_avoidboth/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoidbothmature", "SFAge2020_avoidboth.px", "SFAge2020_avoidboth.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoidbothmature", "MF2020_avoidboth.px", "MF2020_avoidboth.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4271,7 +4215,7 @@ TF2020_avoidboth2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_avoidboth2.ls[])
 #saving
 writeRaster(TF2020_avoidboth2.ls, "rasters/PGM/2020_avoidboth2/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoidboth2young", "SFAge2020_avoidboth2.px", "SFAge2020_avoidboth2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoidboth2young", "TF2020_avoidboth2.px", "TF2020_avoidboth2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4307,7 +4251,7 @@ MF2020_avoidboth2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_avoidboth2.ls[])
 #saving
 writeRaster(MF2020_avoidboth2.ls, "rasters/PGM/2020_avoidboth2/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_avoidboth2mature", "SFAge2020_avoidboth2.px", "SFAge2020_avoidboth2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_avoidboth2mature", "MF2020_avoidboth2.px", "MF2020_avoidboth2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4561,7 +4505,7 @@ TF2020_restor_n_avoiddeforest.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_rest
 #saving
 writeRaster(TF2020_restor_n_avoiddeforest.ls, "rasters/PGM/2020_restor_n_avoiddeforest/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforestyoung", "SFAge2020_restor_n_avoiddeforest.px", "SFAge2020_restor_n_avoiddeforest.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforestyoung", "TF2020_restor_n_avoiddeforest.px", "TF2020_restor_n_avoiddeforest.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4597,7 +4541,7 @@ MF2020_restor_n_avoiddeforest.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_rest
 #saving
 writeRaster(MF2020_restor_n_avoiddeforest.ls, "rasters/PGM/2020_restor_n_avoiddeforest/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforestmature", "SFAge2020_restor_n_avoiddeforest.px", "SFAge2020_restor_n_avoiddeforest.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforestmature", "MF2020_restor_n_avoiddeforest.px", "MF2020_restor_n_avoiddeforest.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4851,7 +4795,7 @@ TF2020_restor_n_avoiddeforest2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_res
 #saving
 writeRaster(TF2020_restor_n_avoiddeforest2.ls, "rasters/PGM/2020_restor_n_avoiddeforest2/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforest2young", "SFAge2020_restor_n_avoiddeforest2.px", "SFAge2020_restor_n_avoiddeforest2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforest2young", "TF2020_restor_n_avoiddeforest2.px", "TF2020_restor_n_avoiddeforest2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -4887,7 +4831,7 @@ MF2020_restor_n_avoiddeforest2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_res
 #saving
 writeRaster(MF2020_restor_n_avoiddeforest2.ls, "rasters/PGM/2020_restor_n_avoiddeforest2/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforest2mature", "SFAge2020_restor_n_avoiddeforest2.px", "SFAge2020_restor_n_avoiddeforest2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoiddeforest2mature", "MF2020_restor_n_avoiddeforest2.px", "MF2020_restor_n_avoiddeforest2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -5141,7 +5085,7 @@ TF2020_restor_n_avoidboth.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_restor_n
 #saving
 writeRaster(TF2020_restor_n_avoidboth.ls, "rasters/PGM/2020_restor_n_avoidboth/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidbothyoung", "SFAge2020_restor_n_avoidboth.px", "SFAge2020_restor_n_avoidboth.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidbothyoung", "TF2020_restor_n_avoidboth.px", "TF2020_restor_n_avoidboth.ls")]) #keeping only raster stack
 gc()
 
 
@@ -5177,7 +5121,7 @@ MF2020_restor_n_avoidboth.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_restor_n
 #saving
 writeRaster(MF2020_restor_n_avoidboth.ls, "rasters/PGM/2020_restor_n_avoidboth/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidbothmature", "SFAge2020_restor_n_avoidboth.px", "SFAge2020_restor_n_avoidboth.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidbothmature", "MF2020_restor_n_avoidboth.px", "MF2020_restor_n_avoidboth.ls")]) #keeping only raster stack
 gc()
 
 
@@ -5431,7 +5375,7 @@ TF2020_restor_n_avoidboth2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, TF2020_restor_
 #saving
 writeRaster(TF2020_restor_n_avoidboth2.ls, "rasters/PGM/2020_restor_n_avoidboth2/TFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidboth2young", "SFAge2020_restor_n_avoidboth2.px", "SFAge2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidboth2young", "TF2020_restor_n_avoidboth2.px", "TF2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -5467,7 +5411,7 @@ MF2020_restor_n_avoidboth2.ls[] <- ifelse(pgm.lulc[[1]][]==0, NA, MF2020_restor_
 #saving
 writeRaster(MF2020_restor_n_avoidboth2.ls, "rasters/PGM/2020_restor_n_avoidboth2/MFls.tif", format="GTiff", overwrite=T)
 
-rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidboth2mature", "SFAge2020_restor_n_avoidboth2.px", "SFAge2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
+rm(list=ls()[ls() %in% c("SF2020_restor_n_avoidboth2mature", "MF2020_restor_n_avoidboth2.px", "MF2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
 gc()
 
 
@@ -5530,6 +5474,62 @@ writeRaster(edge2020_restor_n_avoidboth2.ls, "rasters/PGM/2020_restor_n_avoidbot
 
 rm(list=ls()[ls() %in% c("edge2020_restor_n_avoidboth2.px", "edge2020_restor_n_avoidboth2.ls")]) #keeping only raster stack
 gc()
+
+
+
+#
+#
+
+
+
+
+## import rural properties shapefiles and data from SISCAR
+#' https://www.car.gov.br/publico/municipios/downloads
+#' see the "restoration_candidate_pgm.R" on the script folder
+#' for details on reducing overlap between properties and 
+pgm.car <- readOGR(dsn = "rasters/PGM/raw", layer = "pgm_car_after_restoration_2010")
+names(pgm.car@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+                         "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+                         "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
+                         "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
+pgm.car <- spTransform(pgm.car, crs(std.proj))
+
+#checking
+#nrow(pgm.car)
+#nrow(pgm.car@data[pgm.car@data$NEED_INCREMENT==1,])
+#head(pgm.car@data[,"num_area_ha"])
+
+#note:
+#according to Brazilian Forest Code
+#small properties have less than or equal to 4 fiscal modules
+#medium/big properties heave more than 4 fiscal modules
+#in PGM, 1 fiscal module = 55ha [or 550000m2]
+
+
+## [propertysize]
+# transforming the properties polygons into rasters
+# cell value is the property size
+pgm.car.raster <- rasterize(pgm.car, pgm.lulc[[1]], field = "num_area_ha", fun = "mean", background = 0)
+pgm.car.raster[] <- ifelse(pgm.lulc[[1]][]==0, NA, pgm.car.raster[])
+#checking
+#st_crs(pgm.car.raster)==st_crs(pgm.shp)
+#plot(pgm.car.raster)
+#plot(pgm.car, add=T)
+
+#saving
+writeRaster(pgm.car.raster, "rasters/PGM/2010_real/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_real/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoiddegrad2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_wo_avoid/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoiddeforest2/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth/propertysize.tif", format="GTiff", overwrite=T)
+writeRaster(pgm.car.raster, "rasters/PGM/2020_restor_n_avoidboth2/propertysize.tif", format="GTiff", overwrite=T)
 
 
 
