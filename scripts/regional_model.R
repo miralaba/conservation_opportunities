@@ -2,10 +2,7 @@
 #' @title Cost-effectiveness of conservation actions in Amazon
 #' @description 
 
-#### pre-setting ####
-memory.limit(1000000)
-
-#### loading required packages ####
+# loading required packages ====================================================
 library(tidyverse)
 library(raster)
 library(rgdal)
@@ -19,7 +16,7 @@ library(biomod2)
 library(gridExtra)
 library(grDevices)
 
-#### loading input data ####
+# loading input data ===========================================================
 #explanatory variables
 sel.var.df <- read.csv("rasters/selected_environmental_explanatory_variables_byVIF.csv")
 
@@ -79,42 +76,48 @@ UFPls.invcore[UFPls.invcore<=.2]<-1
 pa.data <- as.data.frame(xyFromCell(UFPls.invcore, cell = which(UFPls.invcore[]==1), spatial = F))
 names(pa.data) <- c("Longitude", "Latitude")
 
-#### folders ####
-#dir.create("models.output/maps/PGM", recursive = T)
-dir.create("models.output/maps/PGM/2020_real", recursive = T)
-dir.create("models.output/maps/PGM/2020_avoiddeforest", recursive = T)
-dir.create("models.output/maps/PGM/2020_avoiddeforest2", recursive = T)
-dir.create("models.output/maps/PGM/2020_avoiddegrad", recursive = T)
-dir.create("models.output/maps/PGM/2020_avoidboth", recursive = T)
-dir.create("models.output/maps/PGM/2020_restor_wo_avoid", recursive = T)
-dir.create("models.output/maps/PGM/2020_restor_n_avoid_deforest", recursive = T)
-dir.create("models.output/maps/PGM/2020_restor_n_avoid_both", recursive = T)
+# creating directories =========================================================
+dir.create("models.output/biodiversity.maps/PGM", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2010_real", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_real", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoiddeforest", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoiddeforest2", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoiddegrad", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoiddegrad2", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoidboth", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_avoidboth2", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_restor_wo_avoid", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest2", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth", recursive = T)
+dir.create("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth2", recursive = T)
 
-#dir.create("models.output/maps/STM", recursive = T)
-dir.create("models.output/maps/STM/2020_real", recursive = T)
-dir.create("models.output/maps/STM/2020_avoiddeforest", recursive = T)
-dir.create("models.output/maps/STM/2020_avoiddeforest2", recursive = T)
-dir.create("models.output/maps/STM/2020_avoiddegrad", recursive = T)
-dir.create("models.output/maps/STM/2020_avoidboth", recursive = T)
-dir.create("models.output/maps/STM/2020_restor_wo_avoid", recursive = T)
-dir.create("models.output/maps/STM/2020_restor_n_avoid_deforest", recursive = T)
-dir.create("models.output/maps/STM/2020_restor_n_avoid_both", recursive = T)
+dir.create("models.output/biodiversity.maps/STM", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2010_real", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_real", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoiddeforest", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoiddeforest2", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoiddegrad", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoiddegrad2", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoidboth", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_avoidboth2", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_restor_wo_avoid", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth", recursive = T)
+dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth2", recursive = T)
 
-dir.create("models.output/evaluation", recursive = T)
+dir.create("models.output/biodiversity.maps/evaluation", recursive = T)
+
+#
+#
 
 
 
 
+# biodiversity benefit: for species with more than 5 records ===================
+#' species distribution modelling
 
-
-
-
-##############################################
-####        biodiversity benefit          ####
-##############################################
-#### for species with more than 5 records ####
-####    species distribution modelling    ####
-##############################################
 
 #i <- as.character(forestdep.spplist$Binomial[1])
 for (i in forestdep.spplist$Binomial) {
@@ -198,11 +201,9 @@ for (i in forestdep.spplist$Binomial) {
   gEval <- bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'run'))
   dev.off()
   
-  ########################################
-  ##       if the model is ready        ##
-  ##   and need only project the maps   ##
-  ##        start from here             ##
-  ########################################
+  #' if the model is ready and need only project the maps
+  #' start from here
+  
   #sel.var.df <- read.csv(paste0("selected_exploratory_var/", i, "_VIF.csv"), header=T)
   #myBiomodModelOut <- load(paste0(i,"/",i,".",i,".models.out"))
   #myBiomodModelOut <- get(myBiomodModelOut)
@@ -1130,17 +1131,13 @@ for (i in forestdep.spplist$Binomial) {
   
 }
 
+#
+#
 
 
 
-
-
-##############################################
-####        biodiversity benefit          ####
-##############################################
-#### for species with less than 5 records ####
-####              % of UPFls              ####
-##############################################
+#  biodiversity benefit: for species with less than 5 records ==================
+#' % of UPFls
 
 #forestdep.spplist <- read.csv("data/updated_species_summary_edby_visual_inspection.csv")
 #sppdata.final <- read.csv("data/presence_records.csv")
@@ -1311,11 +1308,11 @@ if (any(occur$Region=="STM")) {
 # importing species list and methods and evaluation metrics data frame
 forestdep.spplist <- read.csv("data/species_summary_final.csv")
 
-#### adding variable on conservation value ####
 
-# bird conservation value is inverse occurrence area size
-# scaled from 0 [the biggest] to 1 [the smallest]
-# based on birdlife_v2017b shapefiles
+#  biodiversity benefit:  adding conservation value ============================
+#' bird conservation value is inverse occurrence area size
+#' scaled from 0 [the biggest] to 1 [the smallest]
+#' based on birdlife_v2017b shapefiles
 bird.distribution.shp <- readOGR(dsn="~/GIS/bird_distr_BirdLifeInternational2016", layer="Birds_of_Amazonia")
 head(bird.distribution.shp@data)
 # adding variable to match with species list dataframe
@@ -1333,10 +1330,9 @@ forestdep.spplist$Shape_Area_scaled <- rescale(forestdep.spplist$Shape_Area, to 
 rm(bird.distribution.shp)
 
 
-# tree conservation value is wood density
-# scaled from 0 [the biggest] to 1 [the smallest]
-# based on the World Checklist of Vascular Plants
-## trees
+#' tree conservation value is wood density
+#' scaled from 0 [the biggest] to 1 [the smallest]
+#' based on the World Checklist of Vascular Plants
 pgm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
 stm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # merging tree data
@@ -1385,7 +1381,7 @@ write.csv(forestdep.spplist, "data/species_summary_final.csv")
 
 
 
-#### syntethic map: biodiversity benefit ####
+# syntethic map: biodiversity benefit ==========================================
 dir.create("models.output/biodiversity.benefits", recursive = T)
 
 forestdep.spplist.total <- forestdep.spplist
@@ -1428,18 +1424,15 @@ for (s in scenarios) {
   
 }
 
+#
+#
 
 
 
 
 
+# carbon benefit ===============================================================
 
-
-
-
-##############################################
-####            carbon benefit            ####
-##############################################
 dir.create("models.output/carbon.benefits", recursive = T)
 
 ## transect data
@@ -1583,8 +1576,8 @@ customRF$levels <- function(x) x$classes
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 tunegrid <- expand.grid(.mtry=c(3:15), .ntree=c(250, 500, 750, 1000))
 set.seed(999)
-rf_custom <- train(carbon_stock ~ distriver + distroad + DPFpx + edgedist + edgels + elevation + meanprecips +
-                  meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = subset(carbon, non_zero == 1),
+rf_custom <- train(carbon_stock ~ distriver + distroad + DPFpx + edgedist + edgels + edgepx + elevation +
+                     meanprecips + meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = subset(carbon, non_zero == 1),
                 method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
 print(rf_custom)
 plot(rf_custom)
@@ -1592,7 +1585,7 @@ plot(rf_custom)
 
 #final model
 mod.rf.fn2 <- randomForest(y = carbon[carbon$non_zero==1,"carbon_stock"], x = carbon[carbon$non_zero==1, c(14:23,25:28)], 
-                           mtry = 3, ntree=1000, nodesize=10, importance =T, nPerm = 5)
+                           mtry = 3, ntree=750, nodesize=10, importance =T, nPerm = 5)
 print(mod.rf.fn2)
 
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
@@ -2417,11 +2410,7 @@ writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth2, paste0("models.output/carb
 
 
 
-
-##############################################
-####         opportunity cost             ####
-##############################################
-dir.create("models.output/opportunity.costs", recursive = T)
+# opportunity cost =============================================================
 
 ## property data
 property <- read.csv("~/raw/areas.csv")
@@ -2435,7 +2424,7 @@ property <- read.csv("~/raw/areas.csv")
 property[which(is.na(property$totalarea_2009)),"totalarea_2009"] <- property[which(is.na(property$totalarea_2009)),"totalarea_2006"]
 #we are excluding properties with no information on their total area (n=5)
 property <- property[-which(is.na(property$totalarea_2009)),c("cd_propriedade", "totalarea_2009")]
-names(property) <- c("id", "property")
+names(property) <- c("id", "propertysize")
 
 ## income/profit data
 revenue <- read.csv("~/raw/revenue.csv")
@@ -2446,11 +2435,11 @@ names(revenue)[1] <- "id"
 revenue$catchment <- as.factor(revenue$catchment)
 
 #merging and calculating profit/ha
-property <- property %>% left_join(revenue) %>% mutate(profit_ha = profit/property)
-table(property$catchment)
+property <- property %>% left_join(revenue) %>% mutate(profit_ha = profit/propertysize)
+#table(property$catchment)
 
 #extracting the explanatory variables by catchment
-expl.var <- carbon[,c(2,13:24,26:34)]
+expl.var <- carbon[,c(2,13:23,25:28)]
 names(expl.var)[1] <- names(property)[4]
 
 #merging
@@ -2459,23 +2448,23 @@ property <- property %>% left_join(expl.var, multiple = "all", relationship = "m
 
 
 
-#scaling predictors -- z-scores
-property <- property %>% mutate(dominant = factor(dominant, levels = c("Cattlebeef","Cattlemilk","Animalother","Soy","Annual","Perennial","Mixed","Other")),
-                                distmarket_z = ((distmarket - mean(distmarket))/sd(distmarket)),
-                                property_z = ((property - mean(property))/sd(property)),
-                                distriver_z = ((distriver - mean(distriver))/sd(distriver)),
-                                distroad_z = ((distroad - mean(distroad))/sd(distroad)),
-                                DPFpx_z = ((DPFpx - mean(DPFpx))/sd(DPFpx)),
-                                edgedist_z = ((edgedist - mean(edgedist))/sd(edgedist)),
-                                edgels_z = ((edgels - mean(edgels))/sd(edgels)),
-                                elevation_z = ((elevation - mean(elevation))/sd(elevation)),
-                                meanprecips_z = ((meanprecips - mean(meanprecips))/sd(meanprecips)),
-                                meantemps_z = ((meantemps - mean(meantemps))/sd(meantemps)),
-                                SFagels_z = ((SFagels - mean(SFagels))/sd(SFagels)),
-                                SFpx_z = ((SFpx - mean(SFpx))/sd(SFpx)),
-                                TFpx_z = ((TFpx - mean(TFpx))/sd(TFpx)),
-                                UPFls_z = ((UPFls - mean(UPFls))/sd(UPFls)),
-                                TSDls_z = ((TSDls - mean(TSDls))/sd(TSDls)))
+##scaling predictors -- z-scores
+#property <- property %>% mutate(dominant = factor(dominant, levels = c("Cattlebeef","Cattlemilk","Animalother","Soy","Annual","Perennial","Mixed","Other")),
+#                                distmarket_z = ((distmarket - mean(distmarket))/sd(distmarket)),
+#                                property_z = ((property - mean(property))/sd(property)),
+#                                distriver_z = ((distriver - mean(distriver))/sd(distriver)),
+#                                distroad_z = ((distroad - mean(distroad))/sd(distroad)),
+#                                DPFpx_z = ((DPFpx - mean(DPFpx))/sd(DPFpx)),
+#                                edgedist_z = ((edgedist - mean(edgedist))/sd(edgedist)),
+#                                edgels_z = ((edgels - mean(edgels))/sd(edgels)),
+#                                elevation_z = ((elevation - mean(elevation))/sd(elevation)),
+#                                meanprecips_z = ((meanprecips - mean(meanprecips))/sd(meanprecips)),
+#                                meantemps_z = ((meantemps - mean(meantemps))/sd(meantemps)),
+#                                SFagels_z = ((SFagels - mean(SFagels))/sd(SFagels)),
+#                                SFpx_z = ((SFpx - mean(SFpx))/sd(SFpx)),
+#                                TFpx_z = ((TFpx - mean(TFpx))/sd(TFpx)),
+#                                UPFls_z = ((UPFls - mean(UPFls))/sd(UPFls)),
+#                                TSDls_z = ((TSDls - mean(TSDls))/sd(TSDls)))
 
 write.csv(property, "data/property.csv", row.names = F)
 #property <- read.csv("data/property.csv")
@@ -2484,11 +2473,12 @@ rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "property", "env.explanatory
 gc()
 
 
-#keeping only properties with positive profit
+#keeping only properties with positive profit (n=53)
 property.total <- property
 property <- property %>% dplyr::filter(profit_ha > 0 & !is.nan(profit_ha) & !is.infinite(profit_ha))
 
 #excluding outliers -- three properties with area lower than 6ha but profits greater than $10k/ha:
+#property %>% dplyr::filter(propertysize < 10 & profit_ha > 10000)
 #id == 419 (PGM), 461 and 322 (STM)
 property <- property %>% dplyr::filter(!id %in% c(419, 461, 322))
 
@@ -2517,6 +2507,7 @@ ppcomp(list(property.lnorm, property.gamma, property.weibull), legendtext = plot
 
 # log of profit
 property <- property %>% mutate(profit_halog = log(profit_ha))
+property$dominant <- as.factor(property$dominant)
 
 
 par(mfrow=c(1,1))
@@ -2555,25 +2546,27 @@ customRF$levels <- function(x) x$classes
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 tunegrid <- expand.grid(.mtry=c(3:9), .ntree=c(250, 500, 750, 1000))
 set.seed(999)
-rf_custom <- train(profit_halog ~ property + distmarket + distriver + distroad + DPFpx + edgedist + edgels + elevation + meanprecips +
-                     meantemps + SFagels + SFpx + TFpx + UPFls + TSDls, data = property,
+rf_custom <- train(profit_halog ~ propertysize + distmarket + distriver + distroad + DPFpx + 
+                     edgedist + edgepx + edgels + elevation + meanprecips +
+                     meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = property,
                    method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
 print(rf_custom)
 plot(rf_custom)
 
 
 #final model
-mod.rf.fn2 <- randomForest(y = property[,"profit_halog"], x = property[,c(2,8:10,12:14,16:18,20,23:25,27)], 
-                           mtry = 9, ntree=1000, nodesize=10, importance =T, nPerm = 5)
+mod.rf.fn2 <- randomForest(y = property[,"profit_halog"], x = property[,c(2,8:22)], 
+                           mtry = 8, ntree=250, nodesize=10, importance =T, nPerm = 5)
+print(mod.rf.fn2)
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
 #plot(mod.rf.fn2)
 varImpPlot(mod.rf.fn2, type = 1)
-partialPlot(mod.rf.fn2, property, property)
+partialPlot(mod.rf.fn2, property, propertysize)
 partialPlot(mod.rf.fn2, property, distmarket)
 partialPlot(mod.rf.fn2, property, meantemps)
-partialPlot(mod.rf.fn2, property, meanprecips)
+partialPlot(mod.rf.fn2, property, elevation)
 partialPlot(mod.rf.fn2, property, TSDls)
-partialPlot(mod.rf.fn2, property, edgedist)
+partialPlot(mod.rf.fn2, property, meanprecips)
 
 
 
@@ -2719,8 +2712,8 @@ mod.rf.proj_pgm.2010real <- exp(predict(pgm.2010real.rf, mod.rf.fn2, type="respo
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_pgm.2010real, paste0("models.output/opportunity.costs/PGM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
-#writeRaster(proj_pgm.2010real.conbywm, paste0("models.output/opportunity.costs/PGM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
+#writeRaster(proj_pgm.2010real.conbywm, "models.output/costs/PGM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
                             "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real"))])
@@ -2751,8 +2744,8 @@ mod.rf.proj_stm.2010real <- exp(predict(stm.2010real.rf, mod.rf.fn2, type="respo
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_stm.2010real, paste0("models.output/opportunity.costs/STM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
-#writeRaster(proj_stm.2010real.conbywm, paste0("models.output/opportunity.costs/STM_2010_real_base_opportunity_cost.tif"), format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
+#writeRaster(proj_stm.2010real.conbywm, "models.output/costs/STM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
                             "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real", "mod.rf.proj_stm.2010real"))])
@@ -2767,11 +2760,12 @@ gc()
 rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "property", "env.explanatory.var"))])
 gc()
 
+#
+#
 
-#############################################
-####    harvestable tree volume value    ####
-####       and operational costs         ####
-#############################################
+
+
+# harvestable tree volume value and operational costs ==========================
 
 ## trees
 pgm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
@@ -2805,18 +2799,18 @@ commercial.treedata <- treedata %>% filter(DBH>=40) %>%
                                mutate(Volume = -6.86 + (1.994*log(DBH)),
                                       Tree_value = Volume * Interno..R..)
 
-# cumulative sum of the most valuable trees up to a maximum total harvestable volume of 21.5m3 over 25 years
+# cumulative sum of the most valuable trees up to a maximum total harvestable volume of 30.1m3 over 35 years
 # assuming forest productivity of 0.86 m3/ha/year
 # source: BRASIL, RES. CONAMA No 406, DE 02 DE FEVEREIRO DE 2009
 commercial.treedata <- commercial.treedata %>% 
                              group_by(Transectcode) %>% 
                                     arrange(desc(Tree_value)) %>% 
                                     mutate(y = cumsum(Volume)) %>% 
-                                    dplyr::filter(y<=21.5 & Tree_value > 0)
+                                    dplyr::filter(y<=30.1 & Tree_value > 0)
 
 # costs of planning and operational of the exploration
 # the IMAZON estimated the general cost of planning and the operational costs in Paragominas-PA, 2013
-# ~ US$26.49/m3 -- US$1 == 2.5 -- R$66.23/m3
+# ~ US$26.49/m3 -- US$1 == R$2.5 -- R$66.23/m3
 #source: https://imazon.org.br/custos-e-beneficios-do-manejo-florestal-para-a-producao-de-madeira-na-amazonia-oriental-n-10/
 commercial.treedata <- commercial.treedata %>% mutate(costs = Volume * 66.23,
                                                       Tree_profit = Tree_value - costs)
@@ -2838,7 +2832,7 @@ transect.harvest.value <- commercial.treedata %>% group_by(Transectcode) %>%
 #summary(transect.harvest.value)
 
 #extracting the explanatory variables by catchment
-expl.var <- carbon[,c(1:4,11:34)]
+expl.var <- carbon[,c(2:4,13:28)]
 expl.var$Transectcode <- gsub("ExtraPGM", "ExtraPGM_", expl.var$Transectcode)
 
 #merging
@@ -2848,21 +2842,21 @@ transect.harvest.value <- transect.harvest.value %>% left_join(expl.var, multipl
 
 
 
-#scaling predictors -- z-scores
-transect.harvest.value <- transect.harvest.value %>% mutate(distmarket_z = ((distmarket - mean(distmarket))/sd(distmarket)),
-                                                            distriver_z = ((distriver - mean(distriver))/sd(distriver)),
-                                                            distroad_z = ((distroad - mean(distroad))/sd(distroad)),
-                                                            DPFpx_z = ((DPFpx - mean(DPFpx))/sd(DPFpx)),
-                                                            edgedist_z = ((edgedist - mean(edgedist))/sd(edgedist)),
-                                                            edgels_z = ((edgels - mean(edgels))/sd(edgels)),
-                                                            elevation_z = ((elevation - mean(elevation))/sd(elevation)),
-                                                            meanprecips_z = ((meanprecips - mean(meanprecips))/sd(meanprecips)),
-                                                            meantemps_z = ((meantemps - mean(meantemps))/sd(meantemps)),
-                                                            SFagels_z = ((SFagels - mean(SFagels))/sd(SFagels)),
-                                                            SFpx_z = ((SFpx - mean(SFpx))/sd(SFpx)),
-                                                            TFpx_z = ((TFpx - mean(TFpx))/sd(TFpx)),
-                                                            UPFls_z = ((UPFls - mean(UPFls))/sd(UPFls)),
-                                                            TSDls_z = ((TSDls - mean(TSDls))/sd(TSDls)))
+##scaling predictors -- z-scores
+#transect.harvest.value <- transect.harvest.value %>% mutate(distmarket_z = ((distmarket - mean(distmarket))/sd(distmarket)),
+#                                                            distriver_z = ((distriver - mean(distriver))/sd(distriver)),
+#                                                            distroad_z = ((distroad - mean(distroad))/sd(distroad)),
+#                                                            DPFpx_z = ((DPFpx - mean(DPFpx))/sd(DPFpx)),
+#                                                            edgedist_z = ((edgedist - mean(edgedist))/sd(edgedist)),
+#                                                            edgels_z = ((edgels - mean(edgels))/sd(edgels)),
+#                                                            elevation_z = ((elevation - mean(elevation))/sd(elevation)),
+#                                                            meanprecips_z = ((meanprecips - mean(meanprecips))/sd(meanprecips)),
+#                                                            meantemps_z = ((meantemps - mean(meantemps))/sd(meantemps)),
+#                                                            SFagels_z = ((SFagels - mean(SFagels))/sd(SFagels)),
+#                                                            SFpx_z = ((SFpx - mean(SFpx))/sd(SFpx)),
+#                                                            TFpx_z = ((TFpx - mean(TFpx))/sd(TFpx)),
+#                                                            UPFls_z = ((UPFls - mean(UPFls))/sd(UPFls)),
+#                                                            TSDls_z = ((TSDls - mean(TSDls))/sd(TSDls)))
 
 write.csv(transect.harvest.value, "data/transect_harvest_value.csv", row.names = F)
 #transect.harvest.value <- read.csv("data/transect_harvest_value.csv")
@@ -2929,25 +2923,28 @@ customRF$levels <- function(x) x$classes
 control <- trainControl(method="repeatedcv", number=10, repeats=3)
 tunegrid <- expand.grid(.mtry=c(3:9), .ntree=c(250, 500, 750, 1000))
 set.seed(999)
-rf_custom <- train(profit_ha_year ~ property + distmarket + distriver + distroad + DPFpx + edgedist + edgels + elevation + meanprecips +
-                     meantemps + SFagels + SFpx + TFpx + UPFls + TSDls, data = transect.harvest.value,
+rf_custom <- train(profit_ha_year ~ propertysize + distmarket + distriver + distroad + DPFpx + 
+                     edgedist + edgepx + edgels + elevation + meanprecips +
+                     meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = transect.harvest.value,
                    method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
 print(rf_custom)
 plot(rf_custom)
 
 
 #final model
-mod.rf.fn2 <- randomForest(y = transect.harvest.value[,"profit_ha_year"], x = transect.harvest.value[,c(10:12,14:16,18:20,22,23,26:28,30)], 
-                           mtry = 3, ntree=500, nodesize=10, importance =T, nPerm = 5)
+mod.rf.fn2 <- randomForest(y = transect.harvest.value[,"profit_ha_year"], x = transect.harvest.value[,c(8:23)], 
+                           mtry = 3, ntree=1000, nodesize=10, importance =T, nPerm = 5)
+print(mod.rf.fn2)
+
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
 #plot(mod.rf.fn2)
 varImpPlot(mod.rf.fn2, type = 1)
-partialPlot(mod.rf.fn2, transect.harvest.value, SFpx)
-partialPlot(mod.rf.fn2, transect.harvest.value, meanprecips)
 partialPlot(mod.rf.fn2, transect.harvest.value, TSDls)
-partialPlot(mod.rf.fn2, transect.harvest.value, elevation)
-partialPlot(mod.rf.fn2, transect.harvest.value, UPFls)
-partialPlot(mod.rf.fn2, transect.harvest.value, meantemps)
+partialPlot(mod.rf.fn2, transect.harvest.value, meanprecips)
+partialPlot(mod.rf.fn2, transect.harvest.value, edgedist)
+partialPlot(mod.rf.fn2, transect.harvest.value, distroad)
+partialPlot(mod.rf.fn2, transect.harvest.value, SFls)
+partialPlot(mod.rf.fn2, transect.harvest.value, UPFpx)
 
 
 
