@@ -2712,7 +2712,7 @@ mod.rf.proj_pgm.2010real <- exp(predict(pgm.2010real.rf, mod.rf.fn2, type="respo
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_opportunity.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2010real.conbywm, "models.output/costs/PGM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
@@ -2744,7 +2744,7 @@ mod.rf.proj_stm.2010real <- exp(predict(stm.2010real.rf, mod.rf.fn2, type="respo
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_opportunity.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_stm.2010real.conbywm, "models.output/costs/STM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
@@ -3094,7 +3094,7 @@ mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn2, type="response"
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_haverst.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2010real.conbywm, "models.output/costs/PGM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "transect.harvest.value", "env.explanatory.var",
@@ -3126,7 +3126,7 @@ mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn2, type="response"
 #                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
 #                                           na.rm=T)
 
-writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
+writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_haverst.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_stm.2010real.conbywm, "models.output/costs/STM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
 
 rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "transect.harvest.value", "env.explanatory.var",
