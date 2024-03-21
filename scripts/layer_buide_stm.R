@@ -3216,6 +3216,7 @@ gc()
 
 ## Secondary forest age
 SFAge2020_avoiddeforest <- calc(stm.sfage[["stm.sfage.2010real"]], fun=function(x){ifelse(is.na(x), x, ifelse(x==0, x, x+10))})
+SFAge2020_avoiddeforest[] <- ifelse(SF2020_avoiddeforest[]==0, 0, SFAge2020_avoiddeforest[])
 writeRaster(SFAge2020_avoiddeforest, "rasters/STM/input/SFAge2020_avoiddeforest.tif", format="GTiff", overwrite=T)
 
 ### mean age in local scale (90m)
