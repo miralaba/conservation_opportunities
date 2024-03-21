@@ -68,6 +68,8 @@ pgm.carbon.benefit <- mask(pgm.carbon.benefit, pgm.shp)
 #plot(pgm.carbon.benefit, nr=2, col = terrain.colors(length(seq(0, 225, by = 25)), rev = T), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 #
 
+
+
 stm.carbon.benefit.list <- grep("STM", carbon.benefit.list, value = T)
 #stm.carbon.benefit2.list <- grep("2_", stm.carbon.benefit.list, value = T)
 #stm.carbon.benefit.list <- grep("2_", stm.carbon.benefit.list, value = T, invert = T)
@@ -300,11 +302,11 @@ pgm.costs.total <- mask(pgm.costs.total, pgm.shp)
 #plot(pgm.costs.total, nr=2, col = terrain.colors(length(seq(0, 225, by = 25)), rev = T), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 #
 
-pgm.max.opportunity.haverst.cost <- calc(pgm.costs.total[[c(2,3)]], function(x){max(x)})
+pgm.max.opportunity.harvest.cost <- calc(pgm.costs.total[[c(2,3)]], function(x){max(x)})
 
 
 
-pgm.avoiddeforest.cost.total <- pgm.max.opportunity.haverst.cost
+pgm.avoiddeforest.cost.total <- pgm.max.opportunity.harvest.cost
 pgm.avoiddeforest.cost <- mask(pgm.avoiddeforest.cost.total, pgm.area.change[[4]])
 names(pgm.avoiddeforest.cost) <- "PGM_2020_avoiddeforest_costs"
 pgm.avoiddeforest2.cost <- mask(pgm.avoiddeforest.cost.total, pgm.area.change[[5]])
@@ -320,19 +322,19 @@ pgm.restor_wo_avoid.cost.total <- pgm.costs.total[[3]] + pgm.costs.total[[4]]
 pgm.restor_wo_avoid.cost <- mask(pgm.restor_wo_avoid.cost.total, pgm.area.change[[13]])
 names(pgm.restor_wo_avoid.cost) <- "PGM_2020_restor_wo_avoid_costs"
 
-pgm.avoidboth.cost.total <- pgm.costs.total[[1]] + pgm.max.opportunity.haverst.cost
+pgm.avoidboth.cost.total <- pgm.costs.total[[1]] + pgm.max.opportunity.harvest.cost
 pgm.avoidboth.cost <- mask(pgm.avoidboth.cost.total, pgm.area.change[[2]])
 names(pgm.avoidboth.cost) <- "PGM_2020_avoidboth_costs"
 pgm.avoidboth2.cost <- mask(pgm.avoidboth.cost.total, pgm.area.change[[3]])
 names(pgm.avoidboth2.cost) <- "PGM_2020_avoidboth2_costs"
 
-pgm.restor_n_avoid_deforest.cost.total <- pgm.costs.total[[4]] + pgm.max.opportunity.haverst.cost
+pgm.restor_n_avoid_deforest.cost.total <- pgm.costs.total[[4]] + pgm.max.opportunity.harvest.cost
 pgm.restor_n_avoid_deforest.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.area.change[[11]])
 names(pgm.restor_n_avoid_deforest.cost) <- "PGM_2020_restor_n_avoiddeforest_costs"
 pgm.restor_n_avoid_deforest2.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.area.change[[12]])
 names(pgm.restor_n_avoid_deforest2.cost) <- "PGM_2020_restor_n_avoiddeforest2_costs"
 
-pgm.restor_n_avoid_both.cost.total <- pgm.costs.total[[1]] + pgm.costs.total[[4]] + pgm.max.opportunity.haverst.cost
+pgm.restor_n_avoid_both.cost.total <- pgm.costs.total[[1]] + pgm.costs.total[[4]] + pgm.max.opportunity.harvest.cost
 pgm.restor_n_avoid_both.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.area.change[[9]])
 names(pgm.restor_n_avoid_both.cost) <- "PGM_2020_restor_n_avoidboth_costs"
 pgm.restor_n_avoid_both2.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.area.change[[10]])
@@ -371,11 +373,11 @@ stm.costs.total <- mask(stm.costs.total, stm.shp)
 #plot(stm.costs.total, nr=2, col = terrain.colors(length(seq(0, 225, by = 25)), rev = T), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 #
 
-stm.max.opportunity.haverst.cost <- calc(stm.costs.total[[c(2,3)]], function(x){max(x)})
+stm.max.opportunity.harvest.cost <- calc(stm.costs.total[[c(2,3)]], function(x){max(x)})
 
 
 
-stm.avoiddeforest.cost.total <- stm.max.opportunity.haverst.cost
+stm.avoiddeforest.cost.total <- stm.max.opportunity.harvest.cost
 stm.avoiddeforest.cost <- mask(stm.avoiddeforest.cost.total, stm.area.change[[4]])
 names(stm.avoiddeforest.cost) <- "STM_2020_avoiddeforest_costs"
 stm.avoiddeforest2.cost <- mask(stm.avoiddeforest.cost.total, stm.area.change[[5]])
@@ -391,19 +393,19 @@ stm.restor_wo_avoid.cost.total <- stm.costs.total[[3]] + stm.costs.total[[4]]
 stm.restor_wo_avoid.cost <- mask(stm.restor_wo_avoid.cost.total, stm.area.change[[13]])
 names(stm.restor_wo_avoid.cost) <- "STM_2020_restor_wo_avoid_costs"
 
-stm.avoidboth.cost.total <- stm.costs.total[[1]] + stm.max.opportunity.haverst.cost
+stm.avoidboth.cost.total <- stm.costs.total[[1]] + stm.max.opportunity.harvest.cost
 stm.avoidboth.cost <- mask(stm.avoidboth.cost.total, stm.area.change[[2]])
 names(stm.avoidboth.cost) <- "STM_2020_avoidboth_costs"
 stm.avoidboth2.cost <- mask(stm.avoidboth.cost.total, stm.area.change[[3]])
 names(stm.avoidboth2.cost) <- "STM_2020_avoidboth2_costs"
 
-stm.restor_n_avoid_deforest.cost.total <- stm.costs.total[[4]] + stm.max.opportunity.haverst.cost
+stm.restor_n_avoid_deforest.cost.total <- stm.costs.total[[4]] + stm.max.opportunity.harvest.cost
 stm.restor_n_avoid_deforest.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.area.change[[11]])
 names(stm.restor_n_avoid_deforest.cost) <- "STM_2020_restor_n_avoiddeforest_costs"
 stm.restor_n_avoid_deforest2.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.area.change[[12]])
 names(stm.restor_n_avoid_deforest2.cost) <- "STM_2020_restor_n_avoiddeforest2_costs"
 
-stm.restor_n_avoid_both.cost.total <- stm.costs.total[[1]] + stm.costs.total[[4]] + stm.max.opportunity.haverst.cost
+stm.restor_n_avoid_both.cost.total <- stm.costs.total[[1]] + stm.costs.total[[4]] + stm.max.opportunity.harvest.cost
 stm.restor_n_avoid_both.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.area.change[[9]])
 names(stm.restor_n_avoid_both.cost) <- "STM_2020_restor_n_avoidboth_costs"
 stm.restor_n_avoid_both2.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.area.change[[10]])
@@ -630,7 +632,117 @@ ggarrange(ggarrange(cost1, cost2, ncol = 2, align = "h", labels = c("A", "B")),
 
 
 
+# best strategy under budget constraints =======================================
+carbon.deforestation <- pgm.carbon.benefit[["PGM_2020_avoiddeforest_carbon_benefit"]]
+cost.deforestation <- pgm.costs[["PGM_2020_avoiddeforest_costs"]]
 
+carbon.degradation <- pgm.carbon.benefit[["PGM_2020_avoiddegrad_carbon_benefit"]]
+cost.degradation <- pgm.costs[["PGM_2020_avoiddegrad_costs"]]
+
+carbon.restoration <- pgm.carbon.benefit[["PGM_2020_restor_wo_avoid_carbon_benefit"]]
+cost.restoration <- pgm.costs[["PGM_2020_restor_wo_avoid_costs"]]
+
+# Create an empty dataframe to store results
+result_df <- data.frame(Budget = numeric(0),
+                        Total_area = numeric(0),
+                        Deforestation_area = numeric(0), 
+                        Degradation_area = numeric(0), 
+                        Restoration_area = numeric(0))
+
+
+# Initialize areas reached
+reached.areas <- raster("rasters/PGM/raw/pgm-lulc-mapbiomas-brazil-collection-80-2020.tif")
+
+ncell.degradation <- c()
+ncell.deforestation <- c()
+ncell.restoration <- c()
+
+# Loop through each budget constraint
+for (r in seq(0,100,2)) {
+  # Initialize total carbon stocks and costs
+  total.carbon.degradation <- 0
+  total.cost.degradation <- 0
+  
+  total.carbon.deforestation <- 0
+  total.cost.deforestation <- 0
+  
+  total.carbon.restoration <- 0
+  total.cost.restoration <- 0
+  
+  
+  # Iterate while budget is not exhausted
+  while (round(sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation), 0) <= r*1000000) {
+    #excluding areas after conservation action
+    carbon.deforestation <- mask(carbon.deforestation, reached.areas)
+    cost.deforestation <- mask(cost.deforestation, reached.areas)
+    
+    carbon.degradation <- mask(carbon.degradation, reached.areas)
+    cost.degradation <- mask(cost.degradation, reached.areas)
+    
+    carbon.restoration <- mask(carbon.restoration, reached.areas)
+    cost.restoration <- mask(cost.restoration, reached.areas)
+    
+    # Calculate the remaining budget
+    remaining.budget <- round(r*1000000 - (sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation)),0)
+    
+    cat("\n\t> The remaining budget is", remaining.budget, "and this is the round", r)
+    
+    # Calculate the maximum carbon stock for each scenario
+    max.carbon.deforestation <- max(carbon.deforestation[], na.rm = T)
+    max.carbon.degradation <- max(carbon.degradation[], na.rm = T)
+    max.carbon.restoration <- max(carbon.restoration[], na.rm = T)
+    
+    # Determine which scenario has the highest maximum carbon stock
+    max.carbon <- max(max.carbon.deforestation, max.carbon.degradation, max.carbon.restoration)
+    
+    # Select the cell with the highest carbon stock based on the scenario
+    if (max.carbon == max.carbon.deforestation) {
+      cell.to.select <- which(values(carbon.deforestation)==max.carbon)
+      ncell.deforestation <- c(ncell.deforestation, cell.to.select)
+      total.cost.deforestation <- sum(total.cost.deforestation, cost.deforestation[cell.to.select], na.rm = T)
+    } else if (max.carbon == max.carbon.degradation) {
+      cell.to.select <- which(values(carbon.degradation)==max.carbon)
+      ncell.degradation <- c(ncell.degradation, cell.to.select)
+      total.cost.degradation <- sum(total.cost.degradation, cost.degradation[cell.to.select], na.rm = T)
+    } else {
+      cell.to.select <- which(values(carbon.restoration)==max.carbon)
+      ncell.restoration <- c(ncell.restoration, cell.to.select)
+      total.cost.restoration <- sum(total.cost.restoration, cost.restoration[cell.to.select], na.rm = T)
+    }
+    
+    # Mark the selected cell as reached
+    reached.areas[cell.to.select] <- NA
+  }
+  
+  
+  # Append results to the dataframe
+  result_df <- rbind(result_df, data.frame(Budget = r*1000000,
+                                           Total_area = length(which(is.na(values(reached.areas)))),
+                                           Degradation_area = length(ncell.degradation), 
+                                           Deforestation_area = length(ncell.deforestation), 
+                                           Restoration_area = length(ncell.restoration)))
+}
+
+
+
+
+
+# Create a plot
+result_df %>% mutate(Total = Total_area - lag(Total_area, default = first(Total_area)),
+                     Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
+                     Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
+                     Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
+                     Proportion_Degradation = Degradation/Total,
+                     Proportion_Deforestation = Deforestation/Total,
+                     Proportion_Restoration = Restoration/Total) %>% 
+  ggplot(aes(x = Budget)) +
+  geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), size = 1) +
+  geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), size = 1) +
+  geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), size = 1) +
+  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
+  scale_color_manual(values = c("Avoid Deforestation" = "blue", "Passive Restoration" = "green", "Avoid Degradation" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
 
 
 
@@ -2882,19 +2994,19 @@ conservact.carbbenefit.overview %>%
 #import costs
 pgm.opportunity.cost <- raster("models.output/opportunity.costs/PGM_2010_real_base_opportunity_cost.tif")
 #pgm.opportunity.cost[is.na(pgm.opportunity.cost)]<-0
-pgm.haverst.cost <- raster("models.output/opportunity.costs/PGM_2010_real_base_haverst_cost.tif")
-pgm.stack.opportunity.cost <- stack(pgm.opportunity.cost,pgm.haverst.cost)
+pgm.harvest.cost <- raster("models.output/opportunity.costs/PGM_2010_real_base_harvest_cost.tif")
+pgm.stack.opportunity.cost <- stack(pgm.opportunity.cost,pgm.harvest.cost)
 pgm.max.opportunity.cost <- max(pgm.stack.opportunity.cost, na.rm = T)
 pgm.firecontrol.cost <- raster("models.output/opportunity.costs/PGM_2010_real_base_firecontrol.tif")
 pgm.passiverestor.cost <- raster("models.output/opportunity.costs/PGM_2010_real_base_passiverestoration.tif")
 
 
 #setting scenario costs
-pgm.avoiddegrad.cost <- pgm.haverst.cost + pgm.firecontrol.cost
-pgm.avoiddeforest.cost <- pgm.opportunity.cost + pgm.haverst.cost
+pgm.avoiddegrad.cost <- pgm.harvest.cost + pgm.firecontrol.cost
+pgm.avoiddeforest.cost <- pgm.opportunity.cost + pgm.harvest.cost
 pgm.avoidboth.cost <- pgm.max.opportunity.cost + pgm.firecontrol.cost
 pgm.restor_wo_avoid.cost <- pgm.passiverestor.cost + pgm.opportunity.cost
-pgm.restor_n_avoid_deforest.cost <- pgm.passiverestor.cost + pgm.opportunity.cost + pgm.haverst.cost
+pgm.restor_n_avoid_deforest.cost <- pgm.passiverestor.cost + pgm.opportunity.cost + pgm.harvest.cost
 pgm.restor_n_avoid_both.cost <- pgm.passiverestor.cost + pgm.max.opportunity.cost + pgm.firecontrol.cost
 
 #converting in dataframe
@@ -2936,9 +3048,9 @@ pgm.costs.df <- pgm.costs.df %>%
 stm.opportunity.cost <- raster("models.output/opportunity.costs/STM_2010_real_base_opportunity_cost.tif")
 stm.opportunity.cost <- mask(stm.opportunity.cost, stm.mask)
 #stm.opportunity.cost[is.na(stm.opportunity.cost)]<-0
-stm.haverst.cost <- raster("models.output/opportunity.costs/STM_2010_real_base_haverst_cost.tif")
-stm.haverst.cost <- mask(stm.haverst.cost, stm.mask)
-stm.stack.opportunity.cost <- stack(stm.opportunity.cost,stm.haverst.cost)
+stm.harvest.cost <- raster("models.output/opportunity.costs/STM_2010_real_base_harvest_cost.tif")
+stm.harvest.cost <- mask(stm.harvest.cost, stm.mask)
+stm.stack.opportunity.cost <- stack(stm.opportunity.cost,stm.harvest.cost)
 stm.max.opportunity.cost <- max(stm.stack.opportunity.cost, na.rm = T)
 stm.firecontrol.cost <- raster("models.output/opportunity.costs/STM_2010_real_base_firecontrol.tif")
 stm.firecontrol.cost <- mask(stm.firecontrol.cost, stm.mask)
@@ -2947,11 +3059,11 @@ stm.passiverestor.cost <- mask(stm.passiverestor.cost, stm.mask)
 
 
 #setting scenario costs
-stm.avoiddegrad.cost <- stm.haverst.cost + stm.firecontrol.cost
-stm.avoiddeforest.cost <- stm.opportunity.cost + stm.haverst.cost
+stm.avoiddegrad.cost <- stm.harvest.cost + stm.firecontrol.cost
+stm.avoiddeforest.cost <- stm.opportunity.cost + stm.harvest.cost
 stm.avoidboth.cost <- stm.max.opportunity.cost + stm.firecontrol.cost
 stm.restor_wo_avoid.cost <- stm.passiverestor.cost + stm.opportunity.cost
-stm.restor_n_avoid_deforest.cost <- stm.passiverestor.cost + stm.opportunity.cost + stm.haverst.cost
+stm.restor_n_avoid_deforest.cost <- stm.passiverestor.cost + stm.opportunity.cost + stm.harvest.cost
 stm.restor_n_avoid_both.cost <- stm.passiverestor.cost + stm.max.opportunity.cost + stm.firecontrol.cost
 
 #converting in dataframe
@@ -3046,8 +3158,8 @@ costs.overview %>%
 #plot(pgm.opportunity.cost, col = terrain.colors(length(seq(0, 1500, by = 125)), rev = T), breaks= seq(0, 1500, by = 125))
 #plot(stm.opportunity.cost, col = terrain.colors(length(seq(0, 1500, by = 125)), rev = T), breaks= seq(0, 1500, by = 125))
 
-#plot(pgm.haverst.cost, col = terrain.colors(length(seq(0, 200, by = 20)), rev = T), breaks= seq(0, 200, by = 20))
-#plot(stm.haverst.cost, col = terrain.colors(length(seq(0, 200, by = 20)), rev = T), breaks= seq(0, 200, by = 20))
+#plot(pgm.harvest.cost, col = terrain.colors(length(seq(0, 200, by = 20)), rev = T), breaks= seq(0, 200, by = 20))
+#plot(stm.harvest.cost, col = terrain.colors(length(seq(0, 200, by = 20)), rev = T), breaks= seq(0, 200, by = 20))
 
 #plot(pgm.firecontrol.cost, col = terrain.colors(length(seq(0, 600, by = 50)), rev = T), breaks= seq(0, 600, by = 50))
 #plot(stm.firecontrol.cost, col = terrain.colors(length(seq(0, 600, by = 50)), rev = T), breaks= seq(0, 600, by = 50))
