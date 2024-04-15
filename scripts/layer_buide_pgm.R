@@ -5798,7 +5798,7 @@ for (i in pgm.car$COD_IMOVEL) {
 
 
 #' @description fire breaks could be cleared at rate of 33.333 meters per day, costing R$100 per day according to IPAM
-#' source: https://www.terrabrasilis.org.br/ecotecadigital/pdf/tecnicas-de-prevencao-de-fogo-acidental-metodo-bom-manejo-de-fogo-para-areas-de-agricultura-familiar.pdf
+#' source: https://ipam.org.br/wp-content/uploads/2009/05/te%CC%81cnicas_de_prevenc%CC%A7a%CC%83o_de_fogo_acidental_.pdf
 #' cost of fire control was (P/33.33333) x 100, where P is the perimeter in meters of forested area in the property
 pgm.car@data$cost <- (as.numeric((pgm.car@data$FOREST_PERIMETER/33.33333) * 100))
 pgm.car@data$cost <- ifelse(is.na(pgm.car@data$cost), 0, pgm.car@data$cost)
@@ -5849,7 +5849,7 @@ values(restor.cost1.deforest.dist)[values(restor.cost1.deforest.dist) <= 500] <-
 
 restor.cost1 <- mask(restor.cost1, restor.cost1.deforest.dist)
 restor.cost1[is.na(restor.cost1)] <- 0
-restor.cost1[restor.cost1==1] <- 189.13
+restor.cost1[restor.cost1==1] <- 189.13 * 0.09
 
 #natural regeneration with fence
 restor.cost2 <- pgm.lulc[["pgm.lulc.2010real"]]
@@ -5861,7 +5861,7 @@ names(restor.cost2) <- "restoration.fences"
 
 restor.cost2 <- mask(restor.cost2, restor.cost1.deforest.dist)
 restor.cost2[is.na(restor.cost2)] <- 0
-restor.cost2[restor.cost2==1] <- 1331.55
+restor.cost2[restor.cost2==1] <- 1331.55 * 0.09
 
 #active restoration
 restor.cost3 <- pgm.lulc[["pgm.lulc.2010real"]]
@@ -5877,7 +5877,7 @@ values(restor.cost3.deforest.dist)[values(restor.cost3.deforest.dist) > 500] <- 
 
 restor.cost3 <- mask(restor.cost3, restor.cost3.deforest.dist)
 restor.cost3[is.na(restor.cost3)] <- 0
-restor.cost3[restor.cost3==1] <- 7899.71
+restor.cost3[restor.cost3==1] <- 7899.71 * 0.09
 
 #restoration cost layer
 restor.cost.final <- sum(restor.cost1, restor.cost2, restor.cost3)
