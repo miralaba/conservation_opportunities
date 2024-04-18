@@ -61,21 +61,6 @@ for (var in names(pgm.env.explanatory.var)) {
 }
 
 
-#response variables
-forestdep.spplist <- read.csv("data/species_summary.csv")
-#forestdep.spplist <- read.csv("models.output/evaluation/updated_species_summary_v1.csv")
-
-sppdata.final <- read.csv("data/presence_records.csv")
-
-#pseudo-absence full dataset
-#all cells with less than 20% of undegraded primary forest in landscape
-UFPls.invcore <- env.explanatory.var[["UPFls"]]
-UFPls.invcore[UFPls.invcore>.2]<-NA
-UFPls.invcore[UFPls.invcore<=.2]<-1
-
-pa.data <- as.data.frame(xyFromCell(UFPls.invcore, cell = which(UFPls.invcore[]==1), spatial = F))
-names(pa.data) <- c("Longitude", "Latitude")
-
 # creating directories =========================================================
 dir.create("models.output/biodiversity.maps/PGM", recursive = T)
 dir.create("models.output/biodiversity.maps/PGM/2010_real", recursive = T)
@@ -116,6 +101,21 @@ dir.create("models.output/biodiversity.maps/evaluation", recursive = T)
 
 
 # biodiversity benefit: for species with more than 5 records ===================
+#response variables
+forestdep.spplist <- read.csv("data/species_summary.csv")
+#forestdep.spplist <- read.csv("models.output/evaluation/updated_species_summary_v1.csv")
+
+sppdata.final <- read.csv("data/presence_records.csv")
+
+#pseudo-absence full dataset
+#all cells with less than 20% of undegraded primary forest in landscape
+UFPls.invcore <- env.explanatory.var[["UPFls"]]
+UFPls.invcore[UFPls.invcore>.2]<-NA
+UFPls.invcore[UFPls.invcore<=.2]<-1
+
+pa.data <- as.data.frame(xyFromCell(UFPls.invcore, cell = which(UFPls.invcore[]==1), spatial = F))
+names(pa.data) <- c("Longitude", "Latitude")
+
 #' species distribution modelling
 
 
@@ -1436,7 +1436,7 @@ for (s in scenarios) {
 dir.create("models.output/carbon.benefits", recursive = T)
 
 ## transect data
-transectdata <- read.csv("~/raw/RAS_transects_environment_all.csv")
+transectdata <- read.csv("data/raw/RAS_transects_environment_all.csv")
 #head(transectdata)
 #str(transectdata)
 #summary(transectdata)
@@ -1550,7 +1550,8 @@ ppcomp(list(carbon.norm, carbon.gamma, carbon.expo), legendtext = plot.legend)
 
 
 #model fiting and cross-validated predictions for Random Forest
-#setting the algorithm to use in caret by defining a list that contains a number of custom named elements that the caret package looks for
+#setting the algorithm to use in caret by defining a list that contains 
+#a number of custom named elements that the caret package looks for:
 customRF <- list(type = "Regression", library = "randomForest", loop = NULL)
 
 customRF$parameters <- data.frame(parameter = c("mtry", "ntree"), class = rep("numeric", 2), label = c("mtry", "ntree"))
@@ -1573,151 +1574,50 @@ customRF$levels <- function(x) x$classes
 
 
 #train model
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-tunegrid <- expand.grid(.mtry=c(3:15), .ntree=c(250, 500, 750, 1000))
+#custom resampling method in caret: 'leave-pair-out-cross-validation'
+#catchments are used as training set, and tested against the 2 left out
+num_samps <- length(unique(carbon$Catchment))
+holdout <- combn(num_samps, 2)
+in_training <- apply(holdout, 2, 
+                     function(x, all) all[!(all %in% x)],
+                     all = 1:num_samps)
+
+## need a more effcient way of doing this:
+index <- vector(mode = "list", length = ncol(in_training))
+for(i in 1:ncol(in_training)) index[[i]] <- in_training[,i]
+## cosmetic:
+names(index) <- caret:::prettySeq(seq(along = index))
+
+ctrl <- trainControl(method = "cv", ## this will be ignored since we supply index
+                     index = index,
+                     savePredictions = T)  
+#control <- trainControl(method="repeatedcv", number=10, repeats=3)
+tunegrid <- expand.grid(.mtry=c(3:14), .ntree=seq(100,2000, 50))
+
 set.seed(999)
-rf_custom <- train(carbon_stock ~ distriver + distroad + DPFpx + edgedist + edgels + edgepx + elevation +
+mod.rf.fn2 <- train(carbon_stock ~ distriver + distroad + DPFpx + edgedist + edgels + edgepx + elevation +
                      meanprecips + meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = subset(carbon, non_zero == 1),
-                method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
-print(rf_custom)
-plot(rf_custom)
+                method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=ctrl)
 
-
-#final model
-mod.rf.fn2 <- randomForest(y = carbon[carbon$non_zero==1,"carbon_stock"], x = carbon[carbon$non_zero==1, c(14:23,25:28)], 
-                           mtry = 3, ntree=750, nodesize=10, importance =T, nPerm = 5)
 print(mod.rf.fn2)
+plot(mod.rf.fn2)
+
 
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
-#plot(mod.rf.fn2)
-varImpPlot(mod.rf.fn2, type = 1)
-partialPlot(mod.rf.fn2, carbon, TSDls)
-partialPlot(mod.rf.fn2, carbon, UPFpx)
-partialPlot(mod.rf.fn2, carbon, edgedist)
-partialPlot(mod.rf.fn2, carbon, SFls)
-partialPlot(mod.rf.fn2, carbon, MFls)
-partialPlot(mod.rf.fn2, carbon, meantemps)
+plot(varImp(mod.rf.fn2))
+partialPlot(mod.rf.fn2$finalModel, carbon, TSDls)
+partialPlot(mod.rf.fn2$finalModel, carbon, edgedist)
+partialPlot(mod.rf.fn2$finalModel, carbon, UPFpx)
+partialPlot(mod.rf.fn2$finalModel, carbon, MFls)
+partialPlot(mod.rf.fn2$finalModel, carbon, SFls)
+partialPlot(mod.rf.fn2$finalModel, carbon, distroad)
 
 
 #rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "env.explanatory.var", "mod.mlr.fn2", "mod.rf.fn2"))])
-gc()
+#gc()
 
 
 
-##null model
-#mod.null <- lm(carbon_stock ~ 1, data = subset(carbon, non_zero==1))
-#summary(mod.null)
-#
-#
-#
-#
-##k-fold
-#set.seed(999)
-#group <- kfold(carbon, k=5, by = carbon$Catchment)
-#unique(group)
-#
-##model fiting and cross-validated predictions for GLM:
-#eval.mlr <- NULL
-#models.mlr.list <- list()
-#
-#for (i in 1:5) {
-#  train <- carbon[group != i,]
-#  test <- carbon[group == i,]
-#  crosspred.mlr <- glm(carbon_stock ~ distriver_z + distroad_z + DPFpx_z + edgedist_z + edgels_z + elevation_z + meanprecips_z +
-#                         meantemps_z + SFagels_z + SFpx_z + TFpx_z + UPFls_z + TSDls_z, data = subset(train, non_zero == 1))
-#  model.sel <- step(crosspred.mlr, test="LRT")
-#  mod.mlr.fn <- glm(model.sel$formula, data = subset(train, non_zero == 1))
-#  models.mlr.list[[i]] <- mod.mlr.fn
-#  
-#  predict.mlr <- predict(mod.mlr.fn, subset(test, non_zero==1))
-#  #predict.mlr <- predict(crosspred.mlr, subset(test, non_zero==1))
-#  eval.mlr[i] <- caret::RMSE(predict.mlr, test[test$non_zero==1, "carbon_stock"])
-#  
-#}
-#
-#model.sel(models.mlr.list)
-#eval.mlr
-#
-##best AICc [==2617.0]; second best RMSE [==159.63]
-#mod.mlr.fn1 <- glm(carbon_stock ~ SFpx_z + TFpx_z + UPFls_z + edgels_z + meanprecips_z, data = subset(carbon, non_zero==1))
-#summary(mod.mlr.fn1)
-#r.squaredLR(mod.mlr.fn1)
-#plot(mod.mlr.fn1)
-#
-##using not z-transformed variables
-#mod.mlr.fn2 <- glm(carbon_stock ~ SFpx + TFpx + UPFls + edgels + meanprecips, data = subset(carbon, non_zero==1))
-#summary(mod.mlr.fn2)
-#r.squaredLR(mod.mlr.fn2)
-#plot(mod.mlr.fn2)
-#
-#plot(effects::allEffects(mod.mlr.fn2), rescale.axis=F)
-#
-#
-#
-#
-##model fiting and cross-validated predictions for GLMM -- regions as random effects
-#eval.glmm <- NULL
-#models.glmm.list <- list()
-#
-#for (i in 1:5) {
-#  train <- carbon[group != i,]
-#  test <- carbon[group == i,]
-#  crosspred.glmm <- lmer(carbon_stock ~ distriver_z + distroad_z + DPFpx_z + edgedist_z + edgels_z + elevation_z + meanprecips_z +
-#                           meantemps_z + SFagels_z + SFpx_z + TFpx_z + UPFls_z + TSDls_z + (1|Region),
-#                         data = subset(train, non_zero == 1))
-#  step_res <- step(crosspred.glmm)
-#  models.glmm.list[[i]] <- get_model(step_res)
-#  
-#  predict.glmm <- predict(get_model(step_res), subset(test, non_zero==1))
-#  eval.glmm[i] <- caret::RMSE(predict.glmm, test[test$non_zero==1, "carbon_stock"])
-#  
-#}
-#
-#model.sel(models.glmm.list)
-#eval.glmm
-##obs. results were the same as glm; there is no influence of catchment and region as random variable
-#
-#
-#
-#
-##model fiting for GAM
-#mod.gam.full <- gam(carbon_stock ~ s(distriver_z, bs = "cs") + s(distroad_z, bs = "cs") + s(DPFpx_z, bs = "cs") +
-#                      s(edgedist_z, bs = "cs") + s(edgels_z, bs = "cs") + s(elevation_z, bs = "cs") + s(meanprecips_z, bs = "cs") +
-#                      s(meantemps_z, bs = "cs") + s(SFagels_z, bs = "cs") + s(SFpx_z, bs = "cs") + s(TFpx_z, bs = "cs") +
-#                      s(UPFls_z, bs = "cs") + s(TSDls_z, bs = "cs"), method="REML", select = T,
-#                    data = subset(carbon, non_zero==1))
-#summary(mod.gam.full)
-#plot(mod.gam.full, pages=1, residuals=TRUE)
-#gam.check(mod.gam.full)
-#
-#rsd <- residuals(mod.gam.full)
-#gam(rsd ~ s(DPFpx_z, k=10, bs="cs"), gamma=1.4, data = subset(carbon, non_zero==1))
-#
-#
-#mod.gam1 <- gam(carbon_stock ~ DPFpx_z + s(SFpx_z, k = 6, bs = "cs") + s(TFpx_z, k = 6, bs = "cs") + s(UPFls_z, k = 6, bs = "cs"),
-#                method="REML", select = T, data = subset(carbon, non_zero==1))
-#summary(mod.gam1)
-#plot(mod.gam1, pages=1, residuals=TRUE)
-#gam.check(mod.gam1)
-#
-#
-#mod.gam2 <- gam(carbon_stock ~ DPFpx + s(SFpx, k = 6, bs = "cs") + s(TFpx, k = 6, bs = "cs") + s(UPFls, k = 6, bs = "cs"),
-#                method="REML", select = T, data = subset(carbon, non_zero==1))
-#summary(mod.gam2)
-#plot(mod.gam2, pages=1, residuals=TRUE)
-#gam.check(mod.gam2)
-#
-#
-#model.sel(mod.gam1, mod.gam2, mod.mlr.fn1, mod.mlr.fn2)
-#
-##obs. results were no batter than glm; the smooth parameter didn't result in better fit
-
-
-
-
-#predctions
-#sel.var.mlr <- c("SFpx", "TFpx", "UPFls", "edgels", "meanprecips")
-#sel.var.rf <- c("SFpx", "TFpx", "UPFls", "edgedist", "TSDls")
 
 #PGM 2010 real
 pgm.2010real.raster.list <- list.files("rasters/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
@@ -1729,7 +1629,7 @@ pgm.2010real.rf <- pgm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_pgm.2010real <- predict(pgm.2010real.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1741,9 +1641,6 @@ mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn2, type="response"
 writeRaster(mod.rf.proj_pgm.2010real, paste0("models.output/carbon.benefits/PGM_2010_real_carbon_benefit.tif"), format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2010real.conbywm, paste0("models.output/carbon.benefits/PGM_2010_real_carbon_benefit.tif"), format = "GTiff", overwrite = T)
 
-rm(list= ls()[!(ls() %in% c("sel.var.df", "sel.var.mlr", "sel.var.rf", "carbon", "env.explanatory.var", "mod.mlr.fn2", "mod.rf.fn2",
-                            "mod.rf.proj_pgm.2010real"))])
-gc()
 #
 
 
@@ -1758,7 +1655,7 @@ pgm.2020real.rf <- pgm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_pgm.2020real <- predict(pgm.2020real.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020real <- predict(pgm.2020real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020real <- predict(pgm.2020real.rf, mod.rf.fn2, type="raw")
   
   
 ##building a consensus map by mean weight
@@ -1770,9 +1667,6 @@ mod.rf.proj_pgm.2020real <- predict(pgm.2020real.rf, mod.rf.fn2, type="response"
 writeRaster(mod.rf.proj_pgm.2020real, paste0("models.output/carbon.benefits/PGM_2020_real_carbon_benefit.tif"), format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2020real.conbywm, paste0("models.output/carbon.benefits/PGM_2020_real_carbon_benefit.tif"), format = "GTiff", overwrite = T)
   
-rm(list= ls()[!(ls() %in% c("sel.var.df", "sel.var.mlr", "sel.var.rf", "carbon", "env.explanatory.var", "mod.mlr.fn2", "mod.rf.fn2",
-                            "mod.rf.proj_pgm.2010real", "mod.rf.proj_pgm.2020real"))])
-gc()
 #
 
 
@@ -1787,7 +1681,7 @@ pgm.2020_avoiddeforest.rf <- pgm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.d
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoiddeforest <- predict(pgm.2020_avoiddeforest.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoiddeforest <- predict(pgm.2020_avoiddeforest.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoiddeforest <- predict(pgm.2020_avoiddeforest.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1803,7 +1697,7 @@ writeRaster(mod.rf.proj_pgm.2020_avoiddeforest, paste0("models.output/carbon.ben
 
 
 
-#PGM 2020 avoiddeforest (promary forest only)
+#PGM 2020 avoiddeforest (primary forest only)
 pgm.2020_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020_avoiddeforest2 <- stack(pgm.2020_avoiddeforest2.raster.list)
 #names(pgm.2020_avoiddeforest2) <- unlist(strsplit(pgm.2020_avoiddeforest2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -1813,7 +1707,7 @@ pgm.2020_avoiddeforest2.rf <- pgm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoiddeforest2 <- predict(pgm.2020_avoiddeforest2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoiddeforest2 <- predict(pgm.2020_avoiddeforest2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoiddeforest2 <- predict(pgm.2020_avoiddeforest2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1839,7 +1733,7 @@ pgm.2020_avoiddegrad.rf <- pgm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VI
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoiddegrad <- predict(pgm.2020_avoiddegrad.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoiddegrad <- predict(pgm.2020_avoiddegrad.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoiddegrad <- predict(pgm.2020_avoiddegrad.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1855,7 +1749,7 @@ writeRaster(mod.rf.proj_pgm.2020_avoiddegrad, paste0("models.output/carbon.benef
 
 
 
-#PGM 2020 avoiddegrad (promary forest only)
+#PGM 2020 avoiddegrad (primary forest only)
 pgm.2020_avoiddegrad2.raster.list <- list.files("rasters/PGM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020_avoiddegrad2 <- stack(pgm.2020_avoiddegrad2.raster.list)
 #names(pgm.2020_avoiddegrad2) <- unlist(strsplit(pgm.2020_avoiddegrad2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -1865,7 +1759,7 @@ pgm.2020_avoiddegrad2.rf <- pgm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoiddegrad2 <- predict(pgm.2020_avoiddegrad2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoiddegrad2 <- predict(pgm.2020_avoiddegrad2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoiddegrad2 <- predict(pgm.2020_avoiddegrad2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1891,7 +1785,7 @@ pgm.2020_restor_wo_avoid.rf <- pgm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.v
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_restor_wo_avoid <- predict(pgm.2020_restor_wo_avoid.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_restor_wo_avoid <- predict(pgm.2020_restor_wo_avoid.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_restor_wo_avoid <- predict(pgm.2020_restor_wo_avoid.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1917,7 +1811,7 @@ pgm.2020_avoidboth.rf <- pgm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) &
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoidboth <- predict(pgm.2020_avoidboth.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoidboth <- predict(pgm.2020_avoidboth.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoidboth <- predict(pgm.2020_avoidboth.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1933,7 +1827,7 @@ writeRaster(mod.rf.proj_pgm.2020_avoidboth, paste0("models.output/carbon.benefit
 
 
 
-#PGM 2020 avoidboth (promary forest only)
+#PGM 2020 avoidboth (primary forest only)
 pgm.2020_avoidboth2.raster.list <- list.files("rasters/PGM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020_avoidboth2 <- stack(pgm.2020_avoidboth2.raster.list)
 #names(pgm.2020_avoidboth2) <- unlist(strsplit(pgm.2020_avoidboth2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -1943,7 +1837,7 @@ pgm.2020_avoidboth2.rf <- pgm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF)
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_avoidboth2 <- predict(pgm.2020_avoidboth2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_avoidboth2 <- predict(pgm.2020_avoidboth2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_avoidboth2 <- predict(pgm.2020_avoidboth2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1969,7 +1863,7 @@ pgm.2020_restor_n_avoiddeforest.rf <- pgm.2020_restor_n_avoiddeforest[[sel.var.d
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_restor_n_avoiddeforest <- predict(pgm.2020_restor_n_avoiddeforest.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_restor_n_avoiddeforest <- predict(pgm.2020_restor_n_avoiddeforest.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_restor_n_avoiddeforest <- predict(pgm.2020_restor_n_avoiddeforest.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -1985,7 +1879,7 @@ writeRaster(mod.rf.proj_pgm.2020_restor_n_avoiddeforest, paste0("models.output/c
 
 
 
-#PGM 2020 restor_n_avoiddeforest (promary forest only)
+#PGM 2020 restor_n_avoiddeforest (primary forest only)
 pgm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020_restor_n_avoiddeforest2 <- stack(pgm.2020_restor_n_avoiddeforest2.raster.list)
 #names(pgm.2020_restor_n_avoiddeforest2) <- unlist(strsplit(pgm.2020_restor_n_avoiddeforest2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -1995,7 +1889,7 @@ pgm.2020_restor_n_avoiddeforest2.rf <- pgm.2020_restor_n_avoiddeforest2[[sel.var
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_restor_n_avoiddeforest2 <- predict(pgm.2020_restor_n_avoiddeforest2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_restor_n_avoiddeforest2 <- predict(pgm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_restor_n_avoiddeforest2 <- predict(pgm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2021,7 +1915,7 @@ pgm.2020_restor_n_avoidboth.rf <- pgm.2020_restor_n_avoidboth[[sel.var.df[!is.na
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_restor_n_avoidboth <- predict(pgm.2020_restor_n_avoidboth.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_restor_n_avoidboth <- predict(pgm.2020_restor_n_avoidboth.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_restor_n_avoidboth <- predict(pgm.2020_restor_n_avoidboth.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2037,7 +1931,7 @@ writeRaster(mod.rf.proj_pgm.2020_restor_n_avoidboth, paste0("models.output/carbo
 
 
 
-#PGM 2020 restor_n_avoidboth (promary forest only)
+#PGM 2020 restor_n_avoidboth (primary forest only)
 pgm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
 pgm.2020_restor_n_avoidboth2 <- stack(pgm.2020_restor_n_avoidboth2.raster.list)
 #names(pgm.2020_restor_n_avoidboth2) <- unlist(strsplit(pgm.2020_restor_n_avoidboth2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2047,7 +1941,7 @@ pgm.2020_restor_n_avoidboth2.rf <- pgm.2020_restor_n_avoidboth2[[sel.var.df[!is.
 #set.seed(999)
 #mod.mlr.proj_pgm.2020_restor_n_avoidboth2 <- predict(pgm.2020_restor_n_avoidboth2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_pgm.2020_restor_n_avoidboth2 <- predict(pgm.2020_restor_n_avoidboth2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2020_restor_n_avoidboth2 <- predict(pgm.2020_restor_n_avoidboth2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2074,7 +1968,7 @@ stm.2010real.rf <- stm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_stm.2010real <- predict(stm.2010real.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2103,7 +1997,7 @@ stm.2020real.rf <- stm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_stm.2020real <- predict(stm.2020real.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020real <- predict(stm.2020real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020real <- predict(stm.2020real.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2132,7 +2026,7 @@ stm.2020_avoiddeforest.rf <- stm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.d
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoiddeforest <- predict(stm.2020_avoiddeforest.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoiddeforest <- predict(stm.2020_avoiddeforest.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoiddeforest <- predict(stm.2020_avoiddeforest.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2148,7 +2042,7 @@ writeRaster(mod.rf.proj_stm.2020_avoiddeforest, paste0("models.output/carbon.ben
 
 
 
-#STM 2020 avoiddeforest (promary forest only)
+#STM 2020 avoiddeforest (primary forest only)
 stm.2020_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020_avoiddeforest2 <- stack(stm.2020_avoiddeforest2.raster.list)
 #names(stm.2020_avoiddeforest2) <- unlist(strsplit(stm.2020_avoiddeforest2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2158,7 +2052,7 @@ stm.2020_avoiddeforest2.rf <- stm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoiddeforest2 <- predict(stm.2020_avoiddeforest2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoiddeforest2 <- predict(stm.2020_avoiddeforest2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoiddeforest2 <- predict(stm.2020_avoiddeforest2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2184,7 +2078,7 @@ stm.2020_avoiddegrad.rf <- stm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VI
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoiddegrad <- predict(stm.2020_avoiddegrad.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoiddegrad <- predict(stm.2020_avoiddegrad.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoiddegrad <- predict(stm.2020_avoiddegrad.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2200,7 +2094,7 @@ writeRaster(mod.rf.proj_stm.2020_avoiddegrad, paste0("models.output/carbon.benef
 
 
 
-#STM 2020 avoiddegrad (promary forest only)
+#STM 2020 avoiddegrad (primary forest only)
 stm.2020_avoiddegrad2.raster.list <- list.files("rasters/STM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020_avoiddegrad2 <- stack(stm.2020_avoiddegrad2.raster.list)
 #names(stm.2020_avoiddegrad2) <- unlist(strsplit(stm.2020_avoiddegrad2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2210,7 +2104,7 @@ stm.2020_avoiddegrad2.rf <- stm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoiddegrad2 <- predict(stm.2020_avoiddegrad2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoiddegrad2 <- predict(stm.2020_avoiddegrad2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoiddegrad2 <- predict(stm.2020_avoiddegrad2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2236,7 +2130,7 @@ stm.2020_restor_wo_avoid.rf <- stm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.v
 #set.seed(999)
 #mod.mlr.proj_stm.2020_restor_wo_avoid <- predict(stm.2020_restor_wo_avoid.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_restor_wo_avoid <- predict(stm.2020_restor_wo_avoid.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_restor_wo_avoid <- predict(stm.2020_restor_wo_avoid.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2262,7 +2156,7 @@ stm.2020_avoidboth.rf <- stm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) &
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoidboth <- predict(stm.2020_avoidboth.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoidboth <- predict(stm.2020_avoidboth.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoidboth <- predict(stm.2020_avoidboth.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2278,7 +2172,7 @@ writeRaster(mod.rf.proj_stm.2020_avoidboth, paste0("models.output/carbon.benefit
 
 
 
-#STM 2020 avoidboth (promary forest only)
+#STM 2020 avoidboth (primary forest only)
 stm.2020_avoidboth2.raster.list <- list.files("rasters/STM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020_avoidboth2 <- stack(stm.2020_avoidboth2.raster.list)
 #names(stm.2020_avoidboth2) <- unlist(strsplit(stm.2020_avoidboth2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2288,7 +2182,7 @@ stm.2020_avoidboth2.rf <- stm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF)
 #set.seed(999)
 #mod.mlr.proj_stm.2020_avoidboth2 <- predict(stm.2020_avoidboth2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_avoidboth2 <- predict(stm.2020_avoidboth2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_avoidboth2 <- predict(stm.2020_avoidboth2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2314,7 +2208,7 @@ stm.2020_restor_n_avoiddeforest.rf <- stm.2020_restor_n_avoiddeforest[[sel.var.d
 #set.seed(999)
 #mod.mlr.proj_stm.2020_restor_n_avoiddeforest <- predict(stm.2020_restor_n_avoiddeforest.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_restor_n_avoiddeforest <- predict(stm.2020_restor_n_avoiddeforest.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_restor_n_avoiddeforest <- predict(stm.2020_restor_n_avoiddeforest.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2330,7 +2224,7 @@ writeRaster(mod.rf.proj_stm.2020_restor_n_avoiddeforest, paste0("models.output/c
 
 
 
-#STM 2020 restor_n_avoiddeforest (promary forest only)
+#STM 2020 restor_n_avoiddeforest (primary forest only)
 stm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020_restor_n_avoiddeforest2 <- stack(stm.2020_restor_n_avoiddeforest2.raster.list)
 #names(stm.2020_restor_n_avoiddeforest2) <- unlist(strsplit(stm.2020_restor_n_avoiddeforest2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2340,7 +2234,7 @@ stm.2020_restor_n_avoiddeforest2.rf <- stm.2020_restor_n_avoiddeforest2[[sel.var
 #set.seed(999)
 #mod.mlr.proj_stm.2020_restor_n_avoiddeforest2 <- predict(stm.2020_restor_n_avoiddeforest2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_restor_n_avoiddeforest2 <- predict(stm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_restor_n_avoiddeforest2 <- predict(stm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2366,7 +2260,7 @@ stm.2020_restor_n_avoidboth.rf <- stm.2020_restor_n_avoidboth[[sel.var.df[!is.na
 #set.seed(999)
 #mod.mlr.proj_stm.2020_restor_n_avoidboth <- predict(stm.2020_restor_n_avoidboth.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_restor_n_avoidboth <- predict(stm.2020_restor_n_avoidboth.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_restor_n_avoidboth <- predict(stm.2020_restor_n_avoidboth.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2382,7 +2276,7 @@ writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth, paste0("models.output/carbo
 
 
 
-#STM 2020 restor_n_avoidboth (promary forest only)
+#STM 2020 restor_n_avoidboth (primary forest only)
 stm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/STM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
 stm.2020_restor_n_avoidboth2 <- stack(stm.2020_restor_n_avoidboth2.raster.list)
 #names(stm.2020_restor_n_avoidboth2) <- unlist(strsplit(stm.2020_restor_n_avoidboth2.raster.list, "/|.tif"))[seq(4,88,4)]
@@ -2392,7 +2286,7 @@ stm.2020_restor_n_avoidboth2.rf <- stm.2020_restor_n_avoidboth2[[sel.var.df[!is.
 #set.seed(999)
 #mod.mlr.proj_stm.2020_restor_n_avoidboth2 <- predict(stm.2020_restor_n_avoidboth2.mlr, mod.mlr.fn2, type="response")
 set.seed(999)
-mod.rf.proj_stm.2020_restor_n_avoidboth2 <- predict(stm.2020_restor_n_avoidboth2.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2020_restor_n_avoidboth2 <- predict(stm.2020_restor_n_avoidboth2.rf, mod.rf.fn2, type="raw")
 
 
 ##building a consensus map by mean weight
@@ -2413,7 +2307,7 @@ writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth2, paste0("models.output/carb
 # opportunity cost =============================================================
 
 ## property data
-property <- read.csv("~/raw/areas.csv")
+property <- read.csv("data/raw/areas.csv")
 #head(property)
 #str(property)
 #summary(property)
@@ -2427,7 +2321,7 @@ property <- property[-which(is.na(property$totalarea_2009)),c("cd_propriedade", 
 names(property) <- c("id", "propertysize")
 
 ## income/profit data
-revenue <- read.csv("~/raw/revenue.csv")
+revenue <- read.csv("data/raw/revenue.csv")
 #head(revenue)
 #str(revenue)
 #summary(revenue)
@@ -2444,7 +2338,7 @@ names(expl.var)[1] <- names(property)[4]
 
 #merging
 property <- property %>% left_join(expl.var, multiple = "all", relationship = "many-to-many") %>% group_by(id) %>% 
-  sample_n(1, replace = T)
+  sample_n(1, replace = T) %>% ungroup()
 
 
 
@@ -2482,6 +2376,7 @@ property <- property %>% dplyr::filter(profit_ha > 0 & !is.nan(profit_ha) & !is.
 #id == 419 (PGM), 461 and 322 (STM)
 property <- property %>% dplyr::filter(!id %in% c(419, 461, 322))
 
+property <- as.data.frame(property)
 
 # distribution family
 property.norm <- fitdist(property$profit_ha, "norm", method="mle")
@@ -2543,146 +2438,43 @@ customRF$levels <- function(x) x$classes
 
 
 #train model
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-tunegrid <- expand.grid(.mtry=c(3:9), .ntree=c(250, 500, 750, 1000))
+#custom resampling method in caret: 'leave-pair-out-cross-validation'
+#catchments are used as training set, and tested against the 2 left out
+num_samps <- length(unique(property$catchment))
+holdout <- combn(num_samps, 2)
+in_training <- apply(holdout, 2, 
+                     function(x, all) all[!(all %in% x)],
+                     all = 1:num_samps)
+
+## need a more effcient way of doing this:
+index <- vector(mode = "list", length = ncol(in_training))
+for(i in 1:ncol(in_training)) index[[i]] <- in_training[,i]
+## cosmetic:
+names(index) <- caret:::prettySeq(seq(along = index))
+
+ctrl <- trainControl(method = "cv", ## this will be ignored since we supply index
+                     index = index,
+                     savePredictions = T)  
+#control <- trainControl(method="repeatedcv", number=10, repeats=3)
+tunegrid <- expand.grid(.mtry=c(3:14), .ntree=seq(100,2000, 50))
+
 set.seed(999)
-rf_custom <- train(profit_halog ~ propertysize + distmarket + distriver + distroad + DPFpx + 
+mod.rf.fn3 <- train(profit_halog ~ propertysize + distmarket + distriver + distroad + DPFpx + 
                      edgedist + edgepx + edgels + elevation + meanprecips +
                      meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = property,
-                   method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
-print(rf_custom)
-plot(rf_custom)
+                   method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=ctrl)
+print(mod.rf.fn3)
+plot(mod.rf.fn3)
 
 
-#final model
-mod.rf.fn2 <- randomForest(y = property[,"profit_halog"], x = property[,c(2,8:22)], 
-                           mtry = 8, ntree=250, nodesize=10, importance =T, nPerm = 5)
-print(mod.rf.fn2)
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
-#plot(mod.rf.fn2)
-varImpPlot(mod.rf.fn2, type = 1)
-partialPlot(mod.rf.fn2, property, propertysize)
-partialPlot(mod.rf.fn2, property, distmarket)
-partialPlot(mod.rf.fn2, property, meantemps)
-partialPlot(mod.rf.fn2, property, elevation)
-partialPlot(mod.rf.fn2, property, TSDls)
-partialPlot(mod.rf.fn2, property, meanprecips)
-
-
-
-
-rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "property", "env.explanatory.var", "mod.gam2", "mod.rf.fn2"))])
-gc()
-
-
-
-##null model
-#mod.null <- lm(profit_halog ~ 1, data = property)
-#summary(mod.null)
-#
-#
-#
-#
-##k-fold
-#set.seed(999)
-#group <- kfold(property, k=5, by = property$catchment)
-#unique(group)
-#
-##model fiting and cross-validated predictions for GLM:
-#eval.mlr <- NULL
-#models.mlr.list <- list()
-#
-#for (i in 1:5) {
-#  train <- property[group != i,]
-#  test <- property[group == i,]
-#  crosspred.mlr <- glm(profit_halog ~ dominant + property_z + distmarket_z + distriver_z + distroad_z + DPFpx_z +
-#                         edgedist_z + edgels_z + elevation_z + meanprecips_z + meantemps_z + SFagels_z + SFpx_z +
-#                         TFpx_z + UPFls_z + TSDls_z, data = train)
-#  model.sel <- step(crosspred.mlr, test="LRT")
-#  mod.mlr.fn <- glm(model.sel$formula, data = train)
-#  models.mlr.list[[i]] <- mod.mlr.fn
-#  
-#  predict.mlr <- predict(mod.mlr.fn, test)
-#  #predict.mlr <- predict(crosspred.mlr, subset(test, non_zero==1))
-#  eval.mlr[i] <- caret::RMSE(predict.mlr, test$profit_halog)
-#  
-#}
-#
-#model.sel(models.mlr.list)
-#eval.mlr
-#
-##best AICc [==1161.4]; not the best RMSE [==1.69]
-#mod.mlr.fn1 <- glm(profit_halog ~ property_z + distmarket_z + edgedist_z + elevation_z, data = property)
-#summary(mod.mlr.fn1)
-#r.squaredLR(mod.mlr.fn1)
-#plot(mod.mlr.fn1)
-#
-##using not z-transformed variables
-#mod.mlr.fn2 <- glm(profit_halog ~ property + distmarket + edgedist + elevation, data = property)
-#summary(mod.mlr.fn2)
-#r.squaredLR(mod.mlr.fn2)
-#plot(mod.mlr.fn2)
-#
-#
-##plot(effects::allEffects(mod.mlr.fn2), rescale.axis=F)
-#
-#
-#
-#
-##model fiting and cross-validated predictions for GLMM -- dominant income activity as random effects
-#eval.glmm <- NULL
-#models.glmm.list <- list()
-#
-#for (i in 1:5) {
-#  train <- property[group != i,]
-#  test <- property[group == i,]
-#  crosspred.glmm <- lmer(profit_halog ~ property_z + distmarket_z + distriver_z + distroad_z + DPFpx_z +
-#                           edgedist_z + edgels_z + elevation_z + meanprecips_z + meantemps_z + SFagels_z + SFpx_z +
-#                           TFpx_z + UPFls_z + TSDls_z + (1|dominant), data = train)
-#  step_res <- step(crosspred.glmm)
-#  models.glmm.list[[i]] <- get_model(step_res)
-#  
-#  predict.glmm <- predict(get_model(step_res), test)
-#  eval.glmm[i] <- caret::RMSE(predict.glmm, test$profit_halog)
-#  
-#}
-#
-#model.sel(models.glmm.list)
-#eval.glmm
-##obs. results were the same as glm; there is no influence of dominant activity as random variable
-#
-#
-#
-#
-##model fiting for GAM
-#mod.gam.full <- gam(profit_halog ~ s(property_z, k = 6, bs = "cs") + s(distmarket_z, k = 6, bs = "cs") + s(distriver_z, k = 6, bs = "cs") + s(distroad_z, k = 6, bs = "cs") +
-#                      s(DPFpx_z, k = 6, bs = "cs") + s(edgedist_z, k = 6, bs = "cs") + s(edgels_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + 
-#                      s(meanprecips_z, k = 6, bs = "cs") + s(meantemps_z, k = 6, bs = "cs") + s(SFagels_z, k = 6, bs = "cs") + s(SFpx_z, k = 6, bs = "cs") + 
-#                      s(TFpx_z, k = 6, bs = "cs") + s(UPFls_z, k = 6, bs = "cs") + s(TSDls_z, k = 6, bs = "cs"), method="REML", select = T,
-#                    data = property)
-#summary(mod.gam.full)
-#plot(mod.gam.full, pages=1, residuals=TRUE)
-#gam.check(mod.gam.full)
-#
-#
-#mod.gam1 <- gam(profit_halog ~ s(property_z, k = 6, bs = "cs") + s(distmarket_z, k = 6, bs = "cs") + 
-#                  s(edgedist_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + s(meanprecips_z, k = 6, bs = "cs"), 
-#                  method="REML", select = T, data = property)
-#summary(mod.gam1)
-#plot(mod.gam1, pages=1, residuals=TRUE)
-#gam.check(mod.gam1)
-#
-#
-#mod.gam2 <- gam(profit_halog ~ s(property, k = 6, bs = "cs") + s(distmarket, k = 6, bs = "cs") + 
-#                  s(edgedist, k = 6, bs = "cs") + s(elevation, k = 6, bs = "cs") + s(meanprecips, k = 6, bs = "cs"), 
-#                method="REML", select = T, data = property)
-#summary(mod.gam2)
-#plot(mod.gam2, pages=1, residuals=TRUE)
-#gam.check(mod.gam2)
-#
-#
-#
-#model.sel(mod.mlr.fn1, mod.mlr.fn2, mod.gam1, mod.gam2) #
+plot(varImp(mod.rf.fn3))
+partialPlot(mod.rf.fn3$finalModel, property, distmarket)
+partialPlot(mod.rf.fn3$finalModel, property, meantemps)
+partialPlot(mod.rf.fn3$finalModel, property, distroad)
+partialPlot(mod.rf.fn3$finalModel, property, meanprecips)
+partialPlot(mod.rf.fn3$finalModel, property, edgedist)
+partialPlot(mod.rf.fn3$finalModel, property, elevation)
 
 
 
@@ -2703,21 +2495,18 @@ pgm.2010real.rf <- pgm.2010real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 #set.seed(999)
 #mod.gam.proj_pgm.2010real <- exp(predict(pgm.2010real.gam, mod.gam2))
 set.seed(999)
-mod.rf.proj_pgm.2010real <- exp(predict(pgm.2010real.rf, mod.rf.fn2, type="response"))
+mod.rf.proj_pgm.2010real <- exp(predict(pgm.2010real.rf, mod.rf.fn3, type="raw"))
 
 
 ##building a consensus map by mean weight
 #proj_pgm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_pgm.2010real, mod.rf.proj_pgm.2010real), 
 #                                           c(RMSE(mod.gam2$fitted.values, mod.gam2$y),
-#                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+#                                             RMSE(mod.rf.fn3$predicted, mod.rf.fn3$y)), 
 #                                           na.rm=T)
 
 writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_opportunity.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2010real.conbywm, "models.output/costs/PGM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
-rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
-                            "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real"))])
-gc()
 #
 
 
@@ -2735,30 +2524,24 @@ stm.2010real.rf <- stm.2010real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 #set.seed(999)
 #mod.gam.proj_stm.2010real <- exp(predict(stm.2010real.gam, mod.gam2))
 set.seed(999)
-mod.rf.proj_stm.2010real <- exp(predict(stm.2010real.rf, mod.rf.fn2, type="response"))
+mod.rf.proj_stm.2010real <- exp(predict(stm.2010real.rf, mod.rf.fn3, type="raw"))
 
 
 ##building a consensus map by mean weight
 #proj_stm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_stm.2010real, mod.rf.proj_stm.2010real), 
 #                                           c(RMSE(mod.gam2$fitted.values, mod.gam2$y),
-#                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+#                                             RMSE(mod.rf.fn3$predicted, mod.rf.fn3$y)), 
 #                                           na.rm=T)
 
 writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_opportunity.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_stm.2010real.conbywm, "models.output/costs/STM_2010_real_base_opportunity_cost.tif", format = "GTiff", overwrite = T)
 
-rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "env.explanatory.var",
-                            "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real", "mod.rf.proj_stm.2010real"))])
-gc()
 #
 
 #par(mfrow=c(1,2))
 #plot(mod.rf.proj_pgm.2010real, col = terrain.colors(length(seq(0, 1500, by = 125)), rev = T), breaks= seq(0, 1500, by = 125))
 #plot(mod.rf.proj_stm.2010real, col = terrain.colors(length(seq(0, 1500, by = 125)), rev = T), breaks= seq(0, 1500, by = 125))
 
-
-rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "property", "env.explanatory.var"))])
-gc()
 
 #
 #
@@ -2768,8 +2551,8 @@ gc()
 # harvestable tree volume value and operational costs ==========================
 
 ## trees
-pgm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
-stm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
+pgm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
+stm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # include region code
 pgm.treedata$Region <- "PGM"
 stm.treedata$Region <- "STM"
@@ -2790,7 +2573,7 @@ treedata <- treedata[!treedata$Transectcode %in% exclude,]
 
 # Pará commercial tree price data
 # source: http://www.sefa.pa.gov.br/legislacao/interna/portaria/ps2015_00005.pdf
-raw.timber.prices <- read.csv("~/raw/raw_timber_values_pa.csv")
+raw.timber.prices <- read.csv("data/raw/raw_timber_values_pa.csv")
 
 # transect tree volume and price (trees with DBH>=40)
 # source: Vidal et al. 2016 - http://dx.doi.org/10.1016/j.foreco.2016.06.003
@@ -2838,7 +2621,8 @@ expl.var$Transectcode <- gsub("ExtraPGM", "ExtraPGM_", expl.var$Transectcode)
 #merging
 transect.harvest.value <- transect.harvest.value %>% left_join(expl.var, multiple = "all", relationship = "many-to-many") %>% 
   group_by(Transectcode) %>% 
-  sample_n(1, replace = T)
+  sample_n(1, replace = T) %>% 
+  ungroup()
 
 
 
@@ -2895,6 +2679,7 @@ ppcomp(list(harvest.value.lnorm, harvest.value.gamma, harvest.value.expo), legen
 #
 #curve(pexp(x, rate=0.000352299), from = 317, to = 13500, add = TRUE, col='red', lwd = 2)
 
+transect.harvest.value <- as.data.frame(transect.harvest.value)
 
 #model fiting and cross-validated predictions for Random Forest
 #setting the algorithm to use in caret by defining a list that contains a number of custom named elements that the caret package looks for
@@ -2920,151 +2705,44 @@ customRF$levels <- function(x) x$classes
 
 
 #train model
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-tunegrid <- expand.grid(.mtry=c(3:9), .ntree=c(250, 500, 750, 1000))
+#custom resampling method in caret: 'leave-pair-out-cross-validation'
+#catchments are used as training set, and tested against the 2 left out
+num_samps <- length(unique(transect.harvest.value$Catchment))
+holdout <- combn(num_samps, 2)
+in_training <- apply(holdout, 2, 
+                     function(x, all) all[!(all %in% x)],
+                     all = 1:num_samps)
+
+## need a more effcient way of doing this:
+index <- vector(mode = "list", length = ncol(in_training))
+for(i in 1:ncol(in_training)) index[[i]] <- in_training[,i]
+## cosmetic:
+names(index) <- caret:::prettySeq(seq(along = index))
+
+ctrl <- trainControl(method = "cv", ## this will be ignored since we supply index
+                     index = index,
+                     savePredictions = T)  
+#control <- trainControl(method="repeatedcv", number=10, repeats=3)
+tunegrid <- expand.grid(.mtry=c(3:14), .ntree=seq(100,2000, 50))
+
 set.seed(999)
-rf_custom <- train(profit_ha_year ~ propertysize + distmarket + distriver + distroad + DPFpx + 
-                     edgedist + edgepx + edgels + elevation + meanprecips +
-                     meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = transect.harvest.value,
-                   method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=control)
-print(rf_custom)
-plot(rf_custom)
+mod.rf.fn4 <- train(profit_ha_year ~ propertysize + distmarket + distriver + distroad + DPFpx + 
+                      edgedist + edgepx + edgels + elevation + meanprecips +
+                      meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = transect.harvest.value,
+                    method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=ctrl)
+print(mod.rf.fn4)
+plot(mod.rf.fn4)
 
-
-#final model
-mod.rf.fn2 <- randomForest(y = transect.harvest.value[,"profit_ha_year"], x = transect.harvest.value[,c(8:23)], 
-                           mtry = 3, ntree=1000, nodesize=10, importance =T, nPerm = 5)
-print(mod.rf.fn2)
 
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
-#plot(mod.rf.fn2)
-varImpPlot(mod.rf.fn2, type = 1)
-partialPlot(mod.rf.fn2, transect.harvest.value, TSDls)
-partialPlot(mod.rf.fn2, transect.harvest.value, meanprecips)
-partialPlot(mod.rf.fn2, transect.harvest.value, edgedist)
-partialPlot(mod.rf.fn2, transect.harvest.value, distroad)
-partialPlot(mod.rf.fn2, transect.harvest.value, SFls)
-partialPlot(mod.rf.fn2, transect.harvest.value, UPFpx)
-
-
-
-
-rm(list= ls()[!(ls() %in% c("sel.var.df", "carbon", "property", "transect.harvest.value", "env.explanatory.var", "mod.gam2", "mod.rf.fn2"))])
-gc()
-
-
-
-
-
-##null model
-#mod.null <- lm(profit_ha_year ~ 1, data = transect.harvest.value)
-#summary(mod.null)
-#
-#
-#
-#
-##k-fold
-#set.seed(999)
-#group <- kfold(transect.harvest.value, k=5, by = transect.harvest.value$Catchment)
-#unique(group)
-#
-##model fiting and cross-validated predictions for GLM:
-#eval.mlr <- NULL
-#models.mlr.list <- list()
-#
-#for (i in 1:5) {
-#  train <- transect.harvest.value[group != i,]
-#  test <- transect.harvest.value[group == i,]
-#  crosspred.mlr <- glm(profit_ha_year ~ distmarket_z + distriver_z + distroad_z + DPFpx_z + edgedist_z + 
-#                         edgels_z + elevation_z + meanprecips_z + meantemps_z + SFagels_z + SFpx_z +
-#                         TFpx_z + UPFls_z + TSDls_z, family = Gamma(link = "log"), data = train)
-#  model.sel <- step(crosspred.mlr, test="LRT")
-#  mod.mlr.fn <- glm(model.sel$formula, data = train)
-#  models.mlr.list[[i]] <- mod.mlr.fn
-#  
-#  predict.mlr <- predict(mod.mlr.fn, test)
-#  #predict.mlr <- predict(crosspred.mlr, subset(test, non_zero==1))
-#  eval.mlr[i] <- caret::RMSE(predict.mlr, test$profit_ha_year)
-#  
-#}
-#
-#model.sel(models.mlr.list)
-#eval.mlr
-#
-##best AICc [==1632.4]; not the best RMSE [==111.38]
-#mod.mlr.fn1 <- glm(profit_ha_year ~ distriver_z + edgedist_z + edgels_z + elevation_z + meanprecips_z + SFpx_z, 
-#                   family = Gamma(link = "log"), data = transect.harvest.value)
-#summary(mod.mlr.fn1)
-#r.squaredLR(mod.mlr.fn1)
-#plot(mod.mlr.fn1)
-#
-##using not z-transformed variables
-#mod.mlr.fn2 <- glm(profit_ha_year ~ distriver + edgedist + edgels + elevation + meanprecips + SFpx, 
-#                   family = Gamma(link = "log"), data = transect.harvest.value)
-#summary(mod.mlr.fn2)
-#r.squaredLR(mod.mlr.fn2)
-#plot(mod.mlr.fn2)
-#
-#
-##plot(effects::allEffects(mod.mlr.fn2), rescale.axis=F)
-#
-#
-#
-#
-##model fiting and cross-validated predictions for GLMM -- Region as random effects
-#eval.glmm <- NULL
-#models.glmm.list <- list()
-#
-#for (i in 1:5) {
-#  train <- transect.harvest.value[group != i,]
-#  test <- transect.harvest.value[group == i,]
-#  crosspred.glmm <- glmmTMB(profit_ha_year ~ distmarket_z + distriver_z + distroad_z + DPFpx_z + edgedist_z + 
-#                           edgels_z + elevation_z + meanprecips_z + meantemps_z + SFagels_z + SFpx_z +
-#                           TFpx_z + UPFls_z + TSDls_z + (1|Region), family = Gamma(link="log"), data = train)
-#  step_res <- step(crosspred.glmm)
-#  models.glmm.list[[i]] <- step_res
-#  
-#  predict.glmm <- predict(step_res, test)
-#  eval.glmm[i] <- caret::RMSE(predict.glmm, test$profit_ha_year)
-#  
-#}
-#
-#model.sel(models.glmm.list)
-#eval.glmm
-#
-##obs. results were the same as glm; there is no influence of Region as random variable
-#
-#
-#
-##model fiting for GAM
-#mod.gam.full <- gam(profit_ha_year ~ s(distmarket_z, k = 6, bs = "cs") + s(distriver_z, k = 6, bs = "cs") + s(distroad_z, k = 6, bs = "cs") +
-#                      s(DPFpx_z, k = 6, bs = "cs") + s(edgedist_z, k = 6, bs = "cs") + s(edgels_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + 
-#                      s(meanprecips_z, k = 6, bs = "cs") + s(meantemps_z, k = 6, bs = "cs") + s(SFagels_z, k = 6, bs = "cs") + s(SFpx_z, k = 6, bs = "cs") + 
-#                      s(TFpx_z, k = 6, bs = "cs") + s(UPFls_z, k = 6, bs = "cs") + s(TSDls_z, k = 6, bs = "cs"), method="REML", select = T,
-#                    family = Gamma(link="log"), data = transect.harvest.value)
-#summary(mod.gam.full)
-#plot(mod.gam.full, pages=1, residuals=TRUE)
-#gam.check(mod.gam.full)
-#
-#
-#mod.gam1 <- gam(profit_ha_year ~ s(distmarket_z, k = 6, bs = "cs") + s(elevation_z, k = 6, bs = "cs") + s(meanprecips_z, k = 6, bs = "cs") + 
-#                  s(SFpx_z, k = 10, bs = "cs") + s(TSDls_z, k = 6, bs = "cs"), method="REML", select = T, 
-#                family = Gamma(link="log"), data = transect.harvest.value)
-#summary(mod.gam1)
-#plot(mod.gam1, pages=1, residuals=TRUE)
-#gam.check(mod.gam1)
-#
-#
-#mod.gam2 <- gam(profit_ha_year ~ s(distmarket, k = 6, bs = "cs") + s(elevation, k = 6, bs = "cs") + s(meanprecips, k = 6, bs = "cs") + 
-#                  s(SFpx, k = 10, bs = "cs") + s(TSDls, k = 6, bs = "cs"), method="REML", select = T, 
-#                family = Gamma(link="log"), data = transect.harvest.value)
-#summary(mod.gam2)
-#plot(mod.gam2, pages=1, residuals=TRUE)
-#gam.check(mod.gam2)
-#
-#
-#
-#model.sel(mod.mlr.fn1, mod.mlr.fn2, mod.gam1, mod.gam2) #
+#plot(mod.rf.fn4)
+plot(varImp(mod.rf.fn4))
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, edgedist)
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, TSDls)
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, meantemps)
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, distroad)
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, SFls)
+partialPlot(mod.rf.fn4$finalModel, transect.harvest.value, meanprecips)
 
 
 
@@ -3083,22 +2761,20 @@ pgm.2010real.rf <- pgm.2010real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 
 
 #set.seed(999)
-#mod.gam.proj_pgm.2010real <- predict(pgm.2010real.gam, mod.gam2, type="response")
+#mod.gam.proj_pgm.2010real <- predict(pgm.2010real.gam, mod.gam2, type="raw")
 set.seed(999)
-mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn4, type="raw")
 
 
 ##building a consensus map by mean weight
 #proj_pgm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_pgm.2010real, mod.rf.proj_pgm.2010real), 
 #                                           c(RMSE(mod.gam2$fitted.values, mod.gam2$y),
-#                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+#                                             RMSE(mod.rf.fn4$predicted, mod.rf.fn4$y)), 
 #                                           na.rm=T)
 
 writeRaster(mod.rf.proj_pgm.2010real, "models.output/costs/PGM_2010_real_base_haverst.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_pgm.2010real.conbywm, "models.output/costs/PGM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
 
-rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "transect.harvest.value", "env.explanatory.var",
-                            "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real"))])
 gc()
 #
 
@@ -3115,23 +2791,20 @@ stm.2010real.rf <- stm.2010real[[sel.var.df[!is.na(sel.var.df$VIF),"VAR"]]]
 
 
 #set.seed(999)
-#mod.gam.proj_stm.2010real <- predict(stm.2010real.gam, mod.gam2, type="response")
+#mod.gam.proj_stm.2010real <- predict(stm.2010real.gam, mod.gam2, type="raw")
 set.seed(999)
-mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn2, type="response")
+mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn4, type="raw")
 
 
 ##building a consensus map by mean weight
 #proj_stm.2010real.conbywm <- weighted.mean(stack(mod.gam.proj_stm.2010real, mod.rf.proj_stm.2010real), 
 #                                           c(RMSE(mod.gam2$fitted.values, mod.gam2$y),
-#                                             RMSE(mod.rf.fn2$predicted, mod.rf.fn2$y)), 
+#                                             RMSE(mod.rf.fn4$predicted, mod.rf.fn4$y)), 
 #                                           na.rm=T)
 
 writeRaster(mod.rf.proj_stm.2010real, "models.output/costs/STM_2010_real_base_haverst.tif", format = "GTiff", overwrite = T)
 #writeRaster(proj_stm.2010real.conbywm, "models.output/costs/STM_2010_real_base_haverst_cost.tif", format = "GTiff", overwrite = T)
 
-rm(list= ls()[!(ls() %in% c("sel.var.gam", "sel.var.rf", "sel.var.df", "carbon", "property", "transect.harvest.value", "env.explanatory.var",
-                            "mod.gam2", "mod.rf.fn2", "mod.rf.proj_pgm.2010real", "mod.rf.proj_stm.2010real"))])
-gc()
 #
 
 #par(mfrow=c(1,2))
