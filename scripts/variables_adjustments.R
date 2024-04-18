@@ -2,9 +2,6 @@
 #' @title Cost-effectiveness of conservation actions in Amazon
 #' @description 
 
-#### pre-setting ####
-memory.limit(1000000)
-
 #### loading required packages ####
 library(tidyverse)
 library(raster)
