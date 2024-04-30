@@ -99,7 +99,7 @@ gc()
 
 #### import data ####
 ## transect data
-transectdata <- read.csv("~/raw/RAS_transects_environment_all.csv")
+transectdata <- read.csv("data/raw/RAS_transects_environment_all.csv")
 #head(transectdata)
 #str(transectdata)
 #summary(transectdata)
@@ -110,7 +110,7 @@ transectdata <- transectdata[!transectdata$Transectcode %in% exclude,]
 
 
 ## birds
-birddata <- read.csv("~/raw/Bird_data_Standard_NM_26022013_Final.csv")
+birddata <- read.csv("data/raw/Bird_data_Standard_NM_26022013_Final.csv")
 #head(birddata)
 #str(birddata)
 #summary(birddata)
@@ -124,8 +124,8 @@ names(birddata)[5] <- "Transectcode"
 birddata$Group <- "Birds"
 
 ## trees
-pgm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
-stm.treedata <- read.csv("~/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
+pgm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
+stm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # include region code
 pgm.treedata$Region <- "PGM"
 stm.treedata$Region <- "STM"
@@ -175,6 +175,15 @@ sppdata$Latitude <- longlat@coords[,2]
 #points(longlat)
 
 
+# removing withespace and blank cells
+sppdata$Binomial <- iconv(sppdata$Binomial, from = "ISO-8859-1", to = "UTF-8")
+sppdata$Binomial <- gsub("\\s+","",sppdata$Binomial)
+sppdata <- sppdata[!(is.na(sppdata$Binomial) | sppdata$Binomial==""), ]
+
+# removing unidentifed species
+#sort(unique(sppdata[grep(".sp$", sppdata$Binomial),"Binomial"]))
+sppdata <- sppdata[-grep(".sp$", sppdata$Binomial),]
+sppdata <- sppdata[-grep(".sp1$", sppdata$Binomial),]
 
 #
 ## filter 1: selecting forest dependent species using undisturbed primary forest layer
@@ -188,11 +197,14 @@ UFPls.core[UFPls.core<.8]<-0
 
 
 sppdata$forestdep <- extract(UFPls.core, SpatialPoints(sppdata[, c("Longitude", "Latitude")]))
-forestdep.unique.spplist <- unique(sppdata[sppdata$forestdep == 1, "Binomial"])
-forestdep.sppdata <- sppdata[sppdata$Binomial %in% forestdep.unique.spplist,]
 
-forestdep.spplist <- as.data.frame(table(forestdep.sppdata$Binomial))
-names(forestdep.spplist) <- c("Binomial", "Nrec")
+forestdep.spplist <- as.data.frame(sppdata %>% group_by(Binomial, forestdep) %>% 
+                                       summarise(Group=first(Group), n=n()) %>% 
+                                       mutate(freq=n/sum(n)) %>% 
+                                       filter(forestdep==1 & freq >= .25) %>% 
+                                       ungroup())
+
+forestdep.sppdata <- sppdata[sppdata$Binomial %in% forestdep.spplist$Binomial,]
 
 #
 # filter 2: excluding records to avoid spatial autocorrelation
@@ -227,9 +239,6 @@ for (i in forestdep.spplist$Binomial) {
 }
 
 
-forestdep.spplist <- left_join(forestdep.spplist, forestdep.sppdata[,c(6, 5)])
-forestdep.spplist <- forestdep.spplist[!duplicated(forestdep.spplist),]
-
 sppdata.final <- left_join(sppdata.final, forestdep.sppdata)
 sppdata.final <- sppdata.final[!duplicated(sppdata.final),]
 sppdata.final <- sppdata.final[,c(4:8,3,9,10,1,2,11)]
@@ -238,12 +247,12 @@ sppdata.final <- sppdata.final[,c(4:8,3,9,10,1,2,11)]
 #nrow(as.data.frame(table(sppdata.final[sppdata.final$Group=="Birds","Binomial"])))
 
 # add new var for ensemble model scores
+forestdep.spplist<-forestdep.spplist[,-c(2,4,5)]
 forestdep.spplist$ROC<-NA
-forestdep.spplist$TSS<-NA
 forestdep.spplist$Sensitivity<-NA
 forestdep.spplist$Specificity<-NA
-forestdep.spplist$Cutoff<-NA
-forestdep.spplist$job <- c(rep(1:15, each=floor(length(unique(sppdata.final$Binomial))/15)),15)
+forestdep.spplist$job <- c(rep(1:12, each=floor(length(unique(sppdata.final$Binomial))/12)),12,12,12,12,12)
+forestdep.spplist$job <- ifelse(forestdep.spplist$Nrec<10, 13, forestdep.spplist$job)
 forestdep.spplist$Done <- "FALSE"
 
 rm(list= ls()[!(ls() %in% c("env.explanatory.var", "sel.var.df", "forestdep.spplist", "sppdata.final"))])
