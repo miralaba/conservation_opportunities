@@ -248,9 +248,6 @@ sppdata.final <- sppdata.final[,c(4:8,3,9,10,1,2,11)]
 
 # add new var for ensemble model scores
 forestdep.spplist<-forestdep.spplist[,-c(2,4,5)]
-forestdep.spplist$ROC<-NA
-forestdep.spplist$Sensitivity<-NA
-forestdep.spplist$Specificity<-NA
 forestdep.spplist$job <- c(rep(1:12, each=floor(length(unique(sppdata.final$Binomial))/12)),12,12,12,12,12)
 forestdep.spplist$job <- ifelse(forestdep.spplist$Nrec<10, 13, forestdep.spplist$job)
 forestdep.spplist$Done <- "FALSE"
