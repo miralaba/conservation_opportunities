@@ -138,7 +138,6 @@ forestdep.spplist[,namevector] <- as.numeric(NA)
 
 
 
-
 #model fitting and cross-validated predictions for Random Forest
 #setting the algorithm to use in caret by defining a list that contains 
 #a number of custom named elements that the caret package looks for:
@@ -164,7 +163,7 @@ customRF$levels <- function(x) x$classes
 
 
 #' species distribution modelling
-#i <- as.character(forestdep.spplist$Binomial[265])
+#i <- as.character(forestdep.spplist$Binomial[269])
 for (i in forestdep.spplist$Binomial) {
   
   #spliting the job
