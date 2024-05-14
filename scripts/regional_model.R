@@ -109,8 +109,6 @@ dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2", r
 dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth", recursive = T)
 dir.create("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth2", recursive = T)
 
-dir.create("models.output/biodiversity.maps/evaluation", recursive = T)
-
 #
 #
 
@@ -162,6 +160,12 @@ customRF$sort <- function(x) x[order(x[,1]),]
 customRF$levels <- function(x) x$classes
 
 
+rm(list=ls()[!ls() %in% c("std.proj", "pgm.shp", "stm.shp", "sel.var.df", "env.explanatory.var", 
+                         "forestdep.spplist", "sppdata.final", "UPFls.invcore", "customRF")])
+gc()
+
+
+
 #' species distribution modelling
 #i <- as.character(forestdep.spplist$Binomial[269])
 for (i in forestdep.spplist$Binomial) {
@@ -172,6 +176,7 @@ for (i in forestdep.spplist$Binomial) {
   #checking if model is done
   if(forestdep.spplist[forestdep.spplist$Binomial==i, "Done"] == TRUE) next
   
+  cat("\n> starting", i, "<\n")
   #starting modeling procedure
   ##data preparation
   occur.p <- as.data.frame(sppdata.final %>% 
@@ -190,12 +195,15 @@ for (i in forestdep.spplist$Binomial) {
         pa.area <- mask(UPFls.invcore, buffer)
         pa.data <- as.data.frame(xyFromCell(pa.area, cell = which(pa.area[]==1), spatial = F))
         names(pa.data) <- c("Longitude", "Latitude")
+        if(nrow(pa.data)==0) next
         pa.data$response <- 0
+        set.seed(999)
         occur.a <- as.data.frame(pa.data %>% sample_n(as.numeric(length(ptx)*5), replace = T) %>% 
                                    mutate(Binomial=i,
                                           Catchment=c))
         occur <- rbind(occur, occur.a)
         }
+        cat("\n> pseudo-absence for ", i, "created <\n")
   
   #extracting values from environmental explanatory variables
   env.var <- extract(env.explanatory.var, SpatialPoints(occur[,c("Longitude", "Latitude")]))
@@ -239,7 +247,7 @@ for (i in forestdep.spplist$Binomial) {
                                                                                    to=c(0,1))) %>% 
                                                pivot_wider(names_from=VAR, values_from = MeanDecreaseAccuracy))
                     
-  
+  cat("\n> RF model framework for ", i, " completed; starting projections <\n")
   #projections
   #PGM 2010 real
   pgm.2010real.raster.list <- list.files("rasters/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
@@ -635,8 +643,12 @@ for (i in forestdep.spplist$Binomial) {
   #
   
   forestdep.spplist[forestdep.spplist$Binomial==i,"Done"] <- "TRUE"
-  write.csv(varimp, "models.output/biodiversity.maps/preliminar_species_summary.csv", row.names = F)
+  write.csv(forestdep.spplist, "models.output/biodiversity.maps/preliminar_species_summary.csv", row.names = F)
   
+  cat("\n> ", i, "concluded <\n")
+  rm(list=ls()[!ls() %in% c("std.proj", "pgm.shp", "stm.shp", "sel.var.df", "env.explanatory.var", 
+                            "forestdep.spplist", "sppdata.final", "UPFls.invcore", "customRF")])
+  gc()
 }
   
   
