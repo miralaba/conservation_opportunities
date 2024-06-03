@@ -178,7 +178,7 @@ names(pgm.degrad.pf) <- c("pgm.degrad.2010real", "pgm.degrad.2020real")
 #plot(pgm.degrad.pf)
 #range(values(pgm.degrad.pf[["pgm.degrad.2010real"]]), na.rm=T)
 
-### non-degraded sites will be considered with 300 years following (BIB)
+### non-degraded sites will be considered with 300 years following (Vieira et al. 2005 - https://doi.org/10.1073/pnas.0505966102)
 pgm.degrad.pf[["pgm.degrad.2010real"]][pgm.degrad.pf[["pgm.degrad.2010real"]]>25] <- 300
 pgm.degrad.pf[["pgm.degrad.2020real"]][pgm.degrad.pf[["pgm.degrad.2020real"]]>35] <- 300
 
@@ -659,8 +659,26 @@ LULC2020[] <- ifelse(LULC2020[]==1, 1, NA)
 LULC2010[] <- ifelse(LULC2020[]==1, 1, LULC2010[])
 #length(which(LULC2010[]==1))
 
+writeRaster(LULC2010, "rasters/PGM/input/LULC/area_change_2010_real_bin.tif", format="GTiff", overwrite=T)
+#LULC2010.bin <- raster("rasters/PGM/input/LULC/area_change_2010_real_bin.tif")
+
+writeRaster(LULC2020, "rasters/PGM/input/LULC/area_change_2020_real_bin.tif", format="GTiff", overwrite=T)
+#LULC2020.bin <- raster("rasters/PGM/input/LULC/area_change_2020_real_bin.tif")
+
+
+LULC2010[] <- ifelse(LULC2010[]==1 & uDPF2010[]==1, 10, LULC2010[])
+LULC2010[] <- ifelse(LULC2010[]==1 & RDPF2010[]==1, 25, LULC2010[])
+LULC2010[] <- ifelse(LULC2010[]==1 & uSF2010[]==1, 100, LULC2010[])
+LULC2010[] <- ifelse(LULC2010[]==1 & DSF2010[]==1, 125, LULC2010[])
+
 writeRaster(LULC2010, "rasters/PGM/input/LULC/area_change_2010_real.tif", format="GTiff", overwrite=T)
 #LULC2010 <- raster("rasters/PGM/input/LULC/area_change_2010_real.tif")
+
+
+LULC2020[] <- ifelse(LULC2020[]==1 & uDPF2020[]==1, 10, LULC2020[])
+LULC2020[] <- ifelse(LULC2020[]==1 & RDPF2020[]==1, 25, LULC2020[])
+LULC2020[] <- ifelse(LULC2020[]==1 & uSF2020[]==1, 100, LULC2020[])
+LULC2020[] <- ifelse(LULC2020[]==1 & DSF2020[]==1, 125, LULC2020[])
 
 writeRaster(LULC2020, "rasters/PGM/input/LULC/area_change_2020_real.tif", format="GTiff", overwrite=T)
 #LULC2020 <- raster("rasters/PGM/input/LULC/area_change_2020_real.tif")
@@ -708,12 +726,21 @@ writeRaster(DSF2020_avoiddegrad, "rasters/PGM/input/LULC/DSF2020_avoiddegrad.tif
 #DSF2020_avoiddegrad <- raster("rasters/PGM/input/LULC/DSF2020_avoiddegrad.tif")
 
 #isolating areas that change
-LULC2020_avoiddegrad <- LULC2020
+LULC2020_avoiddegrad <- LULC2020.bin
 LULC2020_avoiddegrad[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, NA)
 LULC2020_avoiddegrad[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoiddegrad[])
 LULC2020_avoiddegrad[] <- ifelse(uDPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoiddegrad[])
 LULC2020_avoiddegrad[] <- ifelse(uSF2010[]==1 & DSF2020[]==1, 1, LULC2020_avoiddegrad[])
 #length(which(LULC2020_avoiddegrad[]==1))
+writeRaster(LULC2020_avoiddegrad, "rasters/PGM/input/LULC/area_change_2020_avoiddegrad_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoiddegrad.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddegrad_bin.tif")
+
+
+LULC2020_avoiddegrad[] <- ifelse(LULC2020_avoiddegrad[]==1 & uDPF2020_avoiddegrad[]==1, 10, LULC2020_avoiddegrad[])
+LULC2020_avoiddegrad[] <- ifelse(LULC2020_avoiddegrad[]==1 & RDPF2020_avoiddegrad[]==1, 25, LULC2020_avoiddegrad[])
+LULC2020_avoiddegrad[] <- ifelse(LULC2020_avoiddegrad[]==1 & uSF2020_avoiddegrad[]==1, 100, LULC2020_avoiddegrad[])
+LULC2020_avoiddegrad[] <- ifelse(LULC2020_avoiddegrad[]==1 & DSF2020_avoiddegrad[]==1, 125, LULC2020_avoiddegrad[])
+
 writeRaster(LULC2020_avoiddegrad, "rasters/PGM/input/LULC/area_change_2020_avoiddegrad.tif", format="GTiff", overwrite=T)
 #LULC2020_avoiddegrad <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddegrad.tif")
 
@@ -757,14 +784,22 @@ writeRaster(DSF2020_avoiddegrad2, "rasters/PGM/input/LULC/DSF2020_avoiddegrad2.t
 #DSF2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/DSF2020_avoiddegrad2.tif")
 
 #isolating areas that change
-LULC2020_avoiddegrad2 <- LULC2020
+LULC2020_avoiddegrad2 <- LULC2020.bin
 LULC2020_avoiddegrad2[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, NA)
 LULC2020_avoiddegrad2[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoiddegrad2[])
 LULC2020_avoiddegrad2[] <- ifelse(uDPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoiddegrad2[])
 #length(which(LULC2020_avoiddegrad2[]==1))
-writeRaster(LULC2020_avoiddegrad2, "rasters/PGM/input/LULC/area_change_2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
-#LULC2020_avoiddegrad2 <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddegrad2.tif")
+writeRaster(LULC2020_avoiddegrad2, "rasters/PGM/input/LULC/area_change_2020_avoiddegrad2_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoiddegrad2.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddegrad_bin.tif")
 
+
+LULC2020_avoiddegrad2[] <- ifelse(LULC2020_avoiddegrad2[]==1 & uDPF2020_avoiddegrad2[]==1, 10, LULC2020_avoiddegrad2[])
+LULC2020_avoiddegrad2[] <- ifelse(LULC2020_avoiddegrad2[]==1 & RDPF2020_avoiddegrad2[]==1, 25, LULC2020_avoiddegrad2[])
+LULC2020_avoiddegrad2[] <- ifelse(LULC2020_avoiddegrad2[]==1 & uSF2020_avoiddegrad2[]==1, 100, LULC2020_avoiddegrad2[])
+LULC2020_avoiddegrad2[] <- ifelse(LULC2020_avoiddegrad2[]==1 & DSF2020_avoiddegrad2[]==1, 125, LULC2020_avoiddegrad2[])
+
+writeRaster(LULC2020_avoiddegrad2, "rasters/PGM/input/LULC/area_change_2020_avoiddegrad2.tif", format="GTiff", overwrite=T)
+#LULC2020_avoiddegrad <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddegrad2.tif")
 
 
 
@@ -817,7 +852,7 @@ writeRaster(DSF2020_avoiddeforest, "rasters/PGM/input/LULC/DSF2020_avoiddeforest
 #DSF2020_avoiddeforest <- raster("rasters/PGM/input/LULC/DSF2020_avoiddeforest.tif")
 
 #isolating areas that change
-LULC2020_avoiddeforest <- LULC2020
+LULC2020_avoiddeforest <- LULC2020.bin
 LULC2020_avoiddeforest[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, NA)
 LULC2020_avoiddeforest[] <- ifelse(UPF2010[]==1 & uSF2020[]==1, 1, LULC2020_avoiddeforest[])
 LULC2020_avoiddeforest[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & UPF2020[]==0 & UPF2010[]==1, 1, LULC2020_avoiddeforest[])
@@ -830,9 +865,17 @@ LULC2020_avoiddeforest[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1
 LULC2020_avoiddeforest[] <- ifelse(DSF2020[]==0 & uSF2020[]==0 & uSF2010[]==1, 1, LULC2020_avoiddeforest[])
 LULC2020_avoiddeforest[] <- ifelse(uSF2020[]==0 & DSF2020[]==0 & DSF2010[]==1, 1, LULC2020_avoiddeforest[])
 #length(which(LULC2020_avoiddeforest[]==1))
+writeRaster(LULC2020_avoiddeforest, "rasters/PGM/input/LULC/area_change_2020_avoiddeforest_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoiddeforest.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddeforest_bin.tif")
+
+
+LULC2020_avoiddeforest[] <- ifelse(LULC2020_avoiddeforest[]==1 & uDPF2020_avoiddeforest[]==1, 10, LULC2020_avoiddeforest[])
+LULC2020_avoiddeforest[] <- ifelse(LULC2020_avoiddeforest[]==1 & RDPF2020_avoiddeforest[]==1, 25, LULC2020_avoiddeforest[])
+LULC2020_avoiddeforest[] <- ifelse(LULC2020_avoiddeforest[]==1 & uSF2020_avoiddeforest[]==1, 100, LULC2020_avoiddeforest[])
+LULC2020_avoiddeforest[] <- ifelse(LULC2020_avoiddeforest[]==1 & DSF2020_avoiddeforest[]==1, 125, LULC2020_avoiddeforest[])
+
 writeRaster(LULC2020_avoiddeforest, "rasters/PGM/input/LULC/area_change_2020_avoiddeforest.tif", format="GTiff", overwrite=T)
 #LULC2020_avoiddeforest <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddeforest.tif")
-
 
 
 
@@ -883,7 +926,7 @@ writeRaster(DSF2020_avoiddeforest2, "rasters/PGM/input/LULC/DSF2020_avoiddefores
 #DSF2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/DSF2020_avoiddeforest2.tif")
 
 #isolating areas that change
-LULC2020_avoiddeforest2 <- LULC2020
+LULC2020_avoiddeforest2 <- LULC2020.bin
 LULC2020_avoiddeforest2[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, NA)
 LULC2020_avoiddeforest2[] <- ifelse(UPF2010[]==1 & uSF2020[]==1, 1, LULC2020_avoiddeforest2[])
 LULC2020_avoiddeforest2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & UPF2020[]==0 & UPF2010[]==1, 1, LULC2020_avoiddeforest2[])
@@ -894,9 +937,17 @@ LULC2020_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, LULC2020_av
 LULC2020_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, LULC2020_avoiddeforest2[])
 LULC2020_avoiddeforest2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, LULC2020_avoiddeforest2[])
 #length(which(LULC2020_avoiddeforest2[]==1))
+writeRaster(LULC2020_avoiddeforest2, "rasters/PGM/input/LULC/area_change_2020_avoiddeforest2_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoiddeforest2.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddeforest2_bin.tif")
+
+
+LULC2020_avoiddeforest2[] <- ifelse(LULC2020_avoiddeforest2[]==1 & uDPF2020_avoiddeforest2[]==1, 10, LULC2020_avoiddeforest2[])
+LULC2020_avoiddeforest2[] <- ifelse(LULC2020_avoiddeforest2[]==1 & RDPF2020_avoiddeforest2[]==1, 25, LULC2020_avoiddeforest2[])
+LULC2020_avoiddeforest2[] <- ifelse(LULC2020_avoiddeforest2[]==1 & uSF2020_avoiddeforest2[]==1, 100, LULC2020_avoiddeforest2[])
+LULC2020_avoiddeforest2[] <- ifelse(LULC2020_avoiddeforest2[]==1 & DSF2020_avoiddeforest2[]==1, 125, LULC2020_avoiddeforest2[])
+
 writeRaster(LULC2020_avoiddeforest2, "rasters/PGM/input/LULC/area_change_2020_avoiddeforest2.tif", format="GTiff", overwrite=T)
 #LULC2020_avoiddeforest2 <- raster("rasters/PGM/input/LULC/area_change_2020_avoiddeforest2.tif")
-
 
 
 
@@ -940,9 +991,14 @@ writeRaster(RDPF2020_restor_wo_avoid, "rasters/PGM/input/LULC/RDPF2020_restor_wo
 LULC2020_restor_wo_avoid <- candidate.areas.final
 LULC2020_restor_wo_avoid[] <- ifelse(LULC2020_restor_wo_avoid[]==0, NA, LULC2020_restor_wo_avoid[])
 #length(which(LULC2020_restor_wo_avoid[]==1))
+writeRaster(LULC2020_restor_wo_avoid, "rasters/PGM/input/LULC/area_change_2020_restor_wo_avoid_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_restor_wo_avoid.bin <- raster("rasters/PGM/input/LULC/area_change_2020_restor_wo_avoid_bin.tif")
+
+
+LULC2020_restor_wo_avoid[LULC2020_restor_wo_avoid[]==1] <- 100
+
 writeRaster(LULC2020_restor_wo_avoid, "rasters/PGM/input/LULC/area_change_2020_restor_wo_avoid.tif", format="GTiff", overwrite=T)
 #LULC2020_restor_wo_avoid <- raster("rasters/PGM/input/LULC/area_change_2020_restor_wo_avoid.tif")
-
 
 
 
@@ -1003,7 +1059,7 @@ writeRaster(DSF2020_avoidboth, "rasters/PGM/input/LULC/DSF2020_avoidboth.tif", f
 #DSF2020_avoidboth <- raster("rasters/PGM/input/LULC/DSF2020_avoidboth.tif")
 
 #isolating areas that change
-LULC2020_avoidboth <- LULC2020
+LULC2020_avoidboth <- LULC2020.bin
 LULC2020_avoidboth[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, NA)
 LULC2020_avoidboth[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoidboth[])
 LULC2020_avoidboth[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, LULC2020_avoidboth[])
@@ -1020,9 +1076,17 @@ LULC2020_avoidboth[] <- ifelse(uSF2010[]==1 & DSF2020[]==1, 1, LULC2020_avoidbot
 LULC2020_avoidboth[] <- ifelse(DSF2020[]==0 & uSF2020[]==0 & uSF2010[]==1, 1, LULC2020_avoidboth[])
 LULC2020_avoidboth[] <- ifelse(uSF2020[]==0 & DSF2020[]==0 & DSF2010[]==1, 1, LULC2020_avoidboth[])
 #length(which(LULC2020_avoidboth[]==1))
+writeRaster(LULC2020_avoidboth, "rasters/PGM/input/LULC/area_change_2020_avoidboth_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoidboth.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoidboth_bin.tif")
+
+
+LULC2020_avoidboth[] <- ifelse(LULC2020_avoidboth[]==1 & uDPF2020_avoidboth[]==1, 10, LULC2020_avoidboth[])
+LULC2020_avoidboth[] <- ifelse(LULC2020_avoidboth[]==1 & RDPF2020_avoidboth[]==1, 25, LULC2020_avoidboth[])
+LULC2020_avoidboth[] <- ifelse(LULC2020_avoidboth[]==1 & uSF2020_avoidboth[]==1, 100, LULC2020_avoidboth[])
+LULC2020_avoidboth[] <- ifelse(LULC2020_avoidboth[]==1 & DSF2020_avoidboth[]==1, 125, LULC2020_avoidboth[])
+
 writeRaster(LULC2020_avoidboth, "rasters/PGM/input/LULC/area_change_2020_avoidboth.tif", format="GTiff", overwrite=T)
 #LULC2020_avoidboth <- raster("rasters/PGM/input/LULC/area_change_2020_avoidboth.tif")
-
 
 
 
@@ -1079,7 +1143,7 @@ writeRaster(DSF2020_avoidboth2, "rasters/PGM/input/LULC/DSF2020_avoidboth2.tif",
 #DSF2020_avoidboth2 <- raster("rasters/PGM/input/LULC/DSF2020_avoidboth2.tif")
 
 #isolating areas that change
-LULC2020_avoidboth2 <- LULC2020
+LULC2020_avoidboth2 <- LULC2020.bin
 LULC2020_avoidboth2[] <- ifelse(UPF2010[]==1 & uDPF2020[]==1, 1, NA)
 LULC2020_avoidboth2[] <- ifelse(UPF2010[]==1 & RDPF2020[]==1, 1, LULC2020_avoidboth2[])
 LULC2020_avoidboth2[] <- ifelse(UPF2010[]==1 & DSF2020[]==1, 1, LULC2020_avoidboth2[])
@@ -1093,9 +1157,17 @@ LULC2020_avoidboth2[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, LULC2020_avoidb
 LULC2020_avoidboth2[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, LULC2020_avoidboth2[])
 LULC2020_avoidboth2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, LULC2020_avoidboth2[])
 #length(which(LULC2020_avoidboth2[]==1))
+writeRaster(LULC2020_avoidboth2, "rasters/PGM/input/LULC/area_change_2020_avoidboth2_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_avoidboth2.bin <- raster("rasters/PGM/input/LULC/area_change_2020_avoidboth2_bin.tif")
+
+
+LULC2020_avoidboth2[] <- ifelse(LULC2020_avoidboth2[]==1 & uDPF2020_avoidboth2[]==1, 10, LULC2020_avoidboth2[])
+LULC2020_avoidboth2[] <- ifelse(LULC2020_avoidboth2[]==1 & RDPF2020_avoidboth2[]==1, 25, LULC2020_avoidboth2[])
+LULC2020_avoidboth2[] <- ifelse(LULC2020_avoidboth2[]==1 & uSF2020_avoidboth2[]==1, 100, LULC2020_avoidboth2[])
+LULC2020_avoidboth2[] <- ifelse(LULC2020_avoidboth2[]==1 & DSF2020_avoidboth2[]==1, 125, LULC2020_avoidboth2[])
+
 writeRaster(LULC2020_avoidboth2, "rasters/PGM/input/LULC/area_change_2020_avoidboth2.tif", format="GTiff", overwrite=T)
 #LULC2020_avoidboth2 <- raster("rasters/PGM/input/LULC/area_change_2020_avoidboth2.tif")
-
 
 
 
@@ -1174,9 +1246,17 @@ LULC2020_restor_n_avoiddeforest[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF
 LULC2020_restor_n_avoiddeforest[] <- ifelse(DSF2020[]==0 & uSF2020[]==0 & uSF2010[]==1, 1, LULC2020_restor_n_avoiddeforest[])
 LULC2020_restor_n_avoiddeforest[] <- ifelse(uSF2020[]==0 & DSF2020[]==0 & DSF2010[]==1, 1, LULC2020_restor_n_avoiddeforest[])
 #length(which(LULC2020_restor_n_avoiddeforest[]==1))
+writeRaster(LULC2020_restor_n_avoiddeforest, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_restor_n_avoiddeforest.bin <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest_bin.tif")
+
+
+LULC2020_restor_n_avoiddeforest[] <- ifelse(LULC2020_restor_n_avoiddeforest[]==1 & uDPF2020_restor_n_avoiddeforest[]==1, 10, LULC2020_restor_n_avoiddeforest[])
+LULC2020_restor_n_avoiddeforest[] <- ifelse(LULC2020_restor_n_avoiddeforest[]==1 & RDPF2020_restor_n_avoiddeforest[]==1, 25, LULC2020_restor_n_avoiddeforest[])
+LULC2020_restor_n_avoiddeforest[] <- ifelse(LULC2020_restor_n_avoiddeforest[]==1 & uSF2020_restor_n_avoiddeforest[]==1, 100, LULC2020_restor_n_avoiddeforest[])
+LULC2020_restor_n_avoiddeforest[] <- ifelse(LULC2020_restor_n_avoiddeforest[]==1 & DSF2020_restor_n_avoiddeforest[]==1, 125, LULC2020_restor_n_avoiddeforest[])
+
 writeRaster(LULC2020_restor_n_avoiddeforest, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest.tif", format="GTiff", overwrite=T)
 #LULC2020_restor_n_avoiddeforest <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest.tif")
-
 
 
 
@@ -1250,9 +1330,17 @@ LULC2020_restor_n_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, LU
 LULC2020_restor_n_avoiddeforest2[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, LULC2020_restor_n_avoiddeforest2[])
 LULC2020_restor_n_avoiddeforest2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, LULC2020_restor_n_avoiddeforest2[])
 #length(which(LULC2020_restor_n_avoiddeforest2[]==1))
+writeRaster(LULC2020_restor_n_avoiddeforest2, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest2_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_restor_n_avoiddeforest2.bin <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest2_bin.tif")
+
+
+LULC2020_restor_n_avoiddeforest2[] <- ifelse(LULC2020_restor_n_avoiddeforest2[]==1 & uDPF2020_restor_n_avoiddeforest2[]==1, 10, LULC2020_restor_n_avoiddeforest2[])
+LULC2020_restor_n_avoiddeforest2[] <- ifelse(LULC2020_restor_n_avoiddeforest2[]==1 & RDPF2020_restor_n_avoiddeforest2[]==1, 25, LULC2020_restor_n_avoiddeforest2[])
+LULC2020_restor_n_avoiddeforest2[] <- ifelse(LULC2020_restor_n_avoiddeforest2[]==1 & uSF2020_restor_n_avoiddeforest2[]==1, 100, LULC2020_restor_n_avoiddeforest2[])
+LULC2020_restor_n_avoiddeforest2[] <- ifelse(LULC2020_restor_n_avoiddeforest2[]==1 & DSF2020_restor_n_avoiddeforest2[]==1, 125, LULC2020_restor_n_avoiddeforest2[])
+
 writeRaster(LULC2020_restor_n_avoiddeforest2, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest2.tif", format="GTiff", overwrite=T)
 #LULC2020_restor_n_avoiddeforest2 <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoiddeforest2.tif")
-
 
 
 
@@ -1342,10 +1430,17 @@ LULC2020_restor_n_avoidboth[] <- ifelse(uSF2010[]==1 & DSF2020[]==1, 1, LULC2020
 LULC2020_restor_n_avoidboth[] <- ifelse(DSF2020[]==0 & uSF2020[]==0 & uSF2010[]==1, 1, LULC2020_restor_n_avoidboth[])
 LULC2020_restor_n_avoidboth[] <- ifelse(uSF2020[]==0 & DSF2020[]==0 & DSF2010[]==1, 1, LULC2020_restor_n_avoidboth[])
 #length(which(LULC2020_restor_n_avoidboth[]==1))
+writeRaster(LULC2020_restor_n_avoidboth, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_restor_n_avoidboth.bin <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth_bin.tif")
+
+
+LULC2020_restor_n_avoidboth[] <- ifelse(LULC2020_restor_n_avoidboth[]==1 & uDPF2020_restor_n_avoidboth[]==1, 10, LULC2020_restor_n_avoidboth[])
+LULC2020_restor_n_avoidboth[] <- ifelse(LULC2020_restor_n_avoidboth[]==1 & RDPF2020_restor_n_avoidboth[]==1, 25, LULC2020_restor_n_avoidboth[])
+LULC2020_restor_n_avoidboth[] <- ifelse(LULC2020_restor_n_avoidboth[]==1 & uSF2020_restor_n_avoidboth[]==1, 100, LULC2020_restor_n_avoidboth[])
+LULC2020_restor_n_avoidboth[] <- ifelse(LULC2020_restor_n_avoidboth[]==1 & DSF2020_restor_n_avoidboth[]==1, 125, LULC2020_restor_n_avoidboth[])
+
 writeRaster(LULC2020_restor_n_avoidboth, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth.tif", format="GTiff", overwrite=T)
 #LULC2020_restor_n_avoidboth <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth.tif")
-
-
 
 
 
@@ -1428,8 +1523,21 @@ LULC2020_restor_n_avoidboth2[] <- ifelse(RDPF2010[]==1 & DSF2020[]==1, 1, LULC20
 LULC2020_restor_n_avoidboth2[] <- ifelse(RDPF2010[]==1 & uSF2020[]==1, 1, LULC2020_restor_n_avoidboth2[])
 LULC2020_restor_n_avoidboth2[] <- ifelse(uDPF2020[]==0 & RDPF2020[]==0 & RDPF2010[]==1, 1, LULC2020_restor_n_avoidboth2[])
 #length(which(LULC2020_restor_n_avoidboth2[]==1))
+writeRaster(LULC2020_restor_n_avoidboth2, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth2_bin.tif", format="GTiff", overwrite=T)
+#LULC2020_restor_n_avoidboth2.bin <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth2_bin.tif")
+
+
+LULC2020_restor_n_avoidboth2[] <- ifelse(LULC2020_restor_n_avoidboth2[]==1 & uDPF2020_restor_n_avoidboth2[]==1, 10, LULC2020_restor_n_avoidboth2[])
+LULC2020_restor_n_avoidboth2[] <- ifelse(LULC2020_restor_n_avoidboth2[]==1 & RDPF2020_restor_n_avoidboth2[]==1, 25, LULC2020_restor_n_avoidboth2[])
+LULC2020_restor_n_avoidboth2[] <- ifelse(LULC2020_restor_n_avoidboth2[]==1 & uSF2020_restor_n_avoidboth2[]==1, 100, LULC2020_restor_n_avoidboth2[])
+LULC2020_restor_n_avoidboth2[] <- ifelse(LULC2020_restor_n_avoidboth2[]==1 & DSF2020_restor_n_avoidboth2[]==1, 125, LULC2020_restor_n_avoidboth2[])
+
 writeRaster(LULC2020_restor_n_avoidboth2, "rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth2.tif", format="GTiff", overwrite=T)
 #LULC2020_restor_n_avoidboth2 <- raster("rasters/PGM/input/LULC/area_change_2020_restor_n_avoidboth2.tif")
+
+
+
+
 
 
 
