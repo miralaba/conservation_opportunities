@@ -665,8 +665,7 @@ for (i in forestdep.spplist$Binomial) {
 #forestdep.spplist <- read.csv("data/updated_species_summary_edby_visual_inspection.csv")
 #sppdata.final <- read.csv("data/presence_records.csv")
 
-
-j=nrow(forestdep.spplist[forestdep.spplist$Done==F,])
+#i <- as.character(forestdep.spplist$Binomial[2])
 for (i in forestdep.spplist$Binomial) {
   
   #spliting the job
@@ -686,63 +685,86 @@ if (any(occur$Region=="PGM")) {
   pgm.occur <- SpatialPoints(occur[,c("Longitude", "Latitude")])
   pres.bkg <- gBuffer(pgm.occur, width = 0.09)
   
+  # 2010 real
+  pgm.2010real <- raster("rasters/PGM/2010_real/UPFls.tif")
+  pgm.pres.2010real <- mask(pgm.2010real, pres.bkg, updatevalue=0)
+  
+  writeRaster(pgm.pres.2010real, paste0("models.output/biodiversity.maps/PGM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
+  
   # 2020 real
   pgm.2020real <- raster("rasters/PGM/2020_real/UPFls.tif")
   pgm.pres.2020real <- mask(pgm.2020real, pres.bkg, updatevalue=0)
   
-  writeRaster(pgm.pres.2020real, paste0("models.output/maps/PGM/2020_real/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  writeRaster(pgm.pres.2020real, paste0("models.output/biodiversity.maps/PGM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
   
+  # 2020 avoiddeforest (all)
+  pgm.2020_avoiddeforest <- raster("rasters/PGM/2020_avoiddeforest/UPFls.tif")
+  pgm.pres.2020_avoiddeforest <- mask(pgm.2020_avoiddeforest, pres.bkg, updatevalue=0)
   
-  # 2020 avoid degradation
-  pgm.2020avoiddegrad <- raster("rasters/PGM/2020_avoiddegrad/UPFls.tif")
-  pgm.2020avoiddegrad <- mask(pgm.2020avoiddegrad, pres.bkg, updatevalue=0)
+  writeRaster(pgm.pres.2020_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  writeRaster(pgm.2020avoiddegrad, paste0("models.output/maps/PGM/2020_avoiddegrad/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  # 2020 avoiddeforest (primary forest only)
+  pgm.2020_avoiddeforest2 <- raster("rasters/PGM/2020_avoiddeforest2/UPFls.tif")
+  pgm.pres.2020_avoiddeforest2 <- mask(pgm.2020_avoiddeforest2, pres.bkg, updatevalue=0)
   
+  writeRaster(pgm.pres.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  # 2020 avoid deforestation
-  pgm.2020avoiddeforest <- raster("rasters/PGM/2020_avoiddeforest/UPFls.tif")
-  pgm.2020avoiddeforest <- mask(pgm.2020avoiddeforest, pres.bkg, updatevalue=0)
+  # 2020 avoiddegrad (all)
+  pgm.2020_avoiddegrad <- raster("rasters/PGM/2020_avoiddegrad/UPFls.tif")
+  pgm.pres.2020_avoiddegrad <- mask(pgm.2020_avoiddegrad, pres.bkg, updatevalue=0)
   
-  writeRaster(pgm.2020avoiddeforest, paste0("models.output/maps/PGM/2020_avoiddeforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  writeRaster(pgm.pres.2020_avoiddegrad, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
   
+  # 2020 avoiddegrad (primary forest only)
+  pgm.2020_avoiddegrad2 <- raster("rasters/PGM/2020_avoiddegrad2/UPFls.tif")
+  pgm.pres.2020_avoiddegrad2 <- mask(pgm.2020_avoiddegrad2, pres.bkg, updatevalue=0)
   
-  # 2020 avoid deforestation upf only
-  pgm.2020avoiddeforest2 <- raster("rasters/PGM/2020_avoiddeforest2/UPFls.tif")
-  pgm.2020avoiddeforest2 <- mask(pgm.2020avoiddeforest2, pres.bkg, updatevalue=0)
+  writeRaster(pgm.pres.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  writeRaster(pgm.2020avoiddeforest2, paste0("models.output/maps/PGM/2020_avoiddeforest2/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  # 2020 restor_wo_avoid
+  pgm.2020_restor_wo_avoid <- raster("rasters/PGM/2020_restor_wo_avoid/UPFls.tif")
+  pgm.pres.2020_restor_wo_avoid <- mask(pgm.2020_restor_wo_avoid, pres.bkg, updatevalue=0)
   
+  writeRaster(pgm.pres.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/PGM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  # 2020 avoid both
-  pgm.2020avoidboth <- raster("rasters/PGM/2020_avoidboth/UPFls.tif")
-  pgm.2020avoidboth <- mask(pgm.2020avoidboth, pres.bkg, updatevalue=0)
+  # 2020 avoidboth (all)
+  pgm.2020_avoidboth <- raster("rasters/PGM/2020_avoidboth/UPFls.tif")
+  pgm.pres.2020_avoidboth <- mask(pgm.2020_avoidboth, pres.bkg, updatevalue=0)
   
-  writeRaster(pgm.2020avoidboth, paste0("models.output/maps/PGM/2020_avoidboth/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  writeRaster(pgm.pres.2020_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
   
+  # 2020 avoidboth (primary forest only)
+  pgm.2020_avoidboth2 <- raster("rasters/PGM/2020_avoidboth2/UPFls.tif")
+  pgm.pres.2020_avoidboth2 <- mask(pgm.2020_avoidboth2, pres.bkg, updatevalue=0)
   
-  # 2020 restoration without avoid
-  pgm.2020restor_wo_avoid <- raster("rasters/PGM/2020_restor_wo_avoid/UPFls.tif")
-  pgm.2020restor_wo_avoid <- mask(pgm.2020restor_wo_avoid, pres.bkg, updatevalue=0)
+  writeRaster(pgm.pres.2020_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  writeRaster(pgm.2020restor_wo_avoid, paste0("models.output/maps/PGM/2020_restor_wo_avoid/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  # 2020 restor_n_avoiddeforest (all)
+  pgm.2020_restor_n_avoiddeforest <- raster("rasters/PGM/2020_restor_n_avoiddeforest/UPFls.tif")
+  pgm.pres.2020_restor_n_avoiddeforest <- mask(pgm.2020_restor_n_avoiddeforest, pres.bkg, updatevalue=0)
   
+  writeRaster(pgm.pres.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  # 2020 restoration and avoid restoration
-  pgm.2020restor_n_avoid_deforest <- raster("rasters/PGM/2020_restor_n_avoid_deforest/UPFls.tif")
-  pgm.2020restor_n_avoid_deforest <- mask(pgm.2020restor_n_avoid_deforest, pres.bkg, updatevalue=0)
+  # 2020 restor_n_avoiddeforest (primary forest only)
+  pgm.2020_restor_n_avoiddeforest2 <- raster("rasters/PGM/2020_restor_n_avoiddeforest2/UPFls.tif")
+  pgm.pres.2020_restor_n_avoiddeforest2 <- mask(pgm.2020_restor_n_avoiddeforest2, pres.bkg, updatevalue=0)
   
-  writeRaster(pgm.2020restor_n_avoid_deforest, paste0("models.output/maps/PGM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  writeRaster(pgm.pres.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
   
+  # 2020 restor_n_avoidboth (all)
+  pgm.2020_restor_n_avoidboth <- raster("rasters/PGM/2020_restor_n_avoidboth/UPFls.tif")
+  pgm.pres.2020_restor_n_avoidboth <- mask(pgm.2020_restor_n_avoidboth, pres.bkg, updatevalue=0)
   
-  # 2020 restoration and avoid both
-  pgm.2020restor_n_avoid_both <- raster("rasters/PGM/2020_restor_n_avoid_both/UPFls.tif")
-  pgm.2020restor_n_avoid_both <- mask(pgm.2020restor_n_avoid_both, pres.bkg, updatevalue=0)
+  writeRaster(pgm.pres.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
   
-  writeRaster(pgm.2020restor_n_avoid_both, paste0("models.output/maps/PGM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  # 2020 restor_n_avoidboth (primary forest only)
+  pgm.2020_restor_n_avoidboth2 <- raster("rasters/PGM/2020_restor_n_avoidboth2/UPFls.tif")
+  pgm.pres.2020_restor_n_avoidboth2 <- mask(pgm.2020_restor_n_avoidboth2, pres.bkg, updatevalue=0)
   
+  writeRaster(pgm.pres.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+
   
-  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "j", "occur", "sel.var.df", "env.explanatory.var"))])
+  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur"))])
   gc()
   #
   
@@ -757,74 +779,96 @@ if (any(occur$Region=="STM")) {
   stm.occur <- SpatialPoints(occur[,c("Longitude", "Latitude")])
   pres.bkg <- gBuffer(stm.occur, width = 0.09)
   
+  # 2010 real
+  stm.2010real <- raster("rasters/STM/2010_real/UPFls.tif")
+  stm.pres.2010real <- mask(stm.2010real, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2010real, paste0("models.output/biodiversity.maps/STM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
+  
   # 2020 real
   stm.2020real <- raster("rasters/STM/2020_real/UPFls.tif")
   stm.pres.2020real <- mask(stm.2020real, pres.bkg, updatevalue=0)
   
-  writeRaster(stm.pres.2020real, paste0("models.output/maps/STM/2020_real/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
+  writeRaster(stm.pres.2020real, paste0("models.output/biodiversity.maps/STM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoiddeforest (all)
+  stm.2020_avoiddeforest <- raster("rasters/STM/2020_avoiddeforest/UPFls.tif")
+  stm.pres.2020_avoiddeforest <- mask(stm.2020_avoiddeforest, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoiddeforest (primary forest only)
+  stm.2020_avoiddeforest2 <- raster("rasters/STM/2020_avoiddeforest2/UPFls.tif")
+  stm.pres.2020_avoiddeforest2 <- mask(stm.2020_avoiddeforest2, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoiddegrad (all)
+  stm.2020_avoiddegrad <- raster("rasters/STM/2020_avoiddegrad/UPFls.tif")
+  stm.pres.2020_avoiddegrad <- mask(stm.2020_avoiddegrad, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoiddegrad, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoiddegrad (primary forest only)
+  stm.2020_avoiddegrad2 <- raster("rasters/STM/2020_avoiddegrad2/UPFls.tif")
+  stm.pres.2020_avoiddegrad2 <- mask(stm.2020_avoiddegrad2, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 restor_wo_avoid
+  stm.2020_restor_wo_avoid <- raster("rasters/STM/2020_restor_wo_avoid/UPFls.tif")
+  stm.pres.2020_restor_wo_avoid <- mask(stm.2020_restor_wo_avoid, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/STM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoidboth (all)
+  stm.2020_avoidboth <- raster("rasters/STM/2020_avoidboth/UPFls.tif")
+  stm.pres.2020_avoidboth <- mask(stm.2020_avoidboth, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 avoidboth (primary forest only)
+  stm.2020_avoidboth2 <- raster("rasters/STM/2020_avoidboth2/UPFls.tif")
+  stm.pres.2020_avoidboth2 <- mask(stm.2020_avoidboth2, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 restor_n_avoiddeforest (all)
+  stm.2020_restor_n_avoiddeforest <- raster("rasters/STM/2020_restor_n_avoiddeforest/UPFls.tif")
+  stm.pres.2020_restor_n_avoiddeforest <- mask(stm.2020_restor_n_avoiddeforest, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 restor_n_avoiddeforest (primary forest only)
+  stm.2020_restor_n_avoiddeforest2 <- raster("rasters/STM/2020_restor_n_avoiddeforest2/UPFls.tif")
+  stm.pres.2020_restor_n_avoiddeforest2 <- mask(stm.2020_restor_n_avoiddeforest2, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 restor_n_avoidboth (all)
+  stm.2020_restor_n_avoidboth <- raster("rasters/STM/2020_restor_n_avoidboth/UPFls.tif")
+  stm.pres.2020_restor_n_avoidboth <- mask(stm.2020_restor_n_avoidboth, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+  
+  # 2020 restor_n_avoidboth (primary forest only)
+  stm.2020_restor_n_avoidboth2 <- raster("rasters/STM/2020_restor_n_avoidboth2/UPFls.tif")
+  stm.pres.2020_restor_n_avoidboth2 <- mask(stm.2020_restor_n_avoidboth2, pres.bkg, updatevalue=0)
+  
+  writeRaster(stm.pres.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
   
   
-  # 2020 avoid degradation
-  stm.2020avoiddegrad <- raster("rasters/STM/2020_avoiddegrad/UPFls.tif")
-  stm.2020avoiddegrad <- mask(stm.2020avoiddegrad, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020avoiddegrad, paste0("models.output/maps/STM/2020_avoiddegrad/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 avoid deforestation
-  stm.2020avoiddeforest <- raster("rasters/STM/2020_avoiddeforest/UPFls.tif")
-  stm.2020avoiddeforest <- mask(stm.2020avoiddeforest, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020avoiddeforest, paste0("models.output/maps/STM/2020_avoiddeforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 avoid deforestation upf only
-  stm.2020avoiddeforest2 <- raster("rasters/STM/2020_avoiddeforest2/UPFls.tif")
-  stm.2020avoiddeforest2 <- mask(stm.2020avoiddeforest2, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020avoiddeforest2, paste0("models.output/maps/STM/2020_avoiddeforest2/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 avoid both
-  stm.2020avoidboth <- raster("rasters/STM/2020_avoidboth/UPFls.tif")
-  stm.2020avoidboth <- mask(stm.2020avoidboth, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020avoidboth, paste0("models.output/maps/STM/2020_avoidboth/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 restoration without avoid
-  stm.2020restor_wo_avoid <- raster("rasters/STM/2020_restor_wo_avoid/UPFls.tif")
-  stm.2020restor_wo_avoid <- mask(stm.2020restor_wo_avoid, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020restor_wo_avoid, paste0("models.output/maps/STM/2020_restor_wo_avoid/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 restoration and avoid restoration
-  stm.2020restor_n_avoid_deforest <- raster("rasters/STM/2020_restor_n_avoid_deforest/UPFls.tif")
-  stm.2020restor_n_avoid_deforest <- mask(stm.2020restor_n_avoid_deforest, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020restor_n_avoid_deforest, paste0("models.output/maps/STM/2020_restor_n_avoid_deforest/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  # 2020 restoration and avoid both
-  stm.2020restor_n_avoid_both <- raster("rasters/STM/2020_restor_n_avoid_both/UPFls.tif")
-  stm.2020restor_n_avoid_both <- mask(stm.2020restor_n_avoid_both, pres.bkg, updatevalue=0)
-  
-  writeRaster(stm.2020restor_n_avoid_both, paste0("models.output/maps/STM/2020_restor_n_avoid_both/", i, "_merged_algo_merged_dataset_merged_run.tif"), format = "GTiff", overwrite = T)
-  
-  
-  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "j", "occur", "sel.var.df", "env.explanatory.var"))])
+  rm(list= ls()[!(ls() %in% c("forestdep.spplist", "sppdata.final", "i", "occur"))])
   gc()
   #
   
 }
   
-  forestdep.spplist[forestdep.spplist$Binomial==i,"Done"] <- TRUE
-  write.csv(forestdep.spplist, "models.output/evaluation/updated_species_summary_edby_visual_inspection_v2.csv.csv")
+  forestdep.spplist[forestdep.spplist$Binomial==i,"Done"] <- "TRUE"
+  write.csv(forestdep.spplist, "models.output/biodiversity.maps/preliminar_species_summary.csv", row.names = F)
   
   
-  j=j-1
-  cat("\n> species", i, "done; now", j, "species to go <\n")
+  cat("\n> ", i, "concluded <\n")
 }
 
 
