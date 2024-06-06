@@ -181,7 +181,7 @@ for (i in forestdep.spplist$Binomial) {
   ##data preparation
   occur.p <- as.data.frame(sppdata.final %>% 
                            filter(Binomial==i) %>% 
-                           dplyr::select(Binomial, Catchment, Longitude, Latitude) %>% 
+                           dplyr::select(Binomial, Region, Catchment, Longitude, Latitude) %>% 
                            mutate(response=1))
   
   occur <- occur.p
@@ -200,7 +200,8 @@ for (i in forestdep.spplist$Binomial) {
         set.seed(999)
         occur.a <- as.data.frame(pa.data %>% sample_n(as.numeric(length(ptx)*5), replace = T) %>% 
                                    mutate(Binomial=i,
-                                          Catchment=c))
+                                          Catchment=c,
+                                          Region=as.character(unique(occur[occur$Catchment==c, "Region"]))))
         occur <- rbind(occur, occur.a)
         }
         cat("\n> pseudo-absence for ", i, "created <\n")
@@ -249,398 +250,404 @@ for (i in forestdep.spplist$Binomial) {
                     
   cat("\n> RF model framework for ", i, " completed; starting projections <\n")
   #projections
-  #PGM 2010 real
-  pgm.2010real.raster.list <- list.files("rasters/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2010real <- stack(pgm.2010real.raster.list)
-  pgm.2010real.rf <- pgm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
   
-  set.seed(999)
-  mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2010real, paste0("models.output/biodiversity.maps/PGM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 real
-  pgm.2020real.raster.list <- list.files("rasters/PGM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020real <- stack(pgm.2020real.raster.list)
-  pgm.2020real.rf <- pgm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020real <- predict(pgm.2020real.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020real, paste0("models.output/biodiversity.maps/PGM/2020_real/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoiddeforest (all)
-  pgm.2020_avoiddeforest.raster.list <- list.files("rasters/PGM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoiddeforest <- stack(pgm.2020_avoiddeforest.raster.list)
-  pgm.2020_avoiddeforest.rf <- pgm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoiddeforest <- predict(pgm.2020_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoiddeforest (primary forest only)
-  pgm.2020_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoiddeforest2 <- stack(pgm.2020_avoiddeforest2.raster.list)
-  pgm.2020_avoiddeforest2.rf <- pgm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoiddeforest2 <- predict(pgm.2020_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoiddegrad (all)
-  pgm.2020_avoiddegrad.raster.list <- list.files("rasters/PGM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoiddegrad <- stack(pgm.2020_avoiddegrad.raster.list)
-  pgm.2020_avoiddegrad.rf <- pgm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoiddegrad <- predict(pgm.2020_avoiddegrad.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoiddegrad, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoiddegrad (primary forest only)
-  pgm.2020_avoiddegrad2.raster.list <- list.files("rasters/PGM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoiddegrad2 <- stack(pgm.2020_avoiddegrad2.raster.list)
-  pgm.2020_avoiddegrad2.rf <- pgm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoiddegrad2 <- predict(pgm.2020_avoiddegrad2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
-  #writeRaster(proj_pgm.2020_avoiddegrad2.conbywm, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 restor_wo_avoid
-  pgm.2020_restor_wo_avoid.raster.list <- list.files("rasters/PGM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_restor_wo_avoid <- stack(pgm.2020_restor_wo_avoid.raster.list)
-  pgm.2020_restor_wo_avoid.rf <- pgm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_restor_wo_avoid <- predict(pgm.2020_restor_wo_avoid.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/PGM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoidboth (all)
-  pgm.2020_avoidboth.raster.list <- list.files("rasters/PGM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoidboth <- stack(pgm.2020_avoidboth.raster.list)
-  pgm.2020_avoidboth.rf <- pgm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoidboth <- predict(pgm.2020_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 avoidboth (primary forest only)
-  pgm.2020_avoidboth2.raster.list <- list.files("rasters/PGM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_avoidboth2 <- stack(pgm.2020_avoidboth2.raster.list)
-  pgm.2020_avoidboth2.rf <- pgm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_avoidboth2 <- predict(pgm.2020_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 restor_n_avoiddeforest (all)
-  pgm.2020_restor_n_avoiddeforest.raster.list <- list.files("rasters/PGM/2020_restor_n_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_restor_n_avoiddeforest <- stack(pgm.2020_restor_n_avoiddeforest.raster.list)
-  pgm.2020_restor_n_avoiddeforest.rf <- pgm.2020_restor_n_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_restor_n_avoiddeforest <- predict(pgm.2020_restor_n_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 restor_n_avoiddeforest (primary forest only)
-  pgm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_restor_n_avoiddeforest2 <- stack(pgm.2020_restor_n_avoiddeforest2.raster.list)
-  pgm.2020_restor_n_avoiddeforest2.rf <- pgm.2020_restor_n_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_restor_n_avoiddeforest2 <- predict(pgm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 restor_n_avoidboth (all)
-  pgm.2020_restor_n_avoidboth.raster.list <- list.files("rasters/PGM/2020_restor_n_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_restor_n_avoidboth <- stack(pgm.2020_restor_n_avoidboth.raster.list)
-  pgm.2020_restor_n_avoidboth.rf <- pgm.2020_restor_n_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_restor_n_avoidboth <- predict(pgm.2020_restor_n_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #PGM 2020 restor_n_avoidboth (primary forest only)
-  pgm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
-  pgm.2020_restor_n_avoidboth2 <- stack(pgm.2020_restor_n_avoidboth2.raster.list)
-  pgm.2020_restor_n_avoidboth2.rf <- pgm.2020_restor_n_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_pgm.2020_restor_n_avoidboth2 <- predict(pgm.2020_restor_n_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_pgm.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  #
-  
-  
-  
-  #STM 2010 real
-  stm.2010real.raster.list <- list.files("rasters/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2010real <- stack(stm.2010real.raster.list)
-  stm.2010real.rf <- stm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2010real, paste0("models.output/biodiversity.maps/STM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 real
-  stm.2020real.raster.list <- list.files("rasters/STM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020real <- stack(stm.2020real.raster.list)
-  stm.2020real.rf <- stm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020real <- predict(stm.2020real.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020real, paste0("models.output/biodiversity.maps/STM/2020_real/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoiddeforest (all)
-  stm.2020_avoiddeforest.raster.list <- list.files("rasters/STM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoiddeforest <- stack(stm.2020_avoiddeforest.raster.list)
-  stm.2020_avoiddeforest.rf <- stm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoiddeforest <- predict(stm.2020_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoiddeforest (primary forest only)
-  stm.2020_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoiddeforest2 <- stack(stm.2020_avoiddeforest2.raster.list)
-  stm.2020_avoiddeforest2.rf <- stm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoiddeforest2 <- predict(stm.2020_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoiddegrad (all)
-  stm.2020_avoiddegrad.raster.list <- list.files("rasters/STM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoiddegrad <- stack(stm.2020_avoiddegrad.raster.list)
-  stm.2020_avoiddegrad.rf <- stm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoiddegrad <- predict(stm.2020_avoiddegrad.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoiddegrad, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoiddegrad (primary forest only)
-  stm.2020_avoiddegrad2.raster.list <- list.files("rasters/STM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoiddegrad2 <- stack(stm.2020_avoiddegrad2.raster.list)
-  stm.2020_avoiddegrad2.rf <- stm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoiddegrad2 <- predict(stm.2020_avoiddegrad2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 restor_wo_avoid
-  stm.2020_restor_wo_avoid.raster.list <- list.files("rasters/STM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_restor_wo_avoid <- stack(stm.2020_restor_wo_avoid.raster.list)
-  stm.2020_restor_wo_avoid.rf <- stm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_restor_wo_avoid <- predict(stm.2020_restor_wo_avoid.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/STM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoidboth (all)
-  stm.2020_avoidboth.raster.list <- list.files("rasters/STM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoidboth <- stack(stm.2020_avoidboth.raster.list)
-  stm.2020_avoidboth.rf <- stm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoidboth <- predict(stm.2020_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 avoidboth (primary forest only)
-  stm.2020_avoidboth2.raster.list <- list.files("rasters/STM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_avoidboth2 <- stack(stm.2020_avoidboth2.raster.list)
-  stm.2020_avoidboth2.rf <- stm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_avoidboth2 <- predict(stm.2020_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 restor_n_avoiddeforest (all)
-  stm.2020_restor_n_avoiddeforest.raster.list <- list.files("rasters/STM/2020_restor_n_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_restor_n_avoiddeforest <- stack(stm.2020_restor_n_avoiddeforest.raster.list)
-  stm.2020_restor_n_avoiddeforest.rf <- stm.2020_restor_n_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_restor_n_avoiddeforest <- predict(stm.2020_restor_n_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 restor_n_avoiddeforest (primary forest only)
-  stm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_restor_n_avoiddeforest2 <- stack(stm.2020_restor_n_avoiddeforest2.raster.list)
-  stm.2020_restor_n_avoiddeforest2.rf <- stm.2020_restor_n_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_restor_n_avoiddeforest2 <- predict(stm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
-  #writeRaster(proj_stm.2020_restor_n_avoiddeforest2.conbywm, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 restor_n_avoidboth (all)
-  stm.2020_restor_n_avoidboth.raster.list <- list.files("rasters/STM/2020_restor_n_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_restor_n_avoidboth <- stack(stm.2020_restor_n_avoidboth.raster.list)
-  stm.2020_restor_n_avoidboth.rf <- stm.2020_restor_n_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_restor_n_avoidboth <- predict(stm.2020_restor_n_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  
-  
-  
-  #STM 2020 restor_n_avoidboth (primary forest only)
-  stm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/STM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
-  stm.2020_restor_n_avoidboth2 <- stack(stm.2020_restor_n_avoidboth2.raster.list)
-  stm.2020_restor_n_avoidboth2.rf <- stm.2020_restor_n_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
-  
-  set.seed(999)
-  mod.rf.proj_stm.2020_restor_n_avoidboth2 <- predict(stm.2020_restor_n_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
-  
-  
-  writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
-  
-  #
-  #
+  if (any(occur$Region=="PGM")) {
+    #PGM 2010 real
+    pgm.2010real.raster.list <- list.files("rasters/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2010real <- stack(pgm.2010real.raster.list)
+    pgm.2010real.rf <- pgm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2010real <- predict(pgm.2010real.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2010real, paste0("models.output/biodiversity.maps/PGM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 real
+    pgm.2020real.raster.list <- list.files("rasters/PGM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020real <- stack(pgm.2020real.raster.list)
+    pgm.2020real.rf <- pgm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020real <- predict(pgm.2020real.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020real, paste0("models.output/biodiversity.maps/PGM/2020_real/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoiddeforest (all)
+    pgm.2020_avoiddeforest.raster.list <- list.files("rasters/PGM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoiddeforest <- stack(pgm.2020_avoiddeforest.raster.list)
+    pgm.2020_avoiddeforest.rf <- pgm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoiddeforest <- predict(pgm.2020_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoiddeforest (primary forest only)
+    pgm.2020_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoiddeforest2 <- stack(pgm.2020_avoiddeforest2.raster.list)
+    pgm.2020_avoiddeforest2.rf <- pgm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoiddeforest2 <- predict(pgm.2020_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoiddegrad (all)
+    pgm.2020_avoiddegrad.raster.list <- list.files("rasters/PGM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoiddegrad <- stack(pgm.2020_avoiddegrad.raster.list)
+    pgm.2020_avoiddegrad.rf <- pgm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoiddegrad <- predict(pgm.2020_avoiddegrad.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoiddegrad, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoiddegrad (primary forest only)
+    pgm.2020_avoiddegrad2.raster.list <- list.files("rasters/PGM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoiddegrad2 <- stack(pgm.2020_avoiddegrad2.raster.list)
+    pgm.2020_avoiddegrad2.rf <- pgm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoiddegrad2 <- predict(pgm.2020_avoiddegrad2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
+    #writeRaster(proj_pgm.2020_avoiddegrad2.conbywm, paste0("models.output/biodiversity.maps/PGM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 restor_wo_avoid
+    pgm.2020_restor_wo_avoid.raster.list <- list.files("rasters/PGM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_restor_wo_avoid <- stack(pgm.2020_restor_wo_avoid.raster.list)
+    pgm.2020_restor_wo_avoid.rf <- pgm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_restor_wo_avoid <- predict(pgm.2020_restor_wo_avoid.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/PGM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoidboth (all)
+    pgm.2020_avoidboth.raster.list <- list.files("rasters/PGM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoidboth <- stack(pgm.2020_avoidboth.raster.list)
+    pgm.2020_avoidboth.rf <- pgm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoidboth <- predict(pgm.2020_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 avoidboth (primary forest only)
+    pgm.2020_avoidboth2.raster.list <- list.files("rasters/PGM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_avoidboth2 <- stack(pgm.2020_avoidboth2.raster.list)
+    pgm.2020_avoidboth2.rf <- pgm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_avoidboth2 <- predict(pgm.2020_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 restor_n_avoiddeforest (all)
+    pgm.2020_restor_n_avoiddeforest.raster.list <- list.files("rasters/PGM/2020_restor_n_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_restor_n_avoiddeforest <- stack(pgm.2020_restor_n_avoiddeforest.raster.list)
+    pgm.2020_restor_n_avoiddeforest.rf <- pgm.2020_restor_n_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_restor_n_avoiddeforest <- predict(pgm.2020_restor_n_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 restor_n_avoiddeforest (primary forest only)
+    pgm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_restor_n_avoiddeforest2 <- stack(pgm.2020_restor_n_avoiddeforest2.raster.list)
+    pgm.2020_restor_n_avoiddeforest2.rf <- pgm.2020_restor_n_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_restor_n_avoiddeforest2 <- predict(pgm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 restor_n_avoidboth (all)
+    pgm.2020_restor_n_avoidboth.raster.list <- list.files("rasters/PGM/2020_restor_n_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_restor_n_avoidboth <- stack(pgm.2020_restor_n_avoidboth.raster.list)
+    pgm.2020_restor_n_avoidboth.rf <- pgm.2020_restor_n_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_restor_n_avoidboth <- predict(pgm.2020_restor_n_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #PGM 2020 restor_n_avoidboth (primary forest only)
+    pgm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/PGM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
+    pgm.2020_restor_n_avoidboth2 <- stack(pgm.2020_restor_n_avoidboth2.raster.list)
+    pgm.2020_restor_n_avoidboth2.rf <- pgm.2020_restor_n_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_pgm.2020_restor_n_avoidboth2 <- predict(pgm.2020_restor_n_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_pgm.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/PGM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    #
+    
+  }
+  
+  
+  if (any(occur$Region=="STM")) {
+    #STM 2010 real
+    stm.2010real.raster.list <- list.files("rasters/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2010real <- stack(stm.2010real.raster.list)
+    stm.2010real.rf <- stm.2010real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2010real <- predict(stm.2010real.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2010real, paste0("models.output/biodiversity.maps/STM/2010_real/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 real
+    stm.2020real.raster.list <- list.files("rasters/STM/2020_real/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020real <- stack(stm.2020real.raster.list)
+    stm.2020real.rf <- stm.2020real[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020real <- predict(stm.2020real.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020real, paste0("models.output/biodiversity.maps/STM/2020_real/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoiddeforest (all)
+    stm.2020_avoiddeforest.raster.list <- list.files("rasters/STM/2020_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoiddeforest <- stack(stm.2020_avoiddeforest.raster.list)
+    stm.2020_avoiddeforest.rf <- stm.2020_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoiddeforest <- predict(stm.2020_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoiddeforest (primary forest only)
+    stm.2020_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoiddeforest2 <- stack(stm.2020_avoiddeforest2.raster.list)
+    stm.2020_avoiddeforest2.rf <- stm.2020_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoiddeforest2 <- predict(stm.2020_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoiddegrad (all)
+    stm.2020_avoiddegrad.raster.list <- list.files("rasters/STM/2020_avoiddegrad/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoiddegrad <- stack(stm.2020_avoiddegrad.raster.list)
+    stm.2020_avoiddegrad.rf <- stm.2020_avoiddegrad[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoiddegrad <- predict(stm.2020_avoiddegrad.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoiddegrad, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoiddegrad (primary forest only)
+    stm.2020_avoiddegrad2.raster.list <- list.files("rasters/STM/2020_avoiddegrad2/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoiddegrad2 <- stack(stm.2020_avoiddegrad2.raster.list)
+    stm.2020_avoiddegrad2.rf <- stm.2020_avoiddegrad2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoiddegrad2 <- predict(stm.2020_avoiddegrad2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoiddegrad2, paste0("models.output/biodiversity.maps/STM/2020_avoiddegrad2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 restor_wo_avoid
+    stm.2020_restor_wo_avoid.raster.list <- list.files("rasters/STM/2020_restor_wo_avoid/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_restor_wo_avoid <- stack(stm.2020_restor_wo_avoid.raster.list)
+    stm.2020_restor_wo_avoid.rf <- stm.2020_restor_wo_avoid[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_restor_wo_avoid <- predict(stm.2020_restor_wo_avoid.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_restor_wo_avoid, paste0("models.output/biodiversity.maps/STM/2020_restor_wo_avoid/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoidboth (all)
+    stm.2020_avoidboth.raster.list <- list.files("rasters/STM/2020_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoidboth <- stack(stm.2020_avoidboth.raster.list)
+    stm.2020_avoidboth.rf <- stm.2020_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoidboth <- predict(stm.2020_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 avoidboth (primary forest only)
+    stm.2020_avoidboth2.raster.list <- list.files("rasters/STM/2020_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_avoidboth2 <- stack(stm.2020_avoidboth2.raster.list)
+    stm.2020_avoidboth2.rf <- stm.2020_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_avoidboth2 <- predict(stm.2020_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 restor_n_avoiddeforest (all)
+    stm.2020_restor_n_avoiddeforest.raster.list <- list.files("rasters/STM/2020_restor_n_avoiddeforest/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_restor_n_avoiddeforest <- stack(stm.2020_restor_n_avoiddeforest.raster.list)
+    stm.2020_restor_n_avoiddeforest.rf <- stm.2020_restor_n_avoiddeforest[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_restor_n_avoiddeforest <- predict(stm.2020_restor_n_avoiddeforest.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_restor_n_avoiddeforest, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 restor_n_avoiddeforest (primary forest only)
+    stm.2020_restor_n_avoiddeforest2.raster.list <- list.files("rasters/STM/2020_restor_n_avoiddeforest2/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_restor_n_avoiddeforest2 <- stack(stm.2020_restor_n_avoiddeforest2.raster.list)
+    stm.2020_restor_n_avoiddeforest2.rf <- stm.2020_restor_n_avoiddeforest2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_restor_n_avoiddeforest2 <- predict(stm.2020_restor_n_avoiddeforest2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_restor_n_avoiddeforest2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+    #writeRaster(proj_stm.2020_restor_n_avoiddeforest2.conbywm, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoiddeforest2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 restor_n_avoidboth (all)
+    stm.2020_restor_n_avoidboth.raster.list <- list.files("rasters/STM/2020_restor_n_avoidboth/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_restor_n_avoidboth <- stack(stm.2020_restor_n_avoidboth.raster.list)
+    stm.2020_restor_n_avoidboth.rf <- stm.2020_restor_n_avoidboth[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_restor_n_avoidboth <- predict(stm.2020_restor_n_avoidboth.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    
+    
+    
+    #STM 2020 restor_n_avoidboth (primary forest only)
+    stm.2020_restor_n_avoidboth2.raster.list <- list.files("rasters/STM/2020_restor_n_avoidboth2/", pattern = ".tif", full.names = T, recursive = T)
+    stm.2020_restor_n_avoidboth2 <- stack(stm.2020_restor_n_avoidboth2.raster.list)
+    stm.2020_restor_n_avoidboth2.rf <- stm.2020_restor_n_avoidboth2[[sel.var.df[!is.na(sel.var.df$VIF) & sel.var.df$Type=="environment","VAR"]]]
+    
+    set.seed(999)
+    mod.rf.proj_stm.2020_restor_n_avoidboth2 <- predict(stm.2020_restor_n_avoidboth2.rf, mod.rf.fn1, type="prob", index=2)
+    
+    
+    writeRaster(mod.rf.proj_stm.2020_restor_n_avoidboth2, paste0("models.output/biodiversity.maps/STM/2020_restor_n_avoidboth2/", i, ".tif"), format = "GTiff", overwrite = T)
+    
+    #
+    #
+    
+  }
   
   forestdep.spplist[forestdep.spplist$Binomial==i,"Done"] <- "TRUE"
   write.csv(forestdep.spplist, "models.output/biodiversity.maps/preliminar_species_summary.csv", row.names = F)
@@ -951,23 +958,23 @@ write.csv(forestdep.spplist, "data/species_summary_final.csv")
 # syntethic map: biodiversity benefit ==========================================
 dir.create("models.output/biodiversity.benefits", recursive = T)
 
-forestdep.spplist.total <- forestdep.spplist
-forestdep.spplist <- forestdep.spplist %>% filter(Method != "Excluded" & !is.na(Shape_Area))
 
-scenarios <- c("PGM/2020_real/", "PGM/2020_avoiddegrad/", "PGM/2020_avoiddeforest/", "PGM/2020_avoiddeforest2/", "PGM/2020_avoidboth/",
-               "PGM/2020_restor_wo_avoid/", "PGM/2020_restor_n_avoid_deforest/", "PGM/2020_restor_n_avoid_both/",
-               "STM/2020_real/", "STM/2020_avoiddegrad/", "STM/2020_avoiddeforest/", "STM/2020_avoiddeforest2/", "STM/2020_avoidboth/",
-               "STM/2020_restor_wo_avoid/", "STM/2020_restor_n_avoid_deforest/", "STM/2020_restor_n_avoid_both/")
+scenarios <- c("PGM/2010_real/", "PGM/2020_real/", "PGM/2020_avoiddegrad/", "PGM/2020_avoiddegrad2/", 
+               "PGM/2020_avoiddeforest/", "PGM/2020_avoiddeforest2/", "PGM/2020_avoidboth/", "PGM/2020_avoidboth2/",
+               "PGM/2020_restor_wo_avoid/", "PGM/2020_restor_n_avoid_deforest/", "PGM/2020_restor_n_avoid_deforest2/",
+               "PGM/2020_restor_n_avoid_both/", "PGM/2020_restor_n_avoid_both2",
+               "STM/2010_real/", "STM/2020_real/", "STM/2020_avoiddegrad/", "STM/2020_avoiddegrad2/", 
+               "STM/2020_avoiddeforest/", "STM/2020_avoiddeforest2/", "STM/2020_avoidboth/", "STM/2020_avoidboth2/",
+               "STM/2020_restor_wo_avoid/", "STM/2020_restor_n_avoid_deforest/", "STM/2020_restor_n_avoid_deforest2/",
+               "STM/2020_restor_n_avoid_both/", "STM/2020_restor_n_avoid_both2")
 
 
 for (s in scenarios) {
   
-  maps.list <- list.files(paste0("models.output/maps/", s), pattern = ".tif", full.names = T, recursive = T)
+  maps.list <- list.files(paste0("models.output/biodiversity.maps/", s), pattern = ".tif", full.names = T, recursive = T)
   maps.list <- grep(paste(forestdep.spplist$Binomial, collapse = "|"), maps.list, value = T)
   
   biodiversity.maps <- stack(maps.list)
-  names(biodiversity.maps) <- gsub("_merged_algo_merged_dataset_merged_run.tif", "", 
-                                   gsub(paste0("models.output/maps/", s), "", maps.list))
   
   conservation.value <- forestdep.spplist[grep(paste(names(biodiversity.maps), collapse = "|"), forestdep.spplist$Binomial), "Shape_Area_scaled"]
   
