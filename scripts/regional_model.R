@@ -880,7 +880,7 @@ if (any(occur$Region=="STM")) {
 
 
 # importing species list and methods and evaluation metrics data frame
-forestdep.spplist <- read.csv("data/species_summary_final.csv")
+forestdep.spplist <- read.csv("data/species_summary.csv")
 
 
 #  biodiversity benefit:  adding conservation value ============================
@@ -950,8 +950,8 @@ rm(treedata)
 
 
 # saving
-write.csv(forestdep.spplist, "data/species_summary_final.csv")
-#forestdep.spplist <- read.csv("data/species_summary_final.csv")
+write.csv(forestdep.spplist, "data/species_summary.csv")
+#forestdep.spplist <- read.csv("data/species_summary.csv")
 
 
 
@@ -961,39 +961,60 @@ dir.create("models.output/biodiversity.benefits", recursive = T)
 
 scenarios <- c("PGM/2010_real/", "PGM/2020_real/", "PGM/2020_avoiddegrad/", "PGM/2020_avoiddegrad2/", 
                "PGM/2020_avoiddeforest/", "PGM/2020_avoiddeforest2/", "PGM/2020_avoidboth/", "PGM/2020_avoidboth2/",
-               "PGM/2020_restor_wo_avoid/", "PGM/2020_restor_n_avoid_deforest/", "PGM/2020_restor_n_avoid_deforest2/",
-               "PGM/2020_restor_n_avoid_both/", "PGM/2020_restor_n_avoid_both2",
+               "PGM/2020_restor_wo_avoid/", "PGM/2020_restor_n_avoiddeforest/", "PGM/2020_restor_n_avoiddeforest2/",
+               "PGM/2020_restor_n_avoidboth/", "PGM/2020_restor_n_avoidboth2",
                "STM/2010_real/", "STM/2020_real/", "STM/2020_avoiddegrad/", "STM/2020_avoiddegrad2/", 
                "STM/2020_avoiddeforest/", "STM/2020_avoiddeforest2/", "STM/2020_avoidboth/", "STM/2020_avoidboth2/",
-               "STM/2020_restor_wo_avoid/", "STM/2020_restor_n_avoid_deforest/", "STM/2020_restor_n_avoid_deforest2/",
-               "STM/2020_restor_n_avoid_both/", "STM/2020_restor_n_avoid_both2")
+               "STM/2020_restor_wo_avoid/", "STM/2020_restor_n_avoiddeforest/", "STM/2020_restor_n_avoiddeforest2/",
+               "STM/2020_restor_n_avoidboth/", "STM/2020_restor_n_avoidboth2")
 
 
 for (s in scenarios) {
   
-  maps.list <- list.files(paste0("models.output/biodiversity.maps/", s), pattern = ".tif", full.names = T, recursive = T)
+  cat("\n>>>>>>>>>>>>> STARTING SCENARIO", s, " <<<<<<<<<<<<<<\n")
+  maps.list <- list.files(paste0("D:/projetos/lancaster/conservation_opportunities/models.output/biodiversity.maps/", s), pattern = ".tif", full.names = T, recursive = T)
   maps.list <- grep(paste(forestdep.spplist$Binomial, collapse = "|"), maps.list, value = T)
   
-  biodiversity.maps <- stack(maps.list)
+  #biodiversity.maps <- stack(maps.list)
   
-  conservation.value <- forestdep.spplist[grep(paste(names(biodiversity.maps), collapse = "|"), forestdep.spplist$Binomial), "Shape_Area_scaled"]
+  #conservation.value <- forestdep.spplist[grep(paste(names(biodiversity.maps), collapse = "|"), forestdep.spplist$Binomial), "Shape_Area_scaled"]
   
-  
-  biodiversity.benefit.a <- stack()
-  for (m in 1:length(conservation.value)) {
-    biodiversity.benefit.x <- biodiversity.maps[[m]] * conservation.value[[m]]
-    biodiversity.benefit.a <- addLayer(biodiversity.benefit.a, biodiversity.benefit.x)
-    cat("\n> add conservation value to", names(biodiversity.maps[[m]]), "in scenario", s,  "<\n")
+  i=0
+  biodiversity.benefit <- NULL
+  for (m in forestdep.spplist$Binomial) {
+    
+    # Load the raster
+    spx <- try(raster(grep(m, maps.list, value = T)), silent = T)
+    
+    # Multiply the raster by the corresponding conservation value
+    spx <- if(class(spx) %in% 'try-error') { next } 
+    else {spx * forestdep.spplist[forestdep.spplist$Binomial==m,"Shape_Area_scaled"]}
+    
+    # Add the weighted raster to the biodiversity benefit raster
+    if (is.null(biodiversity.benefit)) {
+      biodiversity.benefit <- spx
+    } else {
+      biodiversity.benefit <- biodiversity.benefit + spx
+    }
+    
+    
+    # Calculate progress percentage
+    i=i+1
+    progress <- (i / length(maps.list)) * 100
+    
+    # Check if progress is a multiple of 10
+    if (round(progress %% 10, 0) == 0) {
+      cat("Processing scenario", s, ":", progress, "% complete\n")
+    }
   }
-  rm(biodiversity.benefit.x); gc()
   
-  biodiversity.benefit <- sum(biodiversity.benefit.a, na.rm = T)
+  rm(spx); gc()
   
-  writeRaster(biodiversity.benefit, paste0("models.output/biodiversity.benefits/", gsub("/", "_", s), "biodiversity_benefit.tif"), format="GTiff", overwrite=T)
+  writeRaster(biodiversity.benefit, paste0("D:/projetos/lancaster/conservation_opportunities/models.output/biodiversity.benefits/", gsub("/", "_", s), "biodiversity_benefit.tif"), format="GTiff", overwrite=T)
   
-  rm(list=ls()[!ls() %in% c("forestdep.spplist.total", "forestdep.spplist", "biodiversity.benefit", "s")]) #keeping only raster stack
+  rm(list=ls()[!ls() %in% c("forestdep.spplist", "biodiversity.benefit", "s")]) #keeping only raster stack
   gc()
-  cat("\n>>> SCENARIO", s, "DONE <<<\n")
+  cat("\n>>>>>>>>>>>>> SCENARIO", s, "DONE <<<<<<<<<<<<<<\n")
   
   
 }
