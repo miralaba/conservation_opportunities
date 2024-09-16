@@ -244,7 +244,7 @@ g1 <- biodiversity.benefit.principals %>% #filter(BBenefit>=0) %>%
             aes(color=Cat, group=Scenario), alpha=.1, scale="width")+
   scale_x_discrete(labels=addline_format(levels(biodiversity.benefit.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 1.3)) +
+  scale_y_continuous(limits = c(0, 1)) +
   scale_color_manual(values = c("#294B29", "#50623A", "#76453B", "#789461", "#B19470")) +
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
   labs(title = "", x = "", y = "Biodiversity benefit") +
@@ -404,7 +404,7 @@ g2 <- carbon.benefit.principals %>% #filter(Benefit>=0) %>%
             aes(color=Cat, group=Scenario), alpha=.1, scale="width")+
   scale_x_discrete(labels=addline_format(levels(carbon.benefit.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous("Carbon benefit", limits = c(0, 1.3),
+  scale_y_continuous("Carbon benefit", limits = c(0, 1),
                      sec.axis = sec_axis(~ (. - a)/b, name = "MgC/ha")) +
   scale_color_manual(values = c("#294B29", "#50623A", "#76453B", "#789461", "#B19470")) +
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
@@ -671,19 +671,18 @@ g4 <- costs.principals %>% #filter(Benefit>=0) %>%
 
 
 library(ggpubr)
-ggarrange(g1, g2, g3, g4, ncol = 2, nrow = 2, labels = c("A", "B", "C", "D"),
-          common.legend = T, legend = "bottom")
+ggarrange(g1 + theme(plot.margin = margin(1, 20, 1, 1, unit = "pt")), 
+          g2, 
+          g3 + theme(plot.margin = margin(1, 45, 1, 1, unit = "pt")), 
+          g4 + theme(plot.margin = margin(1, 70, 1, 1, unit = "pt")), 
+          ncol = 2, nrow = 2, #align = "hv", 
+          labels = c("A", "B", "C", "D"), common.legend = T, legend = "top")
 #
-
-
-
-
-
 
 
 # best strategy under budget constraints =======================================
 cost.biodiv <- costs.principals %>% 
-  dplyr::select(Scenario, Costs, Region, BBenefit, B.CBr) %>% 
+  dplyr::select(Scenario, Costs, Region, BBenefit, rescaled.BBenefit, B.CBr) %>% 
   filter(BBenefit>=0) %>% 
   group_by(Region) %>% 
   arrange(B.CBr) %>% 
@@ -719,7 +718,7 @@ for (b in seq(0,565,.05)) {
     full_join(result_df)
     )
   
-  cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
+  #cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
   
 }
 
@@ -756,7 +755,7 @@ for (b in seq(0,565,.05)) {
       full_join(result_df)
   )
   
-  cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
+  #cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
   
 }
 
@@ -765,18 +764,54 @@ result_df$benefit <- NA
 result_df[1:22600,"benefit"] <- "Carbon"
 result_df[22601:nrow(result_df),"benefit"] <- "Biodiversity"
 
+pgm.bio.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
+pgm.carb.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
+pgm.bio.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
+pgm.carb.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
+pgm.bio.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
+pgm.carb.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
 
-# Create a plot
 
-result_df %>% group_by(Region, benefit) %>% 
+stm.bio.def.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
+stm.carb.def.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
+stm.bio.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
+stm.carb.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
+stm.bio.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
+stm.carb.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
+
+
+result_df <- result_df %>% 
+  mutate(
+    Deforestation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Deforestation_area/pgm.bio.def.area,
+                                   ifelse(Region=="PGM" & benefit=="Carbon", Deforestation_area/pgm.carb.def.area,
+                                          ifelse(Region=="STM" & benefit=="Biodiversity", Deforestation_area/stm.bio.def.area,
+                                                 Deforestation_area/stm.carb.def.area))),
+    Degradation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Degradation_area/pgm.bio.deg.area,
+                                   ifelse(Region=="PGM" & benefit=="Carbon", Degradation_area/pgm.carb.deg.area,
+                                          ifelse(Region=="STM" & benefit=="Biodiversity", Degradation_area/stm.bio.deg.area,
+                                                 Degradation_area/stm.carb.deg.area))),
+    Restoration_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Restoration_area/pgm.bio.rest.area,
+                                 ifelse(Region=="PGM" & benefit=="Carbon", Restoration_area/pgm.carb.rest.area,
+                                        ifelse(Region=="STM" & benefit=="Biodiversity", Restoration_area/stm.bio.rest.area,
+                                               Restoration_area/stm.carb.rest.area)))
+  ) %>% 
+  group_by(Region, benefit) %>% 
   arrange(Budget) %>% 
-  mutate(Total = Total_area - lag(Total_area, default = first(Total_area)),
-                     Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
-                     Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
-                     Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
-                     Proportion_Degradation = Degradation/Total,
-                     Proportion_Deforestation = Deforestation/Total,
-                     Proportion_Restoration = Restoration/Total) %>% 
+  mutate(
+    Total = Total_area - lag(Total_area, default = first(Total_area)),
+    Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
+    Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
+    Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
+    Proportion_Degradation = Degradation/Total,
+    Proportion_Deforestation = Deforestation/Total,
+    Proportion_Restoration = Restoration/Total
+  )
+
+
+
+
+##create a plot
+g5 <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
   geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
@@ -784,13 +819,13 @@ result_df %>% group_by(Region, benefit) %>%
   geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), linewidth = 1) +
   geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
-  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
+  facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)))+
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of Area") +
+  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of Total Area") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -800,6 +835,35 @@ result_df %>% group_by(Region, benefit) %>%
         legend.position = "bottom"
   )
 
+
+
+g6 <- result_df %>%  
+  ggplot(aes(x = Budget)) +
+  geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
+  #geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
+  geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
+  #geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
+  geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
+  #geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
+  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
+  scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
+  facet_wrap(~benefit, ncol=1) +
+  guides(color=guide_legend(override.aes=list(fill=NA)))+
+  scale_x_continuous(limits = c(50000, 500000000), 
+                     labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
+                     breaks = c(50000, seq(100000000, 500000000, 100000000))) +
+  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of Area by Action") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom"
+  )
+
+
+ggarrange(g5, g6, ncol = 2, common.legend = T, legend = "bottom")
 
 
 rm(list=ls()[ls() %in% c("pgm.area.change.df.principals", "stm.area.change.df.principals",
