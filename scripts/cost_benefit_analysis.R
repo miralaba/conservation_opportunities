@@ -680,6 +680,116 @@ ggarrange(g1 + theme(plot.margin = margin(1, 20, 1, 1, unit = "pt")),
 #
 
 
+# why/where biodiversity benefit is higher then the carbon?
+costs.principals <- costs.principals %>% 
+  mutate(
+    compare.benfit = rescaled.BBenefit - rescaled.CBenefit
+  )
+
+
+
+pgm.cell.deforest <- costs.principals %>% 
+  filter(Region == "PGM" & Scenario == "Avoid Deforestation" & compare.benfit>0) %>% 
+  dplyr::select(Cell) %>% 
+  pull()
+
+
+stm.cell.deforest <- costs.principals %>% 
+  filter(Region == "STM" & Scenario == "Avoid Deforestation" & compare.benfit>0) %>% 
+  dplyr::select(Cell) %>% 
+  pull()
+
+
+pgm.cell.degrad <- costs.principals %>% 
+  filter(Region == "PGM" & Scenario == "Avoid Degradation" & compare.benfit>0) %>% 
+  dplyr::select(Cell) %>% 
+  pull()
+
+
+stm.cell.degrad <- costs.principals %>% 
+  filter(Region == "STM" & Scenario == "Avoid Degradation" & compare.benfit>0) %>% 
+  dplyr::select(Cell) %>% 
+  pull()
+
+
+
+env <- c("TSDls", "edgedist", "UPFpx")
+
+
+pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+pgm.env.2010 <- grep(paste(env, collapse = "|"), pgm.env.2010, value = T)
+pgm.env.2010 <- stack(pgm.env.2010)
+pgm.env.2010 <- mask(pgm.env.2010, pgm.shp)
+pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%  
+  mutate(Cell = row_number()) %>% na.omit() %>%
+  pivot_longer(
+    c(-x, -y, -Cell),
+    names_to = "env.var",
+    values_to = "value"
+  ) %>% 
+  group_by(env.var) %>% 
+  mutate(
+    Region = "PGM",
+    value2 = (value-mean(value))/sd(value))
+
+
+stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+stm.env.2010 <- grep(paste(env, collapse = "|"), stm.env.2010, value = T)
+stm.env.2010 <- stack(stm.env.2010)
+stm.env.2010 <- mask(stm.env.2010, stm.shp)
+stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%  
+  mutate(Cell = row_number()) %>% na.omit() %>%
+  pivot_longer(
+    c(-x, -y, -Cell),
+    names_to = "env.var",
+    values_to = "value"
+  ) %>% 
+  group_by(env.var) %>% 
+  mutate(
+    Region = "STM",
+    value2 = (value-mean(value))/sd(value))
+
+
+
+#g5 <- pgm.env.2010.df %>% 
+#  ggplot() +
+#  geom_raster(aes(x = x, y = y, fill = value2, 
+#                  alpha = ifelse(Cell %in% teste, 1, .35)), show.legend = F) +
+#  #coord_equal() +
+#  facet_wrap(env.var ~ ., dir = "v") +
+#  scale_alpha_identity() +
+#  labs(x="", y="") +
+#  theme_void()
+
+
+
+g5a <- pgm.env.2010.df %>% bind_rows(stm.env.2010.df) %>% 
+  ggplot() +
+  geom_histogram(aes(value)) +
+  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
+  labs(title = "All pixels from environmental variables", x="") +
+  theme_minimal()
+
+g5b <- pgm.env.2010.df %>% filter(Cell %in% pgm.cell.deforest) %>% 
+  bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.deforest)) %>% 
+  ggplot() +
+  geom_histogram(aes(value)) +
+  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
+  labs(title = "Avoid deforestation pixels", y="") +
+  theme_minimal()
+
+g5c <- pgm.env.2010.df %>% filter(Cell %in% pgm.cell.degrad) %>% 
+  bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.degrad)) %>% 
+  ggplot() +
+  geom_histogram(aes(value)) +
+  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
+  labs(title = "Avoid degradation pixels", x="", y="") +
+  theme_minimal()
+
+ggarrange(g5a, g5b,g5c, ncol = 3, nrow = 1)
+
+
+
 # best strategy under budget constraints =======================================
 cost.biodiv <- costs.principals %>% 
   dplyr::select(Scenario, Costs, Region, BBenefit, rescaled.BBenefit, B.CBr) %>% 
@@ -811,7 +921,7 @@ result_df <- result_df %>%
 
 
 ##create a plot
-g5 <- result_df %>%  
+g6a <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
   geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
@@ -837,14 +947,14 @@ g5 <- result_df %>%
 
 
 
-g6 <- result_df %>%  
+g6b <- result_df %>%  
   ggplot(aes(x = Budget)) +
-  geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
-  #geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
-  geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
-  #geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
-  geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
-  #geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
+  #geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
+  geom_smooth(aes(y = Degradation_area_pp, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
+  #geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
+  geom_smooth(aes(y = Deforestation_area_pp, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
+  #geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
+  geom_smooth(aes(y = Restoration_area_pp, color = "Restoration"), linewidth = 2, method = "gam") +
   labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
@@ -863,7 +973,7 @@ g6 <- result_df %>%
   )
 
 
-ggarrange(g5, g6, ncol = 2, common.legend = T, legend = "bottom")
+ggarrange(g6b, g6a, ncol = 2, common.legend = T, legend = "bottom")
 
 
 rm(list=ls()[ls() %in% c("pgm.area.change.df.principals", "stm.area.change.df.principals",
