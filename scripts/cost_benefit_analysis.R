@@ -139,6 +139,7 @@ for (i in c(3:13)) {
 
 pgm.biodiversity.benefit <- mask(pgm.biodiversity.benefit, pgm.shp)
 #names(pgm.biodiversity.benefit) <- unlist(strsplit(biodiversity.benefit.list, "/|.tif"))[seq(3,21,3)]
+rm(layer.x)
 
 
 pgm.biodiversity.benefit.df.principals <- as.data.frame(pgm.biodiversity.benefit[[1:3]], xy = TRUE)
@@ -198,6 +199,7 @@ for (i in c(3:13)) {
 
 stm.biodiversity.benefit <- mask(stm.biodiversity.benefit, stm.shp)
 #names(stm.biodiversity.benefit) <- unlist(strsplit(biodiversity.benefit.list, "/|.tif"))[seq(3,21,3)]
+rm(layer.x)
 
 
 stm.biodiversity.benefit.df.principals <- as.data.frame(stm.biodiversity.benefit[[1:3]], xy = TRUE)
@@ -231,6 +233,8 @@ stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals
 
 biodiversity.benefit.principals <- rbind(pgm.biodiversity.benefit.df.principals, stm.biodiversity.benefit.df.principals)
 biodiversity.benefit.principals <- biodiversity.benefit.principals %>% mutate(Region = factor(Region, levels = c("PGM", "STM")))
+
+rm(pgm.biodiversity.benefit.df.principals); rm(stm.biodiversity.benefit.df.principals)
 
 
 
@@ -295,6 +299,7 @@ for (i in c(3:13)) {
 
 pgm.carbon.benefit <- mask(pgm.carbon.benefit, pgm.shp)
 #names(pgm.carbon.benefit) <- unlist(strsplit(carbon.benefit.list, "/|.tif"))[seq(3,21,3)]
+rm(layer.x)
 
 
 pgm.carbon.benefit.df.principals <- as.data.frame(pgm.carbon.benefit[[1:3]], xy = TRUE)
@@ -354,6 +359,7 @@ for (i in c(3:13)) {
 
 stm.carbon.benefit <- mask(stm.carbon.benefit, stm.shp)
 #names(stm.carbon.benefit) <- unlist(strsplit(carbon.benefit.list, "/|.tif"))[seq(3,21,3)]
+rm(layer.x)
 
 
 stm.carbon.benefit.df.principals <- as.data.frame(stm.carbon.benefit[[1:3]], xy = TRUE)
@@ -388,6 +394,8 @@ stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>%
 carbon.benefit.principals <- rbind(pgm.carbon.benefit.df.principals, stm.carbon.benefit.df.principals)
 carbon.benefit.principals <- carbon.benefit.principals %>% mutate(Region = factor(Region, levels = c("PGM", "STM")))
 
+rm(pgm.carbon.benefit.df.principals); rm(stm.carbon.benefit.df.principals)
+
 
 
 
@@ -418,7 +426,7 @@ fig2b <- carbon.benefit.principals %>% #filter(Benefit>=0) %>%
         legend.position = "bottom")
 
 
-
+rm(ylim.prim); rm(ylim.sec); rm(a); rm(b)
 
 #
 #
@@ -698,12 +706,12 @@ result_df <- data.frame(Region = factor(c("PGM", "STM")),
                         Restoration_area = c(0,0))
 
 
-for (o in seq(0,565,.05)) {
+for (m in seq(0,565,.05)) {
   
   suppressMessages(
     result_df <- cost.biodiv %>% 
     group_by(Region, Scenario) %>% 
-    filter(CumBudget<=o*1000000) %>% 
+    filter(CumBudget<=m*1000000) %>% 
     mutate(Scenario = factor(case_when(str_detect(Scenario, "Deforestation")~ "Deforestation_area",
                                        str_detect(Scenario, "Degradation")~ "Degradation_area",
                                        str_detect(Scenario, "Restoration")~ "Restoration_area"),
@@ -713,12 +721,12 @@ for (o in seq(0,565,.05)) {
     summarise(ncell = n()) %>% 
     pivot_wider(names_from = Scenario, values_from = ncell) %>% 
     ungroup() %>% 
-    mutate(Budget = b*1000000,
+    mutate(Budget = m*1000000,
            Total_area = rowSums(select_if(., is.numeric), na.rm=T)) %>% 
     full_join(result_df)
     )
   
-  #cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
+  #cat("\n\t> R$", m*1000000, "budget constraint -- Done!")
   
 }
 
@@ -735,12 +743,12 @@ cost.carb <- costs.principals %>%
 
 
 
-for (o in seq(0,565,.05)) {
+for (m in seq(0,565,.05)) {
   
   suppressMessages(
     result_df <- cost.carb %>% 
       group_by(Region, Scenario) %>% 
-      filter(CumBudget<=o*1000000) %>% 
+      filter(CumBudget<=m*1000000) %>% 
       mutate(Scenario = factor(case_when(str_detect(Scenario, "Deforestation")~ "Deforestation_area",
                                          str_detect(Scenario, "Degradation")~ "Degradation_area",
                                          str_detect(Scenario, "Restoration")~ "Restoration_area"),
@@ -750,12 +758,12 @@ for (o in seq(0,565,.05)) {
       summarise(ncell = n()) %>% 
       pivot_wider(names_from = Scenario, values_from = ncell) %>% 
       ungroup() %>% 
-      mutate(Budget = b*1000000,
+      mutate(Budget = m*1000000,
              Total_area = rowSums(select_if(., is.numeric), na.rm=T)) %>% 
       full_join(result_df)
   )
   
-  #cat("\n\t> R$", b*1000000, "budget constraint -- Done!")
+  #cat("\n\t> R$", m*1000000, "budget constraint -- Done!")
   
 }
 
@@ -808,6 +816,8 @@ result_df <- result_df %>%
   )
 
 
+write.csv(result_df, "models.output/pixels_rank.csv", row.names = F)
+#result_df <- read.csv("models.output/pixels_rank.csv")
 
 
 ##create a plot
@@ -825,7 +835,7 @@ fig3ab <- result_df %>%
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of Total Area") +
+  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of combined \nconservation actions") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -852,7 +862,7 @@ fig3cd <- result_df %>%
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of Area by Action") +
+  labs(title = "", x = "Brazilian Reais (Millions)", y = "Cumulative proportion of area \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -866,9 +876,10 @@ fig3cd <- result_df %>%
 ggarrange(fig3cd, fig3ab, ncol = 2, common.legend = T, legend = "bottom")
 
 
-rm(list=ls()[ls() %in% c("pgm.area.change.df.principals", "stm.area.change.df.principals",
-                         "pgm.carbon.benefit.df.principals", "stm.carbon.benefit.df.principals", "carbon.benefit.principals",
-                         "pgm.costs.df.principals", "stm.costs.df.principals", "costs.principals")])
+rm(list=ls()[!ls() %in% c("pgm.shp", "stm.shp", "pgm.area.change", "stm.area.change",
+                          "pgm.biodiversity.benefit", "stm.biodiversity.benefit",
+                          "pgm.carbon.benefit", "stm.carbon.benefit",
+                          "pgm.costs", "stm.costs", "costs.principals", "result_df")])
 gc()
 #
 #
@@ -1010,7 +1021,7 @@ biodiversity.benefit.all <- biodiversity.benefit.all %>% mutate(Region = factor(
 
 
 ##violin plot + jitter [dots colored by LULC category]
-figs16 <- biodiversity.benefit.all %>% #filter(Benefit>=0) %>%
+figs17 <- biodiversity.benefit.all %>% #filter(Benefit>=0) %>%
   ggplot(aes(x=Scenario, y=rescaled.BBenefit)) +
   geom_violin(scale="width") + 
   geom_sina(data=biodiversity.benefit.all %>% sample_n(100000), #%>% filter(Benefit>=0),
@@ -1116,7 +1127,7 @@ ylim.sec <- c(0, 160)
 b <- diff(ylim.prim)/diff(ylim.sec)
 a <- ylim.prim[1] - b*ylim.sec[1]
 
-figs18 <- carbon.benefit.all %>% #filter(Benefit>=0) %>%
+figs19 <- carbon.benefit.all %>% #filter(Benefit>=0) %>%
   ggplot(aes(x=Scenario, y=rescaled.CBenefit)) +
   geom_violin(scale="width") + 
   geom_sina(data=carbon.benefit.all %>% sample_n(100000), #%>% filter(Benefit>=0),
@@ -1219,7 +1230,7 @@ costs.all <- costs.all %>% mutate(Region = factor(Region, levels = c("PGM", "STM
 
 
 ##boxplot
-figs20 <- costs.all %>% 
+figs21 <- costs.all %>% 
   ggplot(aes(x=Scenario, y=Costs)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#FF4500", color="#000000", show.legend = F) + 
   #geom_hline(yintercept=1, linetype='dashed', linewidth=1)+
@@ -1240,7 +1251,7 @@ figs20 <- costs.all %>%
 
 
 
-figs21 <- costs.all %>% 
+figs22 <- costs.all %>% 
   ggplot(aes(x=Scenario, y=B.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   #geom_hline(yintercept=1, linetype='dashed', linewidth=1)+
@@ -1261,7 +1272,7 @@ figs21 <- costs.all %>%
 
 
 
-figs22 <- costs.all %>% 
+figs23 <- costs.all %>% 
   ggplot(aes(x=Scenario, y=C.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   #geom_hline(yintercept=1, linetype='dashed', linewidth=1)+
@@ -1416,7 +1427,7 @@ biodiversity.benefit.primary <- biodiversity.benefit.primary %>% mutate(Region =
 
 
 ##violin plot + jitter [dots colored by LULC category]
-figs17 <- biodiversity.benefit.primary %>% #filter(Benefit>=0) %>%
+figs18 <- biodiversity.benefit.primary %>% #filter(Benefit>=0) %>%
   ggplot(aes(x=Scenario, y=rescaled.BBenefit)) +
   geom_violin(scale="width") + 
   geom_sina(data=biodiversity.benefit.primary %>% sample_n(100000), #%>% filter(Benefit>=0),
@@ -1520,7 +1531,7 @@ ylim.sec <- c(0, 160)
 b <- diff(ylim.prim)/diff(ylim.sec)
 a <- ylim.prim[1] - b*ylim.sec[1]
 
-figs19 <- carbon.benefit.primary %>% #filter(Benefit>=0) %>%
+figs20 <- carbon.benefit.primary %>% #filter(Benefit>=0) %>%
   ggplot(aes(x=Scenario, y=rescaled.CBenefit)) +
   geom_violin(scale="width") + 
   geom_sina(data=carbon.benefit.primary %>% sample_n(100000), #%>% filter(Benefit>=0),
@@ -1533,7 +1544,7 @@ figs19 <- carbon.benefit.primary %>% #filter(Benefit>=0) %>%
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
   labs(title = "", x = "") +
   facet_wrap(Region ~.) +
-  theme_minimal()+
+  theme_minimal() +
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
@@ -1545,7 +1556,7 @@ figs19 <- carbon.benefit.primary %>% #filter(Benefit>=0) %>%
 #
 
 
-# why/where biodiversity benefit is higher then the carbon?
+# why/where biodiversity benefit is higher then the carbon? ====================
 costs.principals <- costs.principals %>% 
   mutate(
     compare.benfit = rescaled.BBenefit - rescaled.CBenefit
@@ -1578,7 +1589,7 @@ stm.cell.degrad <- costs.principals %>%
 
 
 
-env <- c("TSDls", "edgedist", "UPFpx")
+env <- c("TSDls", "edgedist", "UPFls")
 
 
 pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
@@ -1628,30 +1639,43 @@ stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%
 
 
 
-g5a <- pgm.env.2010.df %>% bind_rows(stm.env.2010.df) %>% 
-  ggplot() +
-  geom_histogram(aes(value)) +
+figs16a <- ggplot() +
+  geom_histogram(data=pgm.env.2010.df %>% bind_rows(stm.env.2010.df), 
+                 aes(x=value, y=after_stat(density), fill = "Total area")) +
+  geom_histogram(data=pgm.env.2010.df %>% filter(Cell %in% pgm.cell.deforest) %>%
+                          bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.deforest)), 
+                 aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
+  scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
   facet_wrap(env.var ~ ., dir = "v", scales = "free") +
-  labs(title = "All pixels from environmental variables", x="") +
-  theme_minimal()
+  labs(title = "", x="") +
+  theme_minimal() +
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom")
 
-g5b <- pgm.env.2010.df %>% filter(Cell %in% pgm.cell.deforest) %>% 
-  bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.deforest)) %>% 
-  ggplot() +
-  geom_histogram(aes(value)) +
+figs16b <- ggplot() +
+  geom_histogram(data=pgm.env.2010.df %>% bind_rows(stm.env.2010.df), 
+                 aes(x=value, y=after_stat(density), fill = "Total area")) +
+  geom_histogram(data=pgm.env.2010.df %>% filter(Cell %in% pgm.cell.degrad) %>%
+                   bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.degrad)), 
+                 aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
+  scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
   facet_wrap(env.var ~ ., dir = "v", scales = "free") +
-  labs(title = "Avoid deforestation pixels", y="") +
-  theme_minimal()
+  labs(title = "", x="") +
+  theme_minimal() +
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom")
 
-g5c <- pgm.env.2010.df %>% filter(Cell %in% pgm.cell.degrad) %>% 
-  bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.degrad)) %>% 
-  ggplot() +
-  geom_histogram(aes(value)) +
-  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
-  labs(title = "Avoid degradation pixels", x="", y="") +
-  theme_minimal()
 
-ggarrange(g5a, g5b,g5c, ncol = 3, nrow = 1)
+
+ggarrange(figs16a, figs16b, ncol = 2, common.legend = T, legend = "bottom")
 
 
 
