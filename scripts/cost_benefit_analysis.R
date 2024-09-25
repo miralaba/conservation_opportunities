@@ -117,6 +117,7 @@ pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = 
 
 pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
 pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#figS8a-l
 #plot(pgm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 520, by = 10))), breaks= seq(0, 520, by = 10)) ## res = 1673 x 881
 
 
@@ -178,6 +179,7 @@ stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = 
 
 stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
 stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#figS8m-x
 #plot(stm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 580, by = 10))), breaks= seq(0, 580, by = 10)) ## res = 1673 x 881
 
 rm(stm.biodiversity.benefit.list); rm(biodiversity.benefit.list)
@@ -277,6 +279,7 @@ pgm.carbon.benefit.list <- grep("PGM", carbon.benefit.list, value = T)
 
 pgm.carbon.benefit.total <- stack(pgm.carbon.benefit.list)
 pgm.carbon.benefit.total <- pgm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#figS10a-l
 #plot(pgm.carbon.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#F3F6F4", "#8fce00", "#374f00"))(length(seq(0, 225, by = 25))), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 
 
@@ -338,6 +341,7 @@ stm.carbon.benefit.list <- grep("STM", carbon.benefit.list, value = T)
 
 stm.carbon.benefit.total <- stack(stm.carbon.benefit.list)
 stm.carbon.benefit.total <- stm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#figS10m-x
 #plot(stm.carbon.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#F3F6F4", "#8fce00", "#374f00"))(length(seq(0, 225, by = 25))), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 
 rm(stm.carbon.benefit.list); rm(carbon.benefit.list)
@@ -824,14 +828,14 @@ write.csv(result_df, "models.output/pixels_rank.csv", row.names = F)
 fig3ab <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation", linetype=Region), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation", linetype=Region), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration", linetype=Region), linewidth = 2, method = "gam") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
-  guides(color=guide_legend(override.aes=list(fill=NA)))+
+  guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
@@ -850,15 +854,15 @@ fig3ab <- result_df %>%
 fig3cd <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Degradation_area_pp, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Deforestation_area_pp, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Restoration_area_pp, color = "Restoration"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 2, method = "gam") +
   labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
-  guides(color=guide_legend(override.aes=list(fill=NA)))+
+  guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
@@ -1606,7 +1610,12 @@ pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%
   group_by(env.var) %>% 
   mutate(
     Region = "PGM",
-    value2 = (value-mean(value))/sd(value))
+    value2 = (value-mean(value))/sd(value),
+    env.var = factor(env.var,
+                      levels = c("TSDls", "edgedist", "UPFls"),
+                      labels = c("Time since degradation",
+                                 "Distance to edge",
+                                 "Proportion of undegraded primary forest")))
 
 
 stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
@@ -1623,19 +1632,12 @@ stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%
   group_by(env.var) %>% 
   mutate(
     Region = "STM",
-    value2 = (value-mean(value))/sd(value))
-
-
-
-#g5 <- pgm.env.2010.df %>% 
-#  ggplot() +
-#  geom_raster(aes(x = x, y = y, fill = value2, 
-#                  alpha = ifelse(Cell %in% teste, 1, .35)), show.legend = F) +
-#  #coord_equal() +
-#  facet_wrap(env.var ~ ., dir = "v") +
-#  scale_alpha_identity() +
-#  labs(x="", y="") +
-#  theme_void()
+    value2 = (value-mean(value))/sd(value),
+    env.var = factor(env.var,
+                     levels = c("TSDls", "edgedist", "UPFls"),
+                     labels = c("Time since degradation",
+                                "Distance to edge",
+                                "Proportion of undegraded primary forest")))
 
 
 
@@ -1646,15 +1648,16 @@ figs16a <- ggplot() +
                           bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.deforest)), 
                  aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
   scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
-  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
-  labs(title = "", x="") +
+  facet_wrap(env.var ~ ., dir = "v", scales = "free", strip.position = "bottom") +
+  labs(title = "Avoid deforestation", x="") +
   theme_minimal() +
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
         axis.text.x=element_text(size = 14),
         legend.title = element_blank(),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        strip.placement = "outside")
 
 figs16b <- ggplot() +
   geom_histogram(data=pgm.env.2010.df %>% bind_rows(stm.env.2010.df), 
@@ -1663,19 +1666,117 @@ figs16b <- ggplot() +
                    bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.degrad)), 
                  aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
   scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
-  facet_wrap(env.var ~ ., dir = "v", scales = "free") +
-  labs(title = "", x="") +
+  facet_wrap(env.var ~ ., dir = "v", scales = "free", strip.position = "bottom") +
+  labs(title = "Avoid degradation", x="", y="") +
   theme_minimal() +
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
         axis.text.x=element_text(size = 14),
         legend.title = element_blank(),
-        legend.position = "bottom")
+        legend.position = "bottom",
+        strip.placement = "outside")
 
 
 
 ggarrange(figs16a, figs16b, ncol = 2, common.legend = T, legend = "bottom")
+
+#
+
+
+# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
+blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
+
+#import data on deforestation from mapbiomas
+#all municipalities in BLA
+total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
+  filter(state %in% blm.states) %>%
+  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
+  group_by(state, municipality, class_level_1) %>% 
+  summarise(across('1985':'2020', sum)) %>% 
+  #ungroup() %>% rowwise(state, municipality, class_level_1) %>% 
+  #mutate(accum_2010 = sum(c_across('1985':'2010')),
+  #       accum_2020 = sum(c_across('1985':'2020'))) %>% 
+  dplyr::select(state, municipality, class_level_1, `2010`, `2020`)
+
+
+#priority municipalities in deforestation arch
+priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
+                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
+                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
+                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
+                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
+                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
+                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
+                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
+                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
+                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
+                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
+
+priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality %in% priority.mun.list)
+
+
+#PGM and STM
+pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(`2010`) %>% pull()
+
+pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(`2020`) %>% pull()
+
+stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(`2010`) %>% pull()
+
+stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(`2020`) %>% pull()
+
+
+ggarrange(
+  ggplot() +
+    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=`2010`, y=after_stat(ndensity), fill = "All municipalities"), bins = 70) +
+    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=`2010`, y=after_stat(ndensity), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+    geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
+    geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
+    #scale_y_continuous(limits = c(0, 0.0000006)) +
+    scale_x_continuous(limits = c(0, 2000000)) +
+    labs(x="2010 deforested area (ha)", y="") +
+    theme_minimal() +
+    theme(text = element_text(size = 16, family = "sans"),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(face="bold"),
+          axis.text.x=element_text(size = 14),
+          legend.title = element_blank(),
+          legend.position = "bottom"),
+  
+  ggplot() +
+    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=`2020`, y=after_stat(ndensity), fill = "All municipalities"), bins = 70) +
+    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=`2020`, y=after_stat(ndensity), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+    geom_vline(xintercept = pgm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
+    geom_vline(xintercept = stm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
+    #scale_y_continuous(limits = c(0, 0.0000006)) +
+    scale_x_continuous(limits = c(0, 2000000)) +
+    labs(x="2020 deforested area (ha)", y="") +
+    theme_minimal() +
+    theme(text = element_text(size = 16, family = "sans"),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(face="bold"),
+          axis.text.x=element_text(size = 14),
+          legend.title = element_blank(),
+          legend.position = "bottom"),
+  
+  nrow = 2, common.legend = T, legend = "bottom"
+)
+
 
 
 
