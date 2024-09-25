@@ -883,6 +883,34 @@ if (any(occur$Region=="STM")) {
 forestdep.spplist <- read.csv("data/species_summary.csv")
 
 
+#checking
+individual.maps <- c("Pouteriamacrophylla", "Courataristellata", "Rinoreaguianensis", 
+                     "Handroanthusserratifolius", "Anibamegaphylla", "Manilkaraparaensis",
+                     "Hymenolobiumexcelsum", "Cedrelaodorata", "Automolusparaensis",
+                     "Buccotamatia", "Hylopezusmacularius", "Phlegopsisnigromaculata",
+                     "Geotrygonmontana", "Thamnomanescaesius", "Aburriacujubi",
+                     "Corythopistorquatus")
+
+pgm.individual.maps.list <- list.files("models.output/biodiversity.maps/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+pgm.individual.maps <- grep(paste(individual.maps, collapse = "|"), pgm.individual.maps.list, value = T)
+pgm.individual.maps <- stack(pgm.individual.maps)
+
+
+stm.individual.maps.list <- list.files("models.output/biodiversity.maps/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+stm.individual.maps <- grep(paste(individual.maps, collapse = "|"), stm.individual.maps.list, value = T)
+stm.individual.maps <- stack(stm.individual.maps)
+
+
+plot(pgm.individual.maps[[c(14,7,15,9,2,12,11,5,3,4,10,13,8,16,1,6)]], nc=4, 
+     col = colorRampPalette(c("#F3FEB8", "#FFDE4D", "#FFB22C", "#FF4C4C"))(length(seq(0, 1, by = .25))), 
+     breaks= seq(0, 1, by = .2)) ## res = 1673 x 881
+
+plot(stm.individual.maps[[c(14,7,15,9,2,12,11,5,3,4,10,13,8,16,1,6)]], nc=4, 
+     col = colorRampPalette(c("#F3FEB8", "#FFDE4D", "#FFB22C", "#FF4C4C"))(length(seq(0, 1, by = .25))), 
+     breaks= seq(0, 1, by = .2))
+
+
+
 #  biodiversity benefit:  adding conservation value ============================
 #' bird conservation value is inverse occurrence area size
 #' scaled from 0 [the biggest] to 1 [the smallest]
@@ -972,7 +1000,7 @@ scenarios <- c("PGM/2010_real/", "PGM/2020_real/", "PGM/2020_avoiddegrad/", "PGM
 for (s in scenarios) {
   
   cat("\n>>>>>>>>>>>>> STARTING SCENARIO", s, " <<<<<<<<<<<<<<\n")
-  maps.list <- list.files(paste0("D:/projetos/lancaster/conservation_opportunities/models.output/biodiversity.maps/", s), pattern = ".tif", full.names = T, recursive = T)
+  maps.list <- list.files(paste0("models.output/biodiversity.maps/", s), pattern = ".tif", full.names = T, recursive = T)
   maps.list <- grep(paste(forestdep.spplist$Binomial, collapse = "|"), maps.list, value = T)
   
   #biodiversity.maps <- stack(maps.list)
