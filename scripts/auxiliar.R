@@ -1137,6 +1137,129 @@ writeOGR(pgm.car.restoration.candidates, dsn="results", layer = "pgm_car_after_r
 
 rm(list=ls()[ls() %in% c("[...]")])
 gc()
+
+
+#
+
+#use this part of the script only after load objects in "layer_buide_[...].R" ==
+
+## supplementary material figures 
+###undegraded primary forest == 1
+UPF2020_restor_n_avoidboth2.sk <- UPF2020_restor_n_avoidboth2
+#UPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/UPF2020_restor_n_avoidboth2.tif")
+#UPF2020_restor_n_avoidboth2.sk[UPF2020_restor_n_avoidboth2.sk==1]<-1
+UPF2020_restor_n_avoidboth2.sk <- mask(UPF2020_restor_n_avoidboth2.sk, stm.shp)
+UPF2020_restor_n_avoidboth2.sk[UPF2020_restor_n_avoidboth2.sk[]==0] <- 333
+#plot(UPF2020_restor_n_avoidboth2.sk, main="undegraded primary forest", legend=F)
+
+###degraded primary forest == 10
+uDPF2020_restor_n_avoidboth2.sk <- uDPF2020_restor_n_avoidboth2
+#DPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/uDPF2020_restor_n_avoidboth2.tif")
+uDPF2020_restor_n_avoidboth2.sk[uDPF2020_restor_n_avoidboth2.sk==1]<-10
+uDPF2020_restor_n_avoidboth2.sk <- mask(uDPF2020_restor_n_avoidboth2.sk, stm.shp)
+uDPF2020_restor_n_avoidboth2.sk[uDPF2020_restor_n_avoidboth2.sk[]==0] <- 333
+#plot(uDPF2020_restor_n_avoidboth2.sk, main="degraded primary forest", legend=F)
+
+###repeated degraded primary forest == 25
+RDPF2020_restor_n_avoidboth2.sk <- RDPF2020_restor_n_avoidboth2
+#RDPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/RDPF2020_restor_n_avoidboth2.tif")
+RDPF2020_restor_n_avoidboth2.sk[RDPF2020_restor_n_avoidboth2.sk==1]<-25
+RDPF2020_restor_n_avoidboth2.sk <- mask(RDPF2020_restor_n_avoidboth2.sk, stm.shp)
+RDPF2020_restor_n_avoidboth2.sk[RDPF2020_restor_n_avoidboth2.sk[]==0] <- 333
+#plot(RDPF2020_restor_n_avoidboth2.sk, main="degraded primary forest", legend=F)
+
+###secondary forest == 100
+uSF2020_restor_n_avoidboth2.sk <- uSF2020_restor_n_avoidboth2
+#uSF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/uSF2020_restor_n_avoidboth2.tif")
+uSF2020_restor_n_avoidboth2.sk[uSF2020_restor_n_avoidboth2.sk==1]<-100
+uSF2020_restor_n_avoidboth2.sk <- mask(uSF2020_restor_n_avoidboth2.sk, stm.shp)
+uSF2020_restor_n_avoidboth2.sk[uSF2020_restor_n_avoidboth2.sk[]==0] <- 333
+#plot(uSF2020_restor_n_avoidboth2.sk, main="secondary forest", legend=F)
+
+###degraded secondary forest == 125
+DSF2020_restor_n_avoidboth2.sk <- DSF2020_restor_n_avoidboth2
+#DSF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/DSF2020_restor_n_avoidboth2.tif")
+DSF2020_restor_n_avoidboth2.sk[DSF2020_restor_n_avoidboth2.sk==1]<-125
+DSF2020_restor_n_avoidboth2.sk <- mask(DSF2020_restor_n_avoidboth2.sk, stm.shp)
+DSF2020_restor_n_avoidboth2.sk[DSF2020_restor_n_avoidboth2.sk[]==0] <- 333
+#plot(DSF2020_restor_n_avoidboth2.sk, main="secondary forest", legend=F)
+
+LULC2020_restor_n_avoidboth2 <- sum(UPF2020_restor_n_avoidboth2.sk, uSF2020_restor_n_avoidboth2.sk, na.rm = T)
+LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, DSF2020_restor_n_avoidboth2.sk, na.rm = T)
+LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, uDPF2020_restor_n_avoidboth2.sk, na.rm = T)
+LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, RDPF2020_restor_n_avoidboth2.sk, na.rm = T)
+LULC2020_restor_n_avoidboth2 <- mask(LULC2020_restor_n_avoidboth2, stm.shp)
+#sort(unique(LULC2020_restor_n_avoidboth2[]))
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1333]<-1
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1342]<-10
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1357]<-25
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1432]<-100
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1457]<-125
+LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1665 ]<-0
+#plot(LULC2020_restor_n_avoidboth2, main="forest cover 2020", legend=F)
+
+
+
+
+
+### Create a data frame with the transition data
+data_df2 <- data.frame(
+  Period1 = data_df$Period1,
+  #Period2 = factor(LULC2020[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddegrad[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddegrad2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoiddeforest2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_restor_wo_avoid[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoidboth[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_restor_n_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_restor_n_avoiddeforest2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_restor_n_avoidboth[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  Period2 = factor(LULC2020_restor_n_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+)
+
+
+###change the axis2 to check lulc transition in each scenario
+set.seed(1237)
+data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
+  ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+  geom_flow(aes(fill = Period2), width = .15, curve_type = "quintic") +
+  geom_stratum(width = .15) +
+  scale_x_discrete(limits = c("Period1", "Period2"), 
+                   breaks=c("Period1", "Period2"), 
+                   labels=addline_format(c("2010 Real", "2020 restoration and avoid both (PF_only)")), # (PF_only)
+                   expand = c(.05, .05)) +
+  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", 
+                               "#B19470", "#789461", "#F97B22")) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  theme_minimal()+
+  theme(axis.text.y= element_blank(), legend.position = "none")
+
+#
+
+
+
+
+
+
+
+
+
+
+par(mfrow=c(1,2))
+#plot(pgm.costs.total[[1]], main="Fire control", col = terrain.colors(9, rev = T), breaks= c(0,10,20,30,40,50,60,70,210)) ## res = 1673 x 881
+#plot(pgm.costs.total[[4]], main="Restoration", col = terrain.colors(5, rev = T), breaks= c(0,10,100,500,800))
+plot(pgm.costs.total[[3]], main="Opportunity farming", col = terrain.colors(9, rev = T), breaks= c(0,100,200,300,400,500,600,1000,3500))
+#plot(pgm.costs.total[[2]], main="Opportunity logging", col = terrain.colors(9, rev = T), breaks= seq(0, 200, by = 20))
+#plot(stm.costs.total[[1]], main="Fire control", col = terrain.colors(10, rev = T), breaks= c(0,10,20,30,40,50,60,70,100,300))
+#plot(stm.costs.total[[4]], main="Restoration", col = terrain.colors(5, rev = T), breaks= c(0,10,100,500,800))
+plot(stm.costs.total[[3]], main="Opportunity farming", col = terrain.colors(9, rev = T), breaks= c(0,100,200,300,400,500,600,1000,3000))
+#plot(stm.costs.total[[2]], main="Opportunity logging", col = terrain.colors(9, rev = T), breaks= seq(0, 200, by = 20))
+
+
+
+
 #
 #
 
@@ -1163,7 +1286,43 @@ gc()
 
 
 
-#use this part of the script only after load objects in "layer_buide_[...].R"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#==============================| previous approach
+
+
+
+
 
 # checking for impossible transition scenarios
 #e.g., secondary forests becoming undegraded/degraded primary forest
