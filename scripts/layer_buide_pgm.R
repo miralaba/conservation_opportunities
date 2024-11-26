@@ -140,8 +140,8 @@ pgm.lulc.2020.deforestation.mask[pgm.lulc.2020.deforestation.mask==0] <- NA
 
 ### select pixels based on proximity to forest
 pgm.deforest <- pgm.lulc[["pgm.lulc.2010real"]]
-pgm.deforest[deforest %in% deforestation.class.list] <- NA
-pgm.deforest[deforest>1] <- 1
+pgm.deforest[pgm.deforest %in% deforestation.class.list] <- NA
+pgm.deforest[pgm.deforest>1] <- 1
 
 pgm.deforest.dist <- distance(pgm.deforest, doEdge=T)
 #writeRaster(pgm.deforest.dist, "rasters/PGM/raw/pgm-distance-to-forest.tif", format = "GTiff", overwrite = T)
