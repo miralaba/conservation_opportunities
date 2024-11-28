@@ -1142,70 +1142,83 @@ gc()
 #
 
 #use this part of the script only after load objects in "layer_buide_[...].R" ==
+## standard projection
+std.proj <- "+proj=longlat +datum=WGS84 +units=m +no_defs"
+
+## shapefile paragominas
+pgm.shp <- readOGR(dsn = "shapes", layer = "Paragominas_Mask_R3")
+proj4string(pgm.shp) <- CRS(std.proj)
+pgm.shp <- spTransform(pgm.shp, crs(std.proj))
+
+### shapefile santarem
+#stm.shp <- readOGR(dsn = "shapes", layer = "Santarem")
+#stm.shp <- spTransform(stm.shp, crs(std.proj))
 
 ## supplementary material figures 
 ###undegraded primary forest == 1
-UPF2020_restor_n_avoidboth2.sk <- UPF2020_restor_n_avoidboth2
-#UPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/UPF2020_restor_n_avoidboth2.tif")
-#UPF2020_restor_n_avoidboth2.sk[UPF2020_restor_n_avoidboth2.sk==1]<-1
-UPF2020_restor_n_avoidboth2.sk <- mask(UPF2020_restor_n_avoidboth2.sk, stm.shp)
-UPF2020_restor_n_avoidboth2.sk[UPF2020_restor_n_avoidboth2.sk[]==0] <- 333
-#plot(UPF2020_restor_n_avoidboth2.sk, main="undegraded primary forest", legend=F)
+#UPF2010_real.sk <- UPF2010_real
+UPF2010_real.sk <- raster("rasters/PGM/input/LULC/UPF2010_real.tif")
+#UPF2010_real.sk[UPF2010_real.sk==1]<-1
+UPF2010_real.sk <- mask(UPF2010_real.sk, pgm.shp)
+UPF2010_real.sk[UPF2010_real.sk[]==0] <- 333
+#plot(UPF2010_real.sk, main="undegraded primary forest", legend=F)
 
 ###degraded primary forest == 10
-uDPF2020_restor_n_avoidboth2.sk <- uDPF2020_restor_n_avoidboth2
-#DPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/uDPF2020_restor_n_avoidboth2.tif")
-uDPF2020_restor_n_avoidboth2.sk[uDPF2020_restor_n_avoidboth2.sk==1]<-10
-uDPF2020_restor_n_avoidboth2.sk <- mask(uDPF2020_restor_n_avoidboth2.sk, stm.shp)
-uDPF2020_restor_n_avoidboth2.sk[uDPF2020_restor_n_avoidboth2.sk[]==0] <- 333
-#plot(uDPF2020_restor_n_avoidboth2.sk, main="degraded primary forest", legend=F)
+#uDPF2010_real.sk <- uDPF2010_real
+uDPF2010_real.sk <- raster("rasters/PGM/input/LULC/uDPF2010_real.tif")
+uDPF2010_real.sk[uDPF2010_real.sk==1]<-10
+uDPF2010_real.sk <- mask(uDPF2010_real.sk, pgm.shp)
+uDPF2010_real.sk[uDPF2010_real.sk[]==0] <- 333
+#plot(uDPF2010_real.sk, main="degraded primary forest", legend=F)
 
 ###repeated degraded primary forest == 25
-RDPF2020_restor_n_avoidboth2.sk <- RDPF2020_restor_n_avoidboth2
-#RDPF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/RDPF2020_restor_n_avoidboth2.tif")
-RDPF2020_restor_n_avoidboth2.sk[RDPF2020_restor_n_avoidboth2.sk==1]<-25
-RDPF2020_restor_n_avoidboth2.sk <- mask(RDPF2020_restor_n_avoidboth2.sk, stm.shp)
-RDPF2020_restor_n_avoidboth2.sk[RDPF2020_restor_n_avoidboth2.sk[]==0] <- 333
-#plot(RDPF2020_restor_n_avoidboth2.sk, main="degraded primary forest", legend=F)
+#RDPF2010_real.sk <- RDPF2010_real
+RDPF2010_real.sk <- raster("rasters/PGM/input/LULC/RDPF2010_real.tif")
+RDPF2010_real.sk[RDPF2010_real.sk==1]<-25
+RDPF2010_real.sk <- mask(RDPF2010_real.sk, pgm.shp)
+RDPF2010_real.sk[RDPF2010_real.sk[]==0] <- 333
+#plot(RDPF2010_real.sk, main="degraded primary forest", legend=F)
 
 ###secondary forest == 100
-uSF2020_restor_n_avoidboth2.sk <- uSF2020_restor_n_avoidboth2
-#uSF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/uSF2020_restor_n_avoidboth2.tif")
-uSF2020_restor_n_avoidboth2.sk[uSF2020_restor_n_avoidboth2.sk==1]<-100
-uSF2020_restor_n_avoidboth2.sk <- mask(uSF2020_restor_n_avoidboth2.sk, stm.shp)
-uSF2020_restor_n_avoidboth2.sk[uSF2020_restor_n_avoidboth2.sk[]==0] <- 333
-#plot(uSF2020_restor_n_avoidboth2.sk, main="secondary forest", legend=F)
+#uSF2010_real.sk <- uSF2010_real
+uSF2010_real.sk <- raster("rasters/PGM/input/LULC/uSF2010_real.tif")
+uSF2010_real.sk[uSF2010_real.sk==1]<-100
+uSF2010_real.sk <- mask(uSF2010_real.sk, pgm.shp)
+uSF2010_real.sk[uSF2010_real.sk[]==0] <- 333
+#plot(uSF2010_real.sk, main="secondary forest", legend=F)
 
 ###degraded secondary forest == 125
-DSF2020_restor_n_avoidboth2.sk <- DSF2020_restor_n_avoidboth2
-#DSF2020_restor_n_avoidboth2.sk <- raster("rasters/STM/input/DSF2020_restor_n_avoidboth2.tif")
-DSF2020_restor_n_avoidboth2.sk[DSF2020_restor_n_avoidboth2.sk==1]<-125
-DSF2020_restor_n_avoidboth2.sk <- mask(DSF2020_restor_n_avoidboth2.sk, stm.shp)
-DSF2020_restor_n_avoidboth2.sk[DSF2020_restor_n_avoidboth2.sk[]==0] <- 333
-#plot(DSF2020_restor_n_avoidboth2.sk, main="secondary forest", legend=F)
+#DSF2010_real.sk <- DSF2010_real
+DSF2010_real.sk <- raster("rasters/PGM/input/LULC/DSF2010_real.tif")
+DSF2010_real.sk[DSF2010_real.sk==1]<-125
+DSF2010_real.sk <- mask(DSF2010_real.sk, pgm.shp)
+DSF2010_real.sk[DSF2010_real.sk[]==0] <- 333
+#plot(DSF2010_real.sk, main="secondary forest", legend=F)
 
-LULC2020_restor_n_avoidboth2 <- sum(UPF2020_restor_n_avoidboth2.sk, uSF2020_restor_n_avoidboth2.sk, na.rm = T)
-LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, DSF2020_restor_n_avoidboth2.sk, na.rm = T)
-LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, uDPF2020_restor_n_avoidboth2.sk, na.rm = T)
-LULC2020_restor_n_avoidboth2 <- sum(LULC2020_restor_n_avoidboth2, RDPF2020_restor_n_avoidboth2.sk, na.rm = T)
-LULC2020_restor_n_avoidboth2 <- mask(LULC2020_restor_n_avoidboth2, stm.shp)
-#sort(unique(LULC2020_restor_n_avoidboth2[]))
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1333]<-1
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1342]<-10
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1357]<-25
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1432]<-100
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1457]<-125
-LULC2020_restor_n_avoidboth2[LULC2020_restor_n_avoidboth2==1665 ]<-0
-#plot(LULC2020_restor_n_avoidboth2, main="forest cover 2020", legend=F)
+LULC2010_real <- sum(UPF2010_real.sk, uSF2010_real.sk, na.rm = T)
+LULC2010_real <- sum(LULC2010_real, DSF2010_real.sk, na.rm = T)
+LULC2010_real <- sum(LULC2010_real, uDPF2010_real.sk, na.rm = T)
+LULC2010_real <- sum(LULC2010_real, RDPF2010_real.sk, na.rm = T)
+LULC2010_real <- mask(LULC2010_real, pgm.shp)
+sort(unique(LULC2010_real[]))
 
 
+LULC2010_real[LULC2010_real==1333]<-1
+LULC2010_real[LULC2010_real==1342]<-10
+LULC2010_real[LULC2010_real==1357]<-25
+LULC2010_real[LULC2010_real==1432]<-100
+LULC2010_real[LULC2010_real==1457]<-125
+LULC2010_real[LULC2010_real==1665 ]<-0
+#plot(LULC2010_real, main="forest cover 2010", legend=F)
+
+writeRaster(LULC2010_real, "rasters/PGM/input/LULC/_lulc_2010_real.tif", format="GTiff", overwrite=T)
 
 
 
 ### Create a data frame with the transition data
 data_df2 <- data.frame(
-  Period1 = data_df$Period1,
-  #Period2 = factor(LULC2020[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  Period1 = factor(LULC2010_real[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D")),
+  Period2 = factor(LULC2020_real[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_avoiddegrad[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_avoiddegrad2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
@@ -1216,7 +1229,7 @@ data_df2 <- data.frame(
   #Period2 = factor(LULC2020_restor_n_avoiddeforest[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_restor_n_avoiddeforest2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   #Period2 = factor(LULC2020_restor_n_avoidboth[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
-  Period2 = factor(LULC2020_restor_n_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+  #Period2 = factor(LULC2020_restor_n_avoidboth2[], levels = c(1, 10, 25, 125, 100, 0), labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
 )
 
 
@@ -1262,6 +1275,11 @@ plot(stm.costs.total[[3]], main="Opportunity farming", col = terrain.colors(9, r
 
 #
 #
+
+
+
+
+#=================================|end
 
 
 
