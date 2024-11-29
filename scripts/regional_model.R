@@ -37,7 +37,7 @@ stm.shp <- spTransform(stm.shp, crs(std.proj))
 #explanatory variables
 sel.var.df <- read.csv("rasters/selected_environmental_explanatory_variables_byVIF.csv")
 
-pgm.env.explanatory.var.list <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+pgm.env.explanatory.var.list <- list.files("rasters2/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 pgm.env.explanatory.var <- stack(pgm.env.explanatory.var.list)
 #names(pgm.env.explanatory.var) <- unlist(strsplit(pgm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
@@ -50,7 +50,7 @@ pgm.env.explanatory.var <- pgm.env.explanatory.var[[sel.var.df[!is.na(sel.var.df
 
 
 
-stm.env.explanatory.var.list <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+stm.env.explanatory.var.list <- list.files("rasters2/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 
 stm.env.explanatory.var <- stack(stm.env.explanatory.var.list)
 #names(stm.env.explanatory.var) <- unlist(strsplit(stm.env.explanatory.var.list, "/|.tif"))[seq(4,88,4)]
@@ -932,9 +932,9 @@ forestdep.spplist$Shape_Area_scaled <- rescale(forestdep.spplist$Shape_Area, to 
 rm(bird.distribution.shp)
 
 
-#' tree conservation value is wood density
+#' tree conservation value is inverse occurrence area size
 #' scaled from 0 [the biggest] to 1 [the smallest]
-#' based on the World Checklist of Vascular Plants
+#' based on birdlife_v2017b shapefiles
 pgm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_PGM_Erika_23.01.2013.csv")
 stm.treedata <- read.csv("data/raw/Flora.composition.and.biomass_STM_Erika_23.01.2013.csv")
 # merging tree data
@@ -1056,7 +1056,7 @@ for (s in scenarios) {
 
 # carbon benefit ===============================================================
 
-dir.create("models.output/carbon.benefits", recursive = T)
+dir.create("models.output/carbon.benefits2", recursive = T)
 
 ## transect data
 transectdata <- read.csv("data/raw/RAS_transects_environment_all.csv")
@@ -1196,11 +1196,11 @@ ctrl <- trainControl(method = "cv", ## this will be ignored since we supply inde
                      index = index,
                      savePredictions = T)  
 #control <- trainControl(method="repeatedcv", number=10, repeats=3)
-tunegrid <- expand.grid(.mtry=c(3:14), .ntree=seq(100,2000, 50))
+tunegrid <- expand.grid(.mtry=c(3:13), .ntree=seq(100,2000, 50))
 
 set.seed(999)
 mod.rf.fn2 <- train(carbon_stock ~ distriver + distroad + DPFpx + edgedist + edgels + edgepx + elevation +
-                     meanprecips + meantemps + MFls + SFAgepx + SFls + TSDls + UPFpx, data = subset(carbon, non_zero == 1),
+                     meanprecips + meantemps + MFls + SFAgepx + TSDls + UPFpx, data = subset(carbon, non_zero == 1),
                 method=customRF, metric="RMSE", tuneGrid=tunegrid, trControl=ctrl)
 
 print(mod.rf.fn2)
