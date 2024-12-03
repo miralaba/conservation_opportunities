@@ -2,7 +2,7 @@
 #' @title Cost-effectiveness of conservation actions in Amazon
 #' @description 
 
-#### loading required packages ####
+# loading required packages ====================================================
 library(tidyverse)
 library(raster)
 library(rgdal)
@@ -14,7 +14,18 @@ library(stringr)
 library(ggridges)
 library(ggalluvial)
 library(ggfittext)
+library(ggforce)
+library(ggpubr)
 #library(ggblend)
+
+
+data_summary <- function(x) {
+  m <- mean(x)
+  ymin <- m-sd(x)
+  ymax <- m+sd(x)
+  return(c(y=m,ymin=ymin,ymax=ymax))
+}
+
 
 addline_format <- function(x,...){
   gsub('\\s','\n',x)
@@ -35,24 +46,31 @@ stm.shp <- readOGR(dsn = "shapes", layer = "Santarem")
 stm.shp <- spTransform(stm.shp, crs(std.proj))
 
 
-# loading areas that change ====================================================
-pgm.area.change.list <- list.files("rasters/PGM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
-pgm.area.change.list <- grep("area_change", pgm.area.change.list, value = T)
-pgm.area.change.list <- grep("bin", pgm.area.change.list, value = T, invert = T)
+# loading lulc =================================================================
+pgm.lulc.list <- list.files("rasters/PGM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
+pgm.lulc.list <- grep("_lulc_", pgm.lulc.list, value = T)
 
-pgm.area.change <- stack(pgm.area.change.list)
-pgm.area.change <- mask(pgm.area.change, pgm.shp)
-#names(pgm.area.change)
+pgm.lulc <- stack(pgm.lulc.list)
+pgm.lulc <- mask(pgm.lulc, pgm.shp)
+#names(pgm.lulc)
 #reordering :: real, avoid deforestation, avoid degradation, restoration
-pgm.area.change <- pgm.area.change[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+pgm.lulc <- pgm.lulc[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
 
-rm(pgm.area.change.list)
+
+## masking areas that doesn't change
+pgm.area.change.mask <- pgm.lulc[[1]]
+pgm.area.change.mask[] <- ifelse(pgm.area.change.mask[] == pgm.lulc[[5]][], NA, 1)
+pgm.lulc <- mask(pgm.lulc, pgm.area.change.mask)
+
+rm(pgm.area.change.mask)
+gc()
 
 #converting to dataframe
-pgm.area.change.df.principals <- as.data.frame(pgm.area.change[[3:5]], xy = TRUE)
+pgm.area.change.df.principals <- as.data.frame(pgm.lulc[[2:8]], xy = T)
+
 pgm.area.change.df.principals <- pgm.area.change.df.principals %>% 
   pivot_longer(
-    area_change_2020_avoiddeforest:area_change_2020_restor_wo_avoid,
+    X_lulc_2020_real:X_lulc_2020_restor_n_avoidboth,
     names_to = "Scenario",
     values_to = "Cat"
   ) %>% 
@@ -61,32 +79,107 @@ pgm.area.change.df.principals <- pgm.area.change.df.principals %>%
     Cell = row_number(),
     Region = "PGM",
     Scenario = factor(Scenario,
-                      levels = c("area_change_2020_avoiddeforest",
-                                 "area_change_2020_avoiddegrad",
-                                 "area_change_2020_restor_wo_avoid"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Cat = na_if(Cat, 0),
+                      levels = c("X_lulc_2020_real",
+                                 "X_lulc_2020_avoiddeforest",
+                                 "X_lulc_2020_avoiddegrad",
+                                 "X_lulc_2020_avoidboth",
+                                 "X_lulc_2020_restor_wo_avoid",
+                                 "X_lulc_2020_restor_n_avoiddeforest",
+                                 "X_lulc_2020_restor_n_avoidboth"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both")),
     Cat = factor(Cat,
-                 levels = c(1,10,25,100,125),
-                 labels = c("UPF", "DPF", "RDPF", "SF", "DSF"))
+                 levels = c(1,10,25,125,100,0),
+                 labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   ) %>% ungroup() %>% drop_na()
+
+
+pgm.area.change.bau <- pgm.area.change.df.principals %>% filter(Scenario=="Business as usual") %>% droplevels() %>% dplyr::rename(BAU.Cat = Cat)
+
+pgm.area.change.df.principals <- pgm.area.change.df.principals %>% left_join(pgm.area.change.bau %>% dplyr::select(x, y, Cell, BAU.Cat))
+
+rm(pgm.area.change.bau)
+gc()
+
+
+pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(
+  area_change = case_when(Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration without avoid" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          .default = 0))
+
+gc()
+
+pgm.area.change.df.principals %>% group_by(Scenario) %>% summarise(n())
+pgm.area.change.df.principals %>% filter(area_change == 1) %>% group_by(Scenario) %>% summarise(n())
 #
 
-stm.area.change.list <- list.files("rasters/STM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
-stm.area.change.list <- grep("area_change", stm.area.change.list, value = T)
-stm.area.change.list <- grep("bin", stm.area.change.list, value = T, invert = T)
 
-stm.area.change <- stack(stm.area.change.list)
-stm.area.change <- mask(stm.area.change, stm.shp)
-stm.area.change <- stm.area.change[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
 
-rm(stm.area.change.list)
 
-stm.area.change.df.principals <- as.data.frame(stm.area.change[[3:5]], xy = TRUE)
+
+
+
+
+stm.lulc.list <- list.files("rasters/STM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
+stm.lulc.list <- grep("_lulc_", stm.lulc.list, value = T)
+
+stm.lulc <- stack(stm.lulc.list)
+stm.lulc <- mask(stm.lulc, stm.shp)
+#names(stm.lulc)
+#reordering :: real, avoid deforestation, avoid degradation, restoration
+stm.lulc <- stm.lulc[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+
+
+## masking areas that doesn't change
+stm.area.change.mask <- stm.lulc[[1]]
+stm.area.change.mask[] <- ifelse(stm.area.change.mask[] == stm.lulc[[5]][], NA, 1)
+stm.lulc <- mask(stm.lulc, stm.area.change.mask)
+
+rm(stm.area.change.mask)
+gc()
+
+#converting to dataframe
+stm.area.change.df.principals <- as.data.frame(stm.lulc[[2:8]], xy = T)
+
 stm.area.change.df.principals <- stm.area.change.df.principals %>% 
   pivot_longer(
-    area_change_2020_avoiddeforest:area_change_2020_restor_wo_avoid,
+    X_lulc_2020_real:X_lulc_2020_restor_n_avoidboth,
     names_to = "Scenario",
     values_to = "Cat"
   ) %>% 
@@ -95,21 +188,274 @@ stm.area.change.df.principals <- stm.area.change.df.principals %>%
     Cell = row_number(),
     Region = "STM",
     Scenario = factor(Scenario,
-                      levels = c("area_change_2020_avoiddeforest",
-                                 "area_change_2020_avoiddegrad",
-                                 "area_change_2020_restor_wo_avoid"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Cat = na_if(Cat, 0),
+                      levels = c("X_lulc_2020_real",
+                                 "X_lulc_2020_avoiddeforest",
+                                 "X_lulc_2020_avoiddegrad",
+                                 "X_lulc_2020_avoidboth",
+                                 "X_lulc_2020_restor_wo_avoid",
+                                 "X_lulc_2020_restor_n_avoiddeforest",
+                                 "X_lulc_2020_restor_n_avoidboth"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both")),
     Cat = factor(Cat,
-                 levels = c(1,10,25,100,125),
-                 labels = c("UPF", "DPF", "RDPF", "SF", "DSF"))
+                 levels = c(1,10,25,125,100,0),
+                 labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
   ) %>% ungroup() %>% drop_na()
+
+
+stm.area.change.bau <- stm.area.change.df.principals %>% filter(Scenario=="Business as usual") %>% droplevels() %>% dplyr::rename(BAU.Cat = Cat)
+
+stm.area.change.df.principals <- stm.area.change.df.principals %>% left_join(stm.area.change.bau %>% dplyr::select(x, y, Cell, BAU.Cat))
+
+rm(stm.area.change.bau)
+gc()
+
+
+stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(
+  area_change = case_when(Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Avoid deforestation" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid degradation" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Avoid both" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration without avoid" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Restoration and avoid deforestation" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "SF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "RDPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "D" & Cat == "DSF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "DPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "RDPF" & Cat == "UPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "RDPF" & Cat == "DPF" ~ 1,
+                          Scenario == "Restoration and avoid both" & BAU.Cat == "DSF" & Cat == "SF" ~ 1,
+                          .default = 0))
+
+
+stm.area.change.df.principals %>% group_by(Scenario) %>% summarise(n())
+stm.area.change.df.principals %>% filter(area_change == 1) %>% group_by(Scenario) %>% summarise(n())
+#
+
+
+
+rm(list=ls()[!ls() %in% c("pgm.shp", "pgm.lulc", "pgm.area.change.df.principals",
+                          "stm.shp", "stm.lulc", "stm.area.change.df.principals",
+                          "addline_format", "data_summary")])
+gc()
+
+
+
+
+
+
+
+
+# loading areas that change ====================================================
+#pgm.area.change.list <- list.files("rasters/PGM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
+#pgm.area.change.list <- grep("area_change", pgm.area.change.list, value = T)
+#pgm.area.change.list <- grep("bin", pgm.area.change.list, value = T, invert = T)
+#
+#pgm.area.change <- stack(pgm.area.change.list)
+#pgm.area.change <- mask(pgm.area.change, pgm.shp)
+##names(pgm.area.change)
+##reordering :: real, avoid deforestation, avoid degradation, restoration
+#pgm.area.change <- pgm.area.change[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#
+#rm(pgm.area.change.list)
+#
+##converting to dataframe
+#pgm.area.change.df.principals <- as.data.frame(pgm.area.change[[1:8]], xy = T)
+### standardizing the total area change
+#### deforested area
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2010_real = ifelse(is.na(area_change_2010_real) & !is.na(area_change_2020_avoiddeforest), area_change_2020_avoiddeforest, area_change_2010_real))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2010_real = ifelse(is.na(area_change_2010_real) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2010_real))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_real = ifelse(is.na(area_change_2020_real) & !is.na(area_change_2020_avoiddeforest), 0, area_change_2020_real))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_real = ifelse(is.na(area_change_2020_real) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_real))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoiddeforest = ifelse(is.na(area_change_2020_avoiddeforest) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoiddeforest))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoiddegrad = ifelse(is.na(area_change_2020_avoiddegrad) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoiddegrad))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoidboth = ifelse(is.na(area_change_2020_avoidboth) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoidboth))
+#
+#### non-deforestation
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoiddeforest = ifelse(is.na(area_change_2020_avoiddeforest) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoiddeforest))
+#
+#### non-degradation
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoiddegrad = ifelse(is.na(area_change_2020_avoiddegrad) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoiddegrad))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_avoidboth = ifelse(is.na(area_change_2020_avoidboth) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoidboth))
+#
+#### non-restoration
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_restor_wo_avoid = ifelse(is.na(area_change_2020_restor_wo_avoid) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_wo_avoid))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_restor_n_avoiddeforest = ifelse(is.na(area_change_2020_restor_n_avoiddeforest) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_n_avoiddeforest))
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(area_change_2020_restor_n_avoidboth = ifelse(is.na(area_change_2020_restor_n_avoidboth) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_n_avoidboth))
+#
+#
+#### pivoting
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% 
+#  pivot_longer(
+#    area_change_2010_real:area_change_2020_restor_n_avoidboth,
+#    names_to = "Scenario",
+#    values_to = "Cat"
+#  ) %>% 
+#  group_by(Scenario) %>% 
+#  mutate(
+#    Cell = row_number(),
+#    Region = "PGM",
+#    Scenario = factor(Scenario,
+#                      levels = c("area_change_2010_real",
+#                                 "area_change_2020_real",
+#                                 "area_change_2020_avoiddeforest",
+#                                 "area_change_2020_avoiddegrad",
+#                                 "area_change_2020_avoidboth",
+#                                 "area_change_2020_restor_wo_avoid",
+#                                 "area_change_2020_restor_n_avoiddeforest",
+#                                 "area_change_2020_restor_n_avoidboth"),
+#                      labels = c("Baseline",
+#                                 "Business as usual",
+#                                 "Avoid deforestation", 
+#                                 "Avoid degradation",
+#                                 "Avoid both",
+#                                 "Restoration without avoid",
+#                                 "Restoration and avoid deforestation",
+#                                 "Restoration and avoid both")),
+#    Cat = factor(Cat,
+#                 levels = c(1,10,25,125,100,0),
+#                 labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+#  ) %>% ungroup() %>% drop_na()
+#
+#
+#### detecting areas that changed for each scenario (cell number/index)
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% mutate(
+#  area_change = case_when(Scenario == "Avoid deforestation" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_avoiddeforest"]]), cells=T) ~ 1,
+#                          Scenario == "Avoid degradation" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_avoiddegrad"]]), cells=T) ~ 1,
+#                          Scenario == "Avoid both" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_avoidboth"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration without avoid" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_restor_wo_avoid"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration and avoid deforestation" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_restor_n_avoiddeforest"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration and avoid both" & Cell %in% Which(!is.na(pgm.area.change[["area_change_2020_restor_n_avoidboth"]]), cells=T) ~ 1,
+#                          .default = 0)
+#)
+#
+#
+#pgm.area.change.bl <- pgm.area.change.df.principals %>% filter(Scenario=="Baseline") %>% droplevels() %>% dplyr::rename(original.Cat = Cat)
+#pgm.area.change.df.principals <- pgm.area.change.df.principals %>% filter(Scenario!="Baseline") %>% droplevels() %>% left_join(pgm.area.change.bl %>% dplyr::select(x, y, Cell, original.Cat))
+#
+#gc()
+##
+#
+#stm.area.change.list <- list.files("rasters/STM/input/LULC/", pattern = ".tif", full.names = T, recursive = T)
+#stm.area.change.list <- grep("area_change", stm.area.change.list, value = T)
+#stm.area.change.list <- grep("bin", stm.area.change.list, value = T, invert = T)
+#
+#stm.area.change <- stack(stm.area.change.list)
+#stm.area.change <- mask(stm.area.change, stm.shp)
+##names(stm.area.change)
+##reordering :: real, avoid deforestation, avoid degradation, restoration
+#stm.area.change <- stm.area.change[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+#
+#rm(stm.area.change.list)
+#
+##converting to dataframe
+#stm.area.change.df.principals <- as.data.frame(stm.area.change[[1:8]], xy = T)
+### standardizing the total area change
+#### deforested area
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2010_real = ifelse(is.na(area_change_2010_real) & !is.na(area_change_2020_avoiddeforest), area_change_2020_avoiddeforest, area_change_2010_real))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2010_real = ifelse(is.na(area_change_2010_real) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2010_real))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_real = ifelse(is.na(area_change_2020_real) & !is.na(area_change_2020_avoiddeforest), 0, area_change_2020_real))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_real = ifelse(is.na(area_change_2020_real) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_real))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoiddeforest = ifelse(is.na(area_change_2020_avoiddeforest) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoiddeforest))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoiddegrad = ifelse(is.na(area_change_2020_avoiddegrad) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoiddegrad))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoidboth = ifelse(is.na(area_change_2020_avoidboth) & !is.na(area_change_2020_restor_wo_avoid), 0, area_change_2020_avoidboth))
+#
+#### non-deforestation
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoiddeforest = ifelse(is.na(area_change_2020_avoiddeforest) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoiddeforest))
+#
+#### non-degradation
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoiddegrad = ifelse(is.na(area_change_2020_avoiddegrad) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoiddegrad))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_avoidboth = ifelse(is.na(area_change_2020_avoidboth) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_avoidboth))
+#
+#### non-restoration
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_restor_wo_avoid = ifelse(is.na(area_change_2020_restor_wo_avoid) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_wo_avoid))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_restor_n_avoiddeforest = ifelse(is.na(area_change_2020_restor_n_avoiddeforest) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_n_avoiddeforest))
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(area_change_2020_restor_n_avoidboth = ifelse(is.na(area_change_2020_restor_n_avoidboth) & !is.na(area_change_2020_real), area_change_2020_real, area_change_2020_restor_n_avoidboth))
+#
+#
+#### pivoting
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% 
+#  pivot_longer(
+#    area_change_2010_real:area_change_2020_restor_n_avoidboth,
+#    names_to = "Scenario",
+#    values_to = "Cat"
+#  ) %>% 
+#  group_by(Scenario) %>% 
+#  mutate(
+#    Cell = row_number(),
+#    Region = "STM",
+#    Scenario = factor(Scenario,
+#                      levels = c("area_change_2010_real",
+#                                 "area_change_2020_real",
+#                                 "area_change_2020_avoiddeforest",
+#                                 "area_change_2020_avoiddegrad",
+#                                 "area_change_2020_avoidboth",
+#                                 "area_change_2020_restor_wo_avoid",
+#                                 "area_change_2020_restor_n_avoiddeforest",
+#                                 "area_change_2020_restor_n_avoidboth"),
+#                      labels = c("Baseline",
+#                                 "Business as usual",
+#                                 "Avoid deforestation", 
+#                                 "Avoid degradation",
+#                                 "Avoid both",
+#                                 "Restoration without avoid",
+#                                 "Restoration and avoid deforestation",
+#                                 "Restoration and avoid both")),
+#    Cat = factor(Cat,
+#                 levels = c(1,10,25,125,100,0),
+#                 labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
+#  ) %>% ungroup() %>% drop_na()
+#
+#
+#### detecting areas that changed for each scenario (cell number/index)
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% mutate(
+#  area_change = case_when(Scenario == "Avoid deforestation" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_avoiddeforest"]]), cells=T) ~ 1,
+#                          Scenario == "Avoid degradation" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_avoiddegrad"]]), cells=T) ~ 1,
+#                          Scenario == "Avoid both" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_avoidboth"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration without avoid" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_restor_wo_avoid"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration and avoid deforestation" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_restor_n_avoiddeforest"]]), cells=T) ~ 1,
+#                          Scenario == "Restoration and avoid both" & Cell %in% Which(!is.na(stm.area.change[["area_change_2020_restor_n_avoidboth"]]), cells=T) ~ 1,
+#                          .default = 0)
+#)
+#
+#
+#stm.area.change.bl <- stm.area.change.df.principals %>% filter(Scenario=="Baseline") %>% droplevels() %>% dplyr::rename(original.Cat = Cat)
+#stm.area.change.df.principals <- stm.area.change.df.principals %>% filter(Scenario!="Baseline") %>% droplevels()%>% left_join(stm.area.change.bl %>% dplyr::select(x, y, Cell, original.Cat))
+#
+#gc()
+##
+
+
 
 
 
 # comparing biodiversity benefits ====================================================
-biodiversity.benefit.list <- list.files("models.output/biodiversity.benefits/", pattern = ".tif", full.names = T, recursive = T)
+biodiversity.benefit.list <- list.files("models.output/biodiversity.benefits2/", pattern = ".tif", full.names = T, recursive = T)
 
 pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = T)
 #pgm.biodiversity.benefit2.list <- grep("2_", pgm.biodiversity.benefit.list, value = T)
@@ -118,19 +464,23 @@ pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = 
 pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
 pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
 #figS8a-l
-#plot(pgm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 520, by = 10))), breaks= seq(0, 520, by = 10)) ## res = 1673 x 881
-
+#plot(pgm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 400, by = 10))), breaks= seq(0, 400, by = 10)) ## res = 1673 x 881
 
 rm(pgm.biodiversity.benefit.list)
 
+
+pgm.biodiversity.benefit.total[[1]][] <- ifelse(pgm.lulc[[1]][]==0, 0, pgm.biodiversity.benefit.total[[1]][])
+
 pgm.biodiversity.benefit <- stack()
 
-for (i in c(3:13)) {
+for (i in c(2:8)) {
   
   layer.x <- pgm.biodiversity.benefit.total[[1]]
   layer.x[which(!is.na(layer.x[]))]<-NA
-  layer.x[] <- pgm.biodiversity.benefit.total[[i]][] - pgm.biodiversity.benefit.total[[2]][]
-  layer.x <- mask(layer.x, pgm.area.change[[i]])
+  
+  pgm.biodiversity.benefit.total[[i]][] <- ifelse(pgm.lulc[[i]][]==0, 0, pgm.biodiversity.benefit.total[[i]][])
+  
+  layer.x[] <- pgm.biodiversity.benefit.total[[i]][] - pgm.biodiversity.benefit.total[[1]][]
   names(layer.x) <- names(pgm.biodiversity.benefit.total[[i]])
   
   pgm.biodiversity.benefit <- addLayer(pgm.biodiversity.benefit, layer.x)
@@ -138,15 +488,17 @@ for (i in c(3:13)) {
   cat("\n>working on layer", i, "now<\n")
 }
 
+rm(layer.x)
+gc()
+
 pgm.biodiversity.benefit <- mask(pgm.biodiversity.benefit, pgm.shp)
 #names(pgm.biodiversity.benefit) <- unlist(strsplit(biodiversity.benefit.list, "/|.tif"))[seq(3,21,3)]
-rm(layer.x)
 
 
-pgm.biodiversity.benefit.df.principals <- as.data.frame(pgm.biodiversity.benefit[[1:3]], xy = TRUE)
+pgm.biodiversity.benefit.df.principals <- as.data.frame(pgm.biodiversity.benefit[[1:7]], xy = TRUE)
 pgm.biodiversity.benefit.df.principals <- pgm.biodiversity.benefit.df.principals %>% 
   pivot_longer(
-    PGM_2020_avoiddeforest_biodiversity_benefit:PGM_2020_restor_wo_avoid_biodiversity_benefit,
+    PGM_2020_real_biodiversity_benefit:PGM_2020_restor_n_avoidboth_biodiversity_benefit,
     names_to = "Scenario",
     values_to = "BBenefit"
   ) %>% 
@@ -155,21 +507,42 @@ pgm.biodiversity.benefit.df.principals <- pgm.biodiversity.benefit.df.principals
     Cell = row_number(),
     Region = "PGM",
     Scenario = factor(Scenario,
-                      levels = c("PGM_2020_avoiddeforest_biodiversity_benefit",
+                      levels = c("PGM_2020_real_biodiversity_benefit",
+                                 "PGM_2020_avoiddeforest_biodiversity_benefit",
                                  "PGM_2020_avoiddegrad_biodiversity_benefit",
-                                 "PGM_2020_restor_wo_avoid_biodiversity_benefit"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Benefit = na_if(Benefit, 0)
+                                 "PGM_2020_avoidboth_biodiversity_benefit",
+                                 "PGM_2020_restor_wo_avoid_biodiversity_benefit",
+                                 "PGM_2020_restor_n_avoiddeforest_biodiversity_benefit",
+                                 "PGM_2020_restor_n_avoidboth_biodiversity_benefit"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"))
   ) %>% ungroup() %>% drop_na() %>% 
-  filter(BBenefit>=0) %>% 
-  mutate(rescaled.BBenefit = rescale(BBenefit, to = c(0, 1))
-  ) %>% 
-  left_join(pgm.area.change.df.principals)
-#head(pgm.biodiversity.benefit.df.principals)
+  mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
+                                       TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
+  right_join(pgm.area.change.df.principals)
 
 
+#pgm.biod.real <- pgm.biodiversity.benefit.df.principals %>% filter(Scenario == "Business as usual") %>% 
+#  dplyr::select(Region, Cell, BBenefit) %>% dplyr::rename(BBenefit.real = BBenefit)
 #
+#pgm.biodiversity.benefit.df.principals <- pgm.biodiversity.benefit.df.principals %>% 
+#  #excluding areas that haven't change in the restoration and avoid both scenario
+#  filter(!(Scenario == "Restoration and avoid both" & Cat == "D")) %>% 
+#  left_join(pgm.biod.real) %>% 
+#  mutate(BBenefit.diff = BBenefit - BBenefit.real, 
+#         rescaled.BBenefit = case_when(BBenefit.diff >= 0 ~ BBenefit.diff / (max(abs(max(BBenefit.diff)), abs(min(BBenefit.diff)))), 
+#                                       TRUE ~ - BBenefit.diff / - (max(abs(max(BBenefit.diff)), abs(min(BBenefit.diff))))))
+
+#head(pgm.biodiversity.benefit.df.principals)  
+gc()
+#
+
+
 
 
 
@@ -179,19 +552,24 @@ stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = 
 
 stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
 stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
-#figS8m-x
-#plot(stm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 580, by = 10))), breaks= seq(0, 580, by = 10)) ## res = 1673 x 881
+#figS8a-l
+#plot(stm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 400, by = 10))), breaks= seq(0, 400, by = 10)) ## res = 1673 x 881
 
 rm(stm.biodiversity.benefit.list); rm(biodiversity.benefit.list)
 
+
+stm.biodiversity.benefit.total[[1]][] <- ifelse(stm.lulc[[1]][]==0, 0, stm.biodiversity.benefit.total[[1]][])
+
 stm.biodiversity.benefit <- stack()
 
-for (i in c(3:13)) {
+for (i in c(2:8)) {
   
   layer.x <- stm.biodiversity.benefit.total[[1]]
   layer.x[which(!is.na(layer.x[]))]<-NA
-  layer.x[] <- stm.biodiversity.benefit.total[[i]][] - stm.biodiversity.benefit.total[[2]][]
-  layer.x <- mask(layer.x, stm.area.change[[i]])
+  
+  stm.biodiversity.benefit.total[[i]][] <- ifelse(stm.lulc[[i]][]==0, 0, stm.biodiversity.benefit.total[[i]][])
+  
+  layer.x[] <- stm.biodiversity.benefit.total[[i]][] - stm.biodiversity.benefit.total[[1]][]
   names(layer.x) <- names(stm.biodiversity.benefit.total[[i]])
   
   stm.biodiversity.benefit <- addLayer(stm.biodiversity.benefit, layer.x)
@@ -199,15 +577,17 @@ for (i in c(3:13)) {
   cat("\n>working on layer", i, "now<\n")
 }
 
+rm(layer.x)
+gc()
+
 stm.biodiversity.benefit <- mask(stm.biodiversity.benefit, stm.shp)
 #names(stm.biodiversity.benefit) <- unlist(strsplit(biodiversity.benefit.list, "/|.tif"))[seq(3,21,3)]
-rm(layer.x)
 
 
-stm.biodiversity.benefit.df.principals <- as.data.frame(stm.biodiversity.benefit[[1:3]], xy = TRUE)
+stm.biodiversity.benefit.df.principals <- as.data.frame(stm.biodiversity.benefit[[1:7]], xy = TRUE)
 stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals %>% 
   pivot_longer(
-    STM_2020_avoiddeforest_biodiversity_benefit:STM_2020_restor_wo_avoid_biodiversity_benefit,
+    STM_2020_real_biodiversity_benefit:STM_2020_restor_n_avoidboth_biodiversity_benefit,
     names_to = "Scenario",
     values_to = "BBenefit"
   ) %>% 
@@ -216,49 +596,99 @@ stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals
     Cell = row_number(),
     Region = "STM",
     Scenario = factor(Scenario,
-                      levels = c("STM_2020_avoiddeforest_biodiversity_benefit",
+                      levels = c("STM_2020_real_biodiversity_benefit",
+                                 "STM_2020_avoiddeforest_biodiversity_benefit",
                                  "STM_2020_avoiddegrad_biodiversity_benefit",
-                                 "STM_2020_restor_wo_avoid_biodiversity_benefit"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Benefit = na_if(Benefit, 0)
+                                 "STM_2020_avoidboth_biodiversity_benefit",
+                                 "STM_2020_restor_wo_avoid_biodiversity_benefit",
+                                 "STM_2020_restor_n_avoiddeforest_biodiversity_benefit",
+                                 "STM_2020_restor_n_avoidboth_biodiversity_benefit"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"))
   ) %>% ungroup() %>% drop_na() %>% 
-  filter(BBenefit>=0) %>% 
-  mutate(rescaled.BBenefit = rescale(BBenefit, to = c(0, 1))
-  ) %>% 
-  left_join(stm.area.change.df.principals)
-#head(stm.biodiversity.benefit.df.principals)
+  mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
+                                       TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
+  right_join(stm.area.change.df.principals)
 
 
+#stm.biod.real <- stm.biodiversity.benefit.df.principals %>% filter(Scenario == "Business as usual") %>% 
+#  dplyr::select(Region, Cell, BBenefit) %>% dplyr::rename(BBenefit.real = BBenefit)
+#
+#stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals %>% 
+#  #excluding areas that haven't change in the restoration and avoid both scenario
+#  filter(!(Scenario == "Restoration and avoid both" & Cat == "D")) %>% 
+#  left_join(stm.biod.real) %>% 
+#  mutate(BBenefit.diff = BBenefit - BBenefit.real, 
+#         rescaled.BBenefit = case_when(BBenefit.diff >= 0 ~ BBenefit.diff / (max(abs(max(BBenefit.diff)), abs(min(BBenefit.diff)))), 
+#                                       TRUE ~ - BBenefit.diff / - (max(abs(max(BBenefit.diff)), abs(min(BBenefit.diff))))))
+
+#head(stm.biodiversity.benefit.df.principals)  
+gc()
 #
 
 
-biodiversity.benefit.principals <- rbind(pgm.biodiversity.benefit.df.principals, stm.biodiversity.benefit.df.principals)
-biodiversity.benefit.principals <- biodiversity.benefit.principals %>% mutate(Region = factor(Region, levels = c("PGM", "STM")))
 
-rm(pgm.biodiversity.benefit.df.principals); rm(stm.biodiversity.benefit.df.principals)
+biodiversity.benefit.principals <- rbind(pgm.biodiversity.benefit.df.principals, stm.biodiversity.benefit.df.principals)
+biodiversity.benefit.principals <- biodiversity.benefit.principals %>% 
+  mutate(Region = factor(Region, levels = c("PGM", "STM")),
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+biodiversity.benefit.principals <- biodiversity.benefit.principals %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
+#biodiversity.benefit.principals <- biodiversity.benefit.principals %>% filter(Cat!="D") %>% droplevels()
+rm(pgm.biodiversity.benefit.df.principals); rm(stm.biodiversity.benefit.df.principals) 
+rm(pgm.biodiversity.benefit.total); rm(stm.biodiversity.benefit.total)
+gc()
+
 
 
 
 
 ##violin plot + jitter [dots colored by LULC category]
-library(ggforce)
-fig2a <- biodiversity.benefit.principals %>% #filter(BBenefit>=0) %>%
-  ggplot(aes(x=Scenario, y=rescaled.BBenefit)) +
-  geom_violin(scale="width") + 
-  geom_sina(data=biodiversity.benefit.principals %>% sample_n(100000), #%>% filter(BBenefit>=0),
-            aes(color=Cat, group=Scenario), alpha=.1, scale="width")+
-  scale_x_discrete(labels=addline_format(levels(biodiversity.benefit.principals$Scenario)),
-                   expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", "#789461", "#B19470")) +
+fig2a <- biodiversity.benefit.principals %>% #filter(Scenario == "Avoid deforestation") %>% droplevels() %>% 
+  group_by(Region) %>% sample_n(100000) %>% 
+  ggplot() +
+  geom_sina(aes(x = area_change, y = rescaled.BBenefit, colour = Cat, group = area_change),
+            shape = 16, scale = "width") +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  scale_y_continuous("Biodiversity benefit", limits = c(-1,1)) +
+  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+                                "#B19470", "#789461", "#F97B22")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  labs(title = "", x = "", y = "Biodiversity benefit") +
-  theme_minimal()+
+  labs(title = "", x = "", y = "") +
+  coord_flip() +
+  facet_wrap(~Scenario, nrow = 7, strip.position = "left",
+             labeller = label_wrap_gen(multi_line = T)) +
+  theme_classic()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x= element_blank(),
+        #axis.text.y = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        strip.background = element_blank(), 
+        strip.text.y.left = element_text(angle = 0),
+        strip.placement = "outside")
+
+fig2b <- biodiversity.benefit.principals %>% #filter(Scenario == "Avoid deforestation") %>% droplevels() %>% 
+  group_by(Region) %>% sample_n(100000) %>% 
+  ggplot() +
+  stat_summary(aes(x = Scenario, y = rescaled.BBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
+  #geom_boxplot(aes(x = Scenario, y = rescaled.CBenefit), width = .5, outlier.shape = NA) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  scale_x_discrete(limits = rev(levels(biodiversity.benefit.principals$Scenario))) +
+  scale_y_continuous("", limits = c(-1,1)) +
+  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+  labs(title = "", x = "", y = "") +
+  coord_flip() +
+  theme_classic()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text = element_blank(),
         legend.title = element_blank(),
         legend.position = "bottom")
 
@@ -282,17 +712,22 @@ pgm.carbon.benefit.total <- pgm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,
 #figS10a-l
 #plot(pgm.carbon.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#F3F6F4", "#8fce00", "#374f00"))(length(seq(0, 225, by = 25))), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 
-
 rm(pgm.carbon.benefit.list)
+
+
+
+pgm.carbon.benefit.total[[1]][] <- ifelse(pgm.lulc[[1]][]==0, 0, pgm.carbon.benefit.total[[1]][])
 
 pgm.carbon.benefit <- stack()
 
-for (i in c(3:13)) {
+for (i in c(2:8)) {
   
   layer.x <- pgm.carbon.benefit.total[[1]]
   layer.x[which(!is.na(layer.x[]))]<-NA
-  layer.x[] <- pgm.carbon.benefit.total[[i]][] - pgm.carbon.benefit.total[[2]][]
-  layer.x <- mask(layer.x, pgm.area.change[[i]])
+  
+  pgm.carbon.benefit.total[[i]][] <- ifelse(pgm.lulc[[i]][]==0, 0, pgm.carbon.benefit.total[[i]][])
+  
+  layer.x[] <- pgm.carbon.benefit.total[[i]][] - pgm.carbon.benefit.total[[1]][]
   names(layer.x) <- names(pgm.carbon.benefit.total[[i]])
   
   pgm.carbon.benefit <- addLayer(pgm.carbon.benefit, layer.x)
@@ -300,15 +735,16 @@ for (i in c(3:13)) {
   cat("\n>working on layer", i, "now<\n")
 }
 
-pgm.carbon.benefit <- mask(pgm.carbon.benefit, pgm.shp)
-#names(pgm.carbon.benefit) <- unlist(strsplit(carbon.benefit.list, "/|.tif"))[seq(3,21,3)]
 rm(layer.x)
+gc()
+
+pgm.carbon.benefit <- mask(pgm.carbon.benefit, pgm.shp)
 
 
-pgm.carbon.benefit.df.principals <- as.data.frame(pgm.carbon.benefit[[1:3]], xy = TRUE)
+pgm.carbon.benefit.df.principals <- as.data.frame(pgm.carbon.benefit[[1:7]], xy = TRUE)
 pgm.carbon.benefit.df.principals <- pgm.carbon.benefit.df.principals %>% 
   pivot_longer(
-    PGM_2020_avoiddeforest_carbon_benefit:PGM_2020_restor_wo_avoid_carbon_benefit,
+    PGM_2020_real_carbon_benefit:PGM_2020_restor_n_avoidboth_carbon_benefit,
     names_to = "Scenario",
     values_to = "CBenefit"
   ) %>% 
@@ -317,21 +753,42 @@ pgm.carbon.benefit.df.principals <- pgm.carbon.benefit.df.principals %>%
     Cell = row_number(),
     Region = "PGM",
     Scenario = factor(Scenario,
-                      levels = c("PGM_2020_avoiddeforest_carbon_benefit",
+                      levels = c("PGM_2020_real_carbon_benefit",
+                                 "PGM_2020_avoiddeforest_carbon_benefit",
                                  "PGM_2020_avoiddegrad_carbon_benefit",
-                                 "PGM_2020_restor_wo_avoid_carbon_benefit"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Benefit = na_if(Benefit, 0)
+                                 "PGM_2020_avoidboth_carbon_benefit",
+                                 "PGM_2020_restor_wo_avoid_carbon_benefit",
+                                 "PGM_2020_restor_n_avoiddeforest_carbon_benefit",
+                                 "PGM_2020_restor_n_avoidboth_carbon_benefit"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"))
   ) %>% ungroup() %>% drop_na() %>% 
-  filter(CBenefit>=0) %>% 
-  mutate(rescaled.CBenefit = rescale(CBenefit, to = c(0, 1))
-  ) %>% 
-  left_join(pgm.area.change.df.principals)
-#head(pgm.carbon.benefit.df.principals)
+  mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
+                                       TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
+  right_join(pgm.area.change.df.principals)
 
 
+#pgm.carb.real <- pgm.carbon.benefit.df.principals %>% filter(Scenario == "Business as usual") %>% 
+#  dplyr::select(Region, Cell, CBenefit) %>% dplyr::rename(CBenefit.real = CBenefit)
 #
+#pgm.carbon.benefit.df.principals <- pgm.carbon.benefit.df.principals %>% 
+#  #excluding areas that haven't change in the restoration and avoid both scenario
+#  filter(!(Scenario == "Restoration and avoid both" & Cat == "D")) %>% 
+#  left_join(pgm.carb.real) %>% 
+#  mutate(CBenefit.diff = CBenefit - CBenefit.real, 
+#         rescaled.CBenefit = case_when(CBenefit.diff >= 0 ~ CBenefit.diff / (max(abs(max(CBenefit.diff)), abs(min(CBenefit.diff)))), 
+#                                       TRUE ~ - CBenefit.diff / - (max(abs(max(CBenefit.diff)), abs(min(CBenefit.diff))))))
+  
+#head(pgm.carbon.benefit.df.principals)  
+gc()
+#
+
+
 
 
 
@@ -344,16 +801,22 @@ stm.carbon.benefit.total <- stm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,
 #figS10m-x
 #plot(stm.carbon.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#F3F6F4", "#8fce00", "#374f00"))(length(seq(0, 225, by = 25))), breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
 
-rm(stm.carbon.benefit.list); rm(carbon.benefit.list)
+rm(stm.carbon.benefit.list)
+
+
+
+stm.carbon.benefit.total[[1]][] <- ifelse(stm.lulc[[1]][]==0, 0, stm.carbon.benefit.total[[1]][])
 
 stm.carbon.benefit <- stack()
 
-for (i in c(3:13)) {
+for (i in c(2:8)) {
   
   layer.x <- stm.carbon.benefit.total[[1]]
   layer.x[which(!is.na(layer.x[]))]<-NA
-  layer.x[] <- stm.carbon.benefit.total[[i]][] - stm.carbon.benefit.total[[2]][]
-  layer.x <- mask(layer.x, stm.area.change[[i]])
+  
+  stm.carbon.benefit.total[[i]][] <- ifelse(stm.lulc[[i]][]==0, 0, stm.carbon.benefit.total[[i]][])
+  
+  layer.x[] <- stm.carbon.benefit.total[[i]][] - stm.carbon.benefit.total[[1]][]
   names(layer.x) <- names(stm.carbon.benefit.total[[i]])
   
   stm.carbon.benefit <- addLayer(stm.carbon.benefit, layer.x)
@@ -361,15 +824,16 @@ for (i in c(3:13)) {
   cat("\n>working on layer", i, "now<\n")
 }
 
-stm.carbon.benefit <- mask(stm.carbon.benefit, stm.shp)
-#names(stm.carbon.benefit) <- unlist(strsplit(carbon.benefit.list, "/|.tif"))[seq(3,21,3)]
 rm(layer.x)
+gc()
+
+stm.carbon.benefit <- mask(stm.carbon.benefit, stm.shp)
 
 
-stm.carbon.benefit.df.principals <- as.data.frame(stm.carbon.benefit[[1:3]], xy = TRUE)
+stm.carbon.benefit.df.principals <- as.data.frame(stm.carbon.benefit[[1:7]], xy = TRUE)
 stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>% 
   pivot_longer(
-    STM_2020_avoiddeforest_carbon_benefit:STM_2020_restor_wo_avoid_carbon_benefit,
+    STM_2020_real_carbon_benefit:STM_2020_restor_n_avoidboth_carbon_benefit,
     names_to = "Scenario",
     values_to = "CBenefit"
   ) %>% 
@@ -378,61 +842,123 @@ stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>%
     Cell = row_number(),
     Region = "STM",
     Scenario = factor(Scenario,
-                      levels = c("STM_2020_avoiddeforest_carbon_benefit",
+                      levels = c("STM_2020_real_carbon_benefit",
+                                 "STM_2020_avoiddeforest_carbon_benefit",
                                  "STM_2020_avoiddegrad_carbon_benefit",
-                                 "STM_2020_restor_wo_avoid_carbon_benefit"),
-                      labels = c("Avoid Deforestation", "Avoid Degradation",
-                                 "Restoration without avoid")),
-    #Benefit = na_if(Benefit, 0)
+                                 "STM_2020_avoidboth_carbon_benefit",
+                                 "STM_2020_restor_wo_avoid_carbon_benefit",
+                                 "STM_2020_restor_n_avoiddeforest_carbon_benefit",
+                                 "STM_2020_restor_n_avoidboth_carbon_benefit"),
+                      labels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"))
   ) %>% ungroup() %>% drop_na() %>% 
-  filter(CBenefit>=0) %>% 
-  mutate(rescaled.CBenefit = rescale(CBenefit, to = c(0, 1))
-  ) %>% 
-  left_join(stm.area.change.df.principals)
+  mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
+                                       TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
+  right_join(stm.area.change.df.principals)
+
+
+#stm.carb.real <- stm.carbon.benefit.df.principals %>% filter(Scenario == "Business as usual") %>% 
+#  dplyr::select(Region, Cell, CBenefit) %>% dplyr::rename(CBenefit.real = CBenefit)
+#
+#stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>% 
+#  #excluding areas that haven't change in the restoration and avoid both scenario
+#  filter(!(Scenario == "Restoration and avoid both" & Cat == "D")) %>% 
+#  left_join(stm.carb.real) %>% 
+#  mutate(CBenefit.diff = CBenefit - CBenefit.real, 
+#         rescaled.CBenefit = case_when(CBenefit.diff >= 0 ~ CBenefit.diff / (max(abs(max(CBenefit.diff)), abs(min(CBenefit.diff)))), 
+#                                       TRUE ~ - CBenefit.diff / - (max(abs(max(CBenefit.diff)), abs(min(CBenefit.diff))))))
+
 #head(stm.carbon.benefit.df.principals)
-
-
+gc()
 #
 
 
-carbon.benefit.principals <- rbind(pgm.carbon.benefit.df.principals, stm.carbon.benefit.df.principals)
-carbon.benefit.principals <- carbon.benefit.principals %>% mutate(Region = factor(Region, levels = c("PGM", "STM")))
 
+carbon.benefit.principals <- rbind(pgm.carbon.benefit.df.principals, stm.carbon.benefit.df.principals)
+carbon.benefit.principals <- carbon.benefit.principals %>%  
+  mutate(Region = factor(Region, levels = c("PGM", "STM")),
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+carbon.benefit.principals <- carbon.benefit.principals %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
+#carbon.benefit.principals <- carbon.benefit.principals %>% filter(Cat!="D") %>% droplevels()
 rm(pgm.carbon.benefit.df.principals); rm(stm.carbon.benefit.df.principals)
+rm(pgm.carbon.benefit.total); rm(stm.carbon.benefit.total)
+gc()
+
 
 
 
 
 ##violin plot + jitter [dots colored by LULC category]
-ylim.prim <- c(0, 1)
-ylim.sec <- c(0, 120)
-b <- diff(ylim.prim)/diff(ylim.sec)
-a <- ylim.prim[1] - b*ylim.sec[1]
+ly.lbl <- c(-round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0), 
+            -round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 0,
+            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 
+            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0))
 
-fig2b <- carbon.benefit.principals %>% #filter(Benefit>=0) %>%
-  ggplot(aes(x=Scenario, y=rescaled.CBenefit)) +
-  geom_violin(scale="width") + 
-  geom_sina(data=carbon.benefit.principals %>% sample_n(100000), #%>% filter(CBenefit>=0),
-            aes(color=Cat, group=Scenario), alpha=.1, scale="width")+
-  scale_x_discrete(labels=addline_format(levels(carbon.benefit.principals$Scenario)),
-                   expand = c(.05, .05)) +
-  scale_y_continuous("Carbon benefit", limits = c(0, 1),
-                     sec.axis = sec_axis(~ (. - a)/b, name = "MgC/ha")) +
-  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", "#789461", "#B19470")) +
+
+fig2c <- carbon.benefit.principals %>% #filter(Scenario == "Avoid deforestation") %>% droplevels() %>% 
+  group_by(Region) %>% sample_n(100000) %>% 
+  ggplot() +
+  geom_sina(aes(x = area_change, y = rescaled.CBenefit, colour = Cat, group = area_change),
+            shape = 16, scale = "width") +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  scale_y_continuous("Carbon benefit", limits = c(-1,1),
+                     sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
+                                         name = "MgC/ha")) +
+  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+                                "#B19470", "#789461", "#F97B22")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  labs(title = "", x = "") +
-  theme_minimal()+
+  labs(title = "", x = "", y = "") +
+  coord_flip() +
+  facet_wrap(~Scenario, nrow = 7, strip.position = "left",
+             labeller = label_wrap_gen(multi_line = T)) +
+  theme_classic()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        strip.background = element_blank(), 
+        strip.text.y.left = element_blank(), 
+        strip.placement = "outside")
+
+fig2d <- carbon.benefit.principals %>% #filter(Scenario == "Avoid deforestation") %>% droplevels() %>% 
+  group_by(Region) %>% sample_n(100000) %>% 
+  ggplot() +
+  stat_summary(aes(x = Scenario, y = rescaled.CBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
+  #geom_boxplot(aes(x = Scenario, y = rescaled.CBenefit), width = .5, outlier.shape = NA) +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  scale_x_discrete(limits = rev(levels(carbon.benefit.principals$Scenario))) +
+  scale_y_continuous("", limits = c(-1,1),
+                     sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
+                                         name = "")) +
+  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+  labs(title = "", x = "", y = "") +
+  coord_flip() +
+  theme_classic()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text = element_blank(),
         legend.title = element_blank(),
         legend.position = "bottom")
 
 
-rm(ylim.prim); rm(ylim.sec); rm(a); rm(b)
 
-#
+
+
+
+ggarrange(fig2a + theme(plot.margin = margin(42, 1, 7, 1, unit = "pt")), 
+          fig2b + theme(plot.margin = margin(42, 1, 20, 1, unit = "pt")),
+          fig2c, 
+          fig2d + theme(plot.margin = margin(20, 1, 20, 1, unit = "pt")),
+          ncol = 4, labels = c("A", "", "B", ""), widths = c(1.9,.5,1,.5),
+          common.legend = T, legend = "bottom")
 #
 
 
@@ -458,37 +984,37 @@ pgm.max.opportunity.harvest.cost <- calc(pgm.costs.total[[c(2,3)]], function(x){
 
 
 pgm.avoiddeforest.cost.total <- pgm.max.opportunity.harvest.cost
-pgm.avoiddeforest.cost <- mask(pgm.avoiddeforest.cost.total, pgm.area.change[["area_change_2020_avoiddeforest"]])
+pgm.avoiddeforest.cost <- mask(pgm.avoiddeforest.cost.total, pgm.lulc[["X_lulc_2020_avoiddeforest"]])
 names(pgm.avoiddeforest.cost) <- "PGM_2020_avoiddeforest_costs"
-pgm.avoiddeforest2.cost <- mask(pgm.avoiddeforest.cost.total, pgm.area.change[["area_change_2020_avoiddeforest2"]])
+pgm.avoiddeforest2.cost <- mask(pgm.avoiddeforest.cost.total, pgm.lulc[["X_lulc_2020_avoiddeforest2"]])
 names(pgm.avoiddeforest2.cost) <- "PGM_2020_avoiddeforest2_costs"
 
 pgm.avoiddegrad.cost.total <- pgm.costs.total[["PGM_2010_real_base_firecontrol"]] + pgm.costs.total[["PGM_2010_real_base_haverst"]]
-pgm.avoiddegrad.cost <- mask(pgm.avoiddegrad.cost.total, pgm.area.change[["area_change_2020_avoiddegrad"]])
+pgm.avoiddegrad.cost <- mask(pgm.avoiddegrad.cost.total, pgm.lulc[["X_lulc_2020_avoiddegrad"]])
 names(pgm.avoiddegrad.cost) <- "PGM_2020_avoiddegrad_costs"
-pgm.avoiddegrad2.cost <- mask(pgm.avoiddegrad.cost.total, pgm.area.change[["area_change_2020_avoiddegrad2"]])
+pgm.avoiddegrad2.cost <- mask(pgm.avoiddegrad.cost.total, pgm.lulc[["X_lulc_2020_avoiddegrad2"]])
 names(pgm.avoiddegrad2.cost) <- "PGM_2020_avoiddegrad2_costs"
 
 pgm.restor_wo_avoid.cost.total <- pgm.costs.total[["PGM_2010_real_base_opportunity"]] + pgm.costs.total[["PGM_2010_real_base_restoration"]]
-pgm.restor_wo_avoid.cost <- mask(pgm.restor_wo_avoid.cost.total, pgm.area.change[["area_change_2020_restor_wo_avoid"]])
+pgm.restor_wo_avoid.cost <- mask(pgm.restor_wo_avoid.cost.total, pgm.lulc[["X_lulc_2020_restor_wo_avoid"]])
 names(pgm.restor_wo_avoid.cost) <- "PGM_2020_restor_wo_avoid_costs"
 
 pgm.avoidboth.cost.total <- pgm.costs.total[["PGM_2010_real_base_firecontrol"]] + pgm.max.opportunity.harvest.cost
-pgm.avoidboth.cost <- mask(pgm.avoidboth.cost.total, pgm.area.change[["area_change_2020_avoidboth"]])
+pgm.avoidboth.cost <- mask(pgm.avoidboth.cost.total, pgm.lulc[["X_lulc_2020_avoidboth"]])
 names(pgm.avoidboth.cost) <- "PGM_2020_avoidboth_costs"
-pgm.avoidboth2.cost <- mask(pgm.avoidboth.cost.total, pgm.area.change[["area_change_2020_avoidboth2"]])
+pgm.avoidboth2.cost <- mask(pgm.avoidboth.cost.total, pgm.lulc[["X_lulc_2020_avoidboth2"]])
 names(pgm.avoidboth2.cost) <- "PGM_2020_avoidboth2_costs"
 
 pgm.restor_n_avoid_deforest.cost.total <- pgm.costs.total[["PGM_2010_real_base_restoration"]] + pgm.max.opportunity.harvest.cost
-pgm.restor_n_avoid_deforest.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.area.change[["area_change_2020_restor_n_avoiddeforest"]])
+pgm.restor_n_avoid_deforest.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.lulc[["X_lulc_2020_restor_n_avoiddeforest"]])
 names(pgm.restor_n_avoid_deforest.cost) <- "PGM_2020_restor_n_avoiddeforest_costs"
-pgm.restor_n_avoid_deforest2.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.area.change[["area_change_2020_restor_n_avoiddeforest2"]])
+pgm.restor_n_avoid_deforest2.cost <- mask(pgm.restor_n_avoid_deforest.cost.total, pgm.lulc[["X_lulc_2020_restor_n_avoiddeforest2"]])
 names(pgm.restor_n_avoid_deforest2.cost) <- "PGM_2020_restor_n_avoiddeforest2_costs"
 
 pgm.restor_n_avoid_both.cost.total <- pgm.costs.total[["PGM_2010_real_base_firecontrol"]] + pgm.costs.total[["PGM_2010_real_base_restoration"]] + pgm.max.opportunity.harvest.cost
-pgm.restor_n_avoid_both.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.area.change[["area_change_2020_restor_n_avoidboth"]])
+pgm.restor_n_avoid_both.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.lulc[["X_lulc_2020_restor_n_avoidboth"]])
 names(pgm.restor_n_avoid_both.cost) <- "PGM_2020_restor_n_avoidboth_costs"
-pgm.restor_n_avoid_both2.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.area.change[["area_change_2020_restor_n_avoidboth2"]])
+pgm.restor_n_avoid_both2.cost <- mask(pgm.restor_n_avoid_both.cost.total, pgm.lulc[["X_lulc_2020_restor_n_avoidboth2"]])
 names(pgm.restor_n_avoid_both2.cost) <- "PGM_2020_restor_n_avoidboth2_costs"
 
 
@@ -509,10 +1035,10 @@ rm(list=ls()[ls() %in% c("pgm.max.opportunity.harvest.cost", "pgm.avoiddeforest.
 gc()
 
 
-pgm.costs.df.principals <- as.data.frame(pgm.costs[[1:3]], xy = TRUE)
+pgm.costs.df.principals <- as.data.frame(pgm.costs[[1:6]], xy = TRUE)
 pgm.costs.df.principals <- pgm.costs.df.principals %>% 
   pivot_longer(
-    PGM_2020_avoiddeforest_costs:PGM_2020_restor_wo_avoid_costs,
+    PGM_2020_avoiddeforest_costs:PGM_2020_restor_n_avoidboth_costs,
     names_to = "Scenario",
     values_to = "Costs"
   ) %>% 
@@ -523,9 +1049,16 @@ pgm.costs.df.principals <- pgm.costs.df.principals %>%
     Scenario = factor(Scenario,
                 levels = c("PGM_2020_avoiddeforest_costs",
                            "PGM_2020_avoiddegrad_costs",
-                           "PGM_2020_restor_wo_avoid_costs"),
-                labels = c("Avoid Deforestation", "Avoid Degradation",
-                           "Restoration without avoid"))
+                           "PGM_2020_avoidboth_costs",
+                           "PGM_2020_restor_wo_avoid_costs",
+                           "PGM_2020_restor_n_avoiddeforest_costs",
+                           "PGM_2020_restor_n_avoidboth_costs"),
+                labels = c("Avoid deforestation",
+                           "Avoid degradation",
+                           "Avoid both",
+                           "Restoration without avoid",
+                           "Restoration and avoid deforestation",
+                           "Restoration and avoid both"))
     #Costs = na_if(Costs, 0)
   ) %>% ungroup() %>% drop_na() %>% 
   left_join(pgm.area.change.df.principals)
@@ -554,37 +1087,37 @@ stm.max.opportunity.harvest.cost <- calc(stm.costs.total[[c(2,3)]], function(x){
 
 
 stm.avoiddeforest.cost.total <- stm.max.opportunity.harvest.cost
-stm.avoiddeforest.cost <- mask(stm.avoiddeforest.cost.total, stm.area.change[["area_change_2020_avoiddeforest"]])
+stm.avoiddeforest.cost <- mask(stm.avoiddeforest.cost.total, stm.lulc[["X_lulc_2020_avoiddeforest"]])
 names(stm.avoiddeforest.cost) <- "STM_2020_avoiddeforest_costs"
-stm.avoiddeforest2.cost <- mask(stm.avoiddeforest.cost.total, stm.area.change[["area_change_2020_avoiddeforest2"]])
+stm.avoiddeforest2.cost <- mask(stm.avoiddeforest.cost.total, stm.lulc[["X_lulc_2020_avoiddeforest2"]])
 names(stm.avoiddeforest2.cost) <- "STM_2020_avoiddeforest2_costs"
 
 stm.avoiddegrad.cost.total <- stm.costs.total[["STM_2010_real_base_firecontrol"]] + stm.costs.total[["STM_2010_real_base_haverst"]]
-stm.avoiddegrad.cost <- mask(stm.avoiddegrad.cost.total, stm.area.change[["area_change_2020_avoiddegrad"]])
+stm.avoiddegrad.cost <- mask(stm.avoiddegrad.cost.total, stm.lulc[["X_lulc_2020_avoiddegrad"]])
 names(stm.avoiddegrad.cost) <- "STM_2020_avoiddegrad_costs"
-stm.avoiddegrad2.cost <- mask(stm.avoiddegrad.cost.total, stm.area.change[["area_change_2020_avoiddegrad2"]])
+stm.avoiddegrad2.cost <- mask(stm.avoiddegrad.cost.total, stm.lulc[["X_lulc_2020_avoiddegrad2"]])
 names(stm.avoiddegrad2.cost) <- "STM_2020_avoiddegrad2_costs"
 
 stm.restor_wo_avoid.cost.total <- stm.costs.total[["STM_2010_real_base_opportunity"]] + stm.costs.total[["STM_2010_real_base_restoration"]]
-stm.restor_wo_avoid.cost <- mask(stm.restor_wo_avoid.cost.total, stm.area.change[["area_change_2020_restor_wo_avoid"]])
+stm.restor_wo_avoid.cost <- mask(stm.restor_wo_avoid.cost.total, stm.lulc[["X_lulc_2020_restor_wo_avoid"]])
 names(stm.restor_wo_avoid.cost) <- "STM_2020_restor_wo_avoid_costs"
 
 stm.avoidboth.cost.total <- stm.costs.total[["STM_2010_real_base_firecontrol"]] + stm.max.opportunity.harvest.cost
-stm.avoidboth.cost <- mask(stm.avoidboth.cost.total, stm.area.change[["area_change_2020_avoidboth"]])
+stm.avoidboth.cost <- mask(stm.avoidboth.cost.total, stm.lulc[["X_lulc_2020_avoidboth"]])
 names(stm.avoidboth.cost) <- "STM_2020_avoidboth_costs"
-stm.avoidboth2.cost <- mask(stm.avoidboth.cost.total, stm.area.change[["area_change_2020_avoidboth2"]])
+stm.avoidboth2.cost <- mask(stm.avoidboth.cost.total, stm.lulc[["X_lulc_2020_avoidboth2"]])
 names(stm.avoidboth2.cost) <- "STM_2020_avoidboth2_costs"
 
 stm.restor_n_avoid_deforest.cost.total <- stm.costs.total[["STM_2010_real_base_restoration"]] + stm.max.opportunity.harvest.cost
-stm.restor_n_avoid_deforest.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.area.change[["area_change_2020_restor_n_avoiddeforest"]])
+stm.restor_n_avoid_deforest.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.lulc[["X_lulc_2020_restor_n_avoiddeforest"]])
 names(stm.restor_n_avoid_deforest.cost) <- "STM_2020_restor_n_avoiddeforest_costs"
-stm.restor_n_avoid_deforest2.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.area.change[["area_change_2020_restor_n_avoiddeforest2"]])
+stm.restor_n_avoid_deforest2.cost <- mask(stm.restor_n_avoid_deforest.cost.total, stm.lulc[["X_lulc_2020_restor_n_avoiddeforest2"]])
 names(stm.restor_n_avoid_deforest2.cost) <- "STM_2020_restor_n_avoiddeforest2_costs"
 
 stm.restor_n_avoid_both.cost.total <- stm.costs.total[["STM_2010_real_base_firecontrol"]] + stm.costs.total[["STM_2010_real_base_restoration"]] + stm.max.opportunity.harvest.cost
-stm.restor_n_avoid_both.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.area.change[["area_change_2020_restor_n_avoidboth"]])
+stm.restor_n_avoid_both.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.lulc[["X_lulc_2020_restor_n_avoidboth"]])
 names(stm.restor_n_avoid_both.cost) <- "STM_2020_restor_n_avoidboth_costs"
-stm.restor_n_avoid_both2.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.area.change[["area_change_2020_restor_n_avoidboth2"]])
+stm.restor_n_avoid_both2.cost <- mask(stm.restor_n_avoid_both.cost.total, stm.lulc[["X_lulc_2020_restor_n_avoidboth2"]])
 names(stm.restor_n_avoid_both2.cost) <- "STM_2020_restor_n_avoidboth2_costs"
 
 
@@ -605,10 +1138,10 @@ rm(list=ls()[ls() %in% c("stm.max.opportunity.harvest.cost", "stm.avoiddeforest.
 gc()
 
 
-stm.costs.df.principals <- as.data.frame(stm.costs[[1:3]], xy = TRUE)
+stm.costs.df.principals <- as.data.frame(stm.costs[[1:6]], xy = TRUE)
 stm.costs.df.principals <- stm.costs.df.principals %>% 
   pivot_longer(
-    STM_2020_avoiddeforest_costs:STM_2020_restor_wo_avoid_costs,
+    STM_2020_avoiddeforest_costs:STM_2020_restor_n_avoidboth_costs,
     names_to = "Scenario",
     values_to = "Costs"
   ) %>% 
@@ -617,11 +1150,18 @@ stm.costs.df.principals <- stm.costs.df.principals %>%
     Cell = row_number(),
     Region = "STM",
     Scenario = factor(Scenario,
-                levels = c("STM_2020_avoiddeforest_costs",
-                           "STM_2020_avoiddegrad_costs",
-                           "STM_2020_restor_wo_avoid_costs"),
-                labels = c("Avoid Deforestation", "Avoid Degradation",
-                           "Restoration without avoid"))
+                      levels = c("STM_2020_avoiddeforest_costs",
+                                 "STM_2020_avoiddegrad_costs",
+                                 "STM_2020_avoidboth_costs",
+                                 "STM_2020_restor_wo_avoid_costs",
+                                 "STM_2020_restor_n_avoiddeforest_costs",
+                                 "STM_2020_restor_n_avoidboth_costs"),
+                      labels = c("Avoid deforestation",
+                                 "Avoid degradation",
+                                 "Avoid both",
+                                 "Restoration without avoid",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"))
     #Costs = na_if(Costs, 0)
   ) %>% ungroup() %>% drop_na() %>% 
   left_join(stm.area.change.df.principals)
@@ -633,26 +1173,53 @@ stm.costs.df.principals <- stm.costs.df.principals %>%
 
 costs.principals <- rbind(pgm.costs.df.principals, stm.costs.df.principals)
 costs.principals <- costs.principals %>% 
-  mutate(Region = factor(Region, levels = c("PGM", "STM"))) %>% 
+  mutate(Region = factor(Region, levels = c("PGM", "STM")),
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct"))) %>% 
   left_join(biodiversity.benefit.principals) %>% 
-  mutate(BBenefit.year = BBenefit/10,
+  left_join(carbon.benefit.principals)
+
+
+biodiv.real <- biodiversity.benefit.principals %>% filter(Scenario == "Business as usual") %>% droplevels() %>% 
+  dplyr::select(Region, Cell, BBenefit) %>% dplyr::rename(BBenefit.real = BBenefit)
+
+carb.real <- carbon.benefit.principals %>% filter(Scenario == "Business as usual") %>% droplevels() %>% 
+  dplyr::select(Region, Cell, CBenefit) %>% dplyr::rename(CBenefit.real = CBenefit)
+
+
+costs.principals <- costs.principals %>% 
+  left_join(biodiv.real) %>% 
+  mutate(BBenefit.year = ((BBenefit - BBenefit.real)/10),
          B.CBr = ifelse(BBenefit.year == 0, NA, Costs/BBenefit.year)) %>% 
-  left_join(carbon.benefit.principals) %>% 
-  mutate(CBenefit.year = CBenefit/10,
-         C.CBr = ifelse(CBenefit.year == 0, NA, Costs/CBenefit.year))
+  left_join(carb.real) %>% 
+    mutate(CBenefit.year = ((CBenefit - CBenefit.real)/10),
+           C.CBr = ifelse(CBenefit.year == 0, NA, Costs/CBenefit.year)) %>% 
+  droplevels() %>% ungroup()
 
 
-
-
+#costs.principals <- costs.principals %>% 
+#  add_row(Scenario = "Business as usual",  B.CBr = -999,  C.CBr = -999) %>%
+#  mutate(Scenario = fct_relevel(Scenario, 
+#                                c("Business as usual",
+#                                  "Avoid deforestation", 
+#                                  "Avoid degradation",
+#                                  "Avoid both",
+#                                  "Restoration without avoid",
+#                                  "Restoration and avoid deforestation",
+#                                  "Restoration and avoid both")))
+  
+rm(carbon.benefit.list); rm(pgm.costs.total); rm(stm.costs.total)
+gc()
+#
+  
+  
 ##boxplot
-fig2c <- costs.principals %>% #filter(Benefit>=0) %>% 
+fig3a <- costs.principals %>% 
   ggplot(aes(x=Scenario, y=B.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
-  #geom_hline(yintercept=1, linetype='dashed', linewidth=1)+
   scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 400)) +
-  labs(title = "", x = "", y = "Cost-Benefit ratio (R$ / Biodiversity)") +
+  scale_y_continuous(limits = c(0, 250)) +
+  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / Biodiversity)") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -663,14 +1230,13 @@ fig2c <- costs.principals %>% #filter(Benefit>=0) %>%
 
 
 
-fig2d <- costs.principals %>% #filter(Benefit>=0) %>% 
+fig3b <- costs.principals %>% 
   ggplot(aes(x=Scenario, y=C.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
-  #geom_hline(yintercept=1, linetype='dashed', linewidth=1)+
   scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 400)) +
-  labs(title = "", x = "", y = "Cost-Benefit ratio (R$ / MgC)") +
+  scale_y_continuous(limits = c(0, 250)) +
+  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / MgC)") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -682,20 +1248,295 @@ fig2d <- costs.principals %>% #filter(Benefit>=0) %>%
 
 
 
-library(ggpubr)
-ggarrange(fig2a + theme(plot.margin = margin(1, 20, 1, 1, unit = "pt")), 
-          fig2b, 
-          fig2c + theme(plot.margin = margin(1, 45, 1, 1, unit = "pt")), 
-          fig2d + theme(plot.margin = margin(1, 70, 1, 1, unit = "pt")), 
-          ncol = 2, nrow = 2, #align = "hv", 
-          labels = c("A", "B", "C", "D"), common.legend = T, legend = "top")
+ggarrange(fig3a, fig3b, 
+          nrow = 2, #align = "hv", 
+          labels = c("A", "B"), 
+          common.legend = T, legend = "bottom")
+
+
+#
+
+
+# why/where benefit is higher? ====================================
+## comparing benefit between avoid degradation and avoid deforestation
+
+cell.deforest <- carbon.benefit.principals %>% 
+  filter(Scenario == "Avoid deforestation", area_change == 1) %>% 
+  dplyr::select(Region, Cell, Cat, CBenefit)
+
+cell.degrad <- carbon.benefit.principals %>% 
+  filter(Scenario == "Avoid degradation", area_change == 1) %>% 
+  dplyr::select(Region, Cell, Cat, CBenefit)
+
+cell.restor <- carbon.benefit.principals %>% 
+  filter(Scenario == "Restoration without avoid", area_change == 1) %>% 
+  dplyr::select(Region, Cell, Cat, CBenefit)
+
+cell.full <- carbon.benefit.principals %>% 
+  filter(Scenario == "Restoration and avoid both", area_change == 1) %>% 
+  dplyr::select(Region, Cell, Cat, CBenefit)
+
+env <- c("TSDls", "edgedist", "UPFls")
+
+pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+pgm.env.2010 <- grep(paste(env, collapse = "|"), pgm.env.2010, value = T)
+pgm.env.2010 <- stack(pgm.env.2010)
+pgm.env.2010 <- mask(pgm.env.2010, pgm.shp)
+pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%  
+  mutate(Region = "PGM", Cell = row_number()) %>% drop_na()
+
+
+stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+stm.env.2010 <- grep(paste(env, collapse = "|"), stm.env.2010, value = T)
+stm.env.2010 <- stack(stm.env.2010)
+stm.env.2010 <- mask(stm.env.2010, stm.shp)
+stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%  
+  mutate(Region = "STM", Cell = row_number()) %>% drop_na()
+
+
+env.2010 <- rbind(pgm.env.2010.df, stm.env.2010.df)
+
+
+cell.deforest <- cell.deforest %>% 
+  left_join(env.2010[,3:7])
+
+cell.degrad <- cell.degrad %>% 
+  left_join(env.2010[,3:7])
+
+cell.restor <- cell.restor %>% 
+  left_join(env.2010[,3:7])
+
+cell.full <- cell.full %>% 
+  left_join(env.2010[,3:7])
+
+
+ggarrange(ggplot() +
+            geom_histogram(data=env.2010, 
+                           aes(x=edgedist, y=after_stat(density), fill = "Total area")) +
+            geom_histogram(data=cell.full, 
+                           aes(x=edgedist, y=after_stat(density), fill = "Carbon benefit"), alpha = 0.65) +
+            scale_x_continuous(limits = c(0, 7000)) +
+            scale_fill_manual(values = c("Total area"="#e1d3cc", "Carbon benefit"="#e99561")) +
+            labs(title = "", x = "", y = "Density") +
+            theme_minimal() +
+            theme(text = element_text(size = 16, family = "sans"),
+                  plot.title = element_text(hjust = 0.5),
+                  axis.title = element_text(face="bold"),
+                  axis.text.x=element_text(size = 14),
+                  legend.title = element_blank(),
+                  legend.position = "none"),
+          
+          ggplot() +
+            geom_histogram(data=env.2010, 
+                           aes(x=TSDls, y=after_stat(density), fill = "Total area")) +
+            geom_histogram(data=cell.full, 
+                           aes(x=TSDls, y=after_stat(density), fill = "Carbon benefit"), alpha = 0.65) +
+            scale_fill_manual(values = c("Total area"="#e1d3cc", "Carbon benefit"="#e99561")) +
+            labs(title = "", x = "", y = "") +
+            theme_minimal() +
+            theme(text = element_text(size = 16, family = "sans"),
+                  plot.title = element_text(hjust = 0.5),
+                  axis.title = element_text(face="bold"),
+                  axis.text.x=element_text(size = 14),
+                  legend.title = element_blank(),
+                  legend.position = "none"),
+          
+          #ggplot() +
+          #  geom_histogram(data=env.2010, 
+          #                 aes(x=UPFls, y=after_stat(density), fill = "Total area")) +
+          #  geom_histogram(data=cell.deforest, 
+          #                 aes(x=UPFls, y=after_stat(density), fill = "Biodiversity benefit"), alpha = 0.65) +
+          #  geom_vline(xintercept = .9, linetype="dashed", linewidth = 1.2, colour="#101415") +
+          #  scale_fill_manual(values = c("Total area"="#e1d3cc", "Biodiversity benefit"="#e99561")) +
+          #  labs(title = "", x = "", y = "") +
+          #  theme_minimal() +
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = c(.15,.9)),
+          
+          cell.full %>% sample_n(100000) %>% 
+            ggplot(aes(x=edgedist, y=CBenefit)) + 
+            geom_point(aes(colour=Cat), alpha=.2) + 
+            #geom_smooth(linewidth = 1.2, colour="#101415") + 
+            scale_x_continuous(limits = c(0, 7000)) +
+            #scale_y_continuous(limits = c(0, 200)) +
+            scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+                                          "#B19470", "#789461")) +
+            guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+            #annotate("rect", xmin = 2000, xmax = 4500, ymin = -80, ymax = -5, 
+            #         linetype = "dashed", linewidth = 1.2, colour = "#101415", alpha = 0) +
+            labs(title = "", x = "", y = "Carbon benefit\n(area that lost)") +
+            theme_minimal()+
+            theme(text = element_text(size = 16, family = "sans"),
+                  plot.title = element_text(hjust = 0.5),
+                  axis.title = element_text(face="bold"),
+                  axis.text.x=element_text(size = 14),
+                  legend.title = element_blank(),
+                  legend.position = "none"),
+          
+          cell.full %>% sample_n(100000) %>% 
+            ggplot(aes(x=TSDls, y=CBenefit)) + 
+            geom_point(aes(colour=Cat), alpha=.2) + 
+            #geom_smooth(linewidth = 1.2, colour="#101415") + 
+            #scale_y_continuous(limits = c(0, 200)) +
+            scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+                                          "#B19470", "#789461")) +
+            guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+            annotate("rect", xmin = 200, xmax = 299, ymin = -80, ymax = -5, 
+                     linetype = "dashed", linewidth = 1.2, colour = "#101415", alpha = 0) +
+            labs(title = "", x = "Mean time since degradation", y = "") +
+            theme_minimal()+
+            theme(text = element_text(size = 16, family = "sans"),
+                  plot.title = element_text(hjust = 0.5),
+                  axis.title = element_text(face="bold"),
+                  axis.text.x=element_text(size = 14),
+                  legend.title = element_blank(),
+                  legend.position = "none"),
+          
+          #cell.deforest %>% sample_n(100000) %>%
+          #  ggplot(aes(x=UPFls, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461", "#F97B22")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "", y = "") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          
+          cell.full %>% filter(CBenefit < -5, TSDls < 299, TSDls > 200) %>% #sample_n(100000) %>% 
+            ggplot(aes(x=edgedist, y=CBenefit)) + 
+            geom_point(aes(colour=Cat), alpha=.2) + 
+            #geom_smooth(linewidth = 1.2, colour="#101415") + 
+            scale_x_continuous(limits = c(0, 7000)) +
+            #scale_y_continuous(limits = c(0, 200)) +
+            scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+                                          "#B19470", "#789461")) +
+            guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+            labs(title = "", x = "Distance to the edge", y = "Carbon benefit\n(high quality)") +
+            theme_minimal()+
+            theme(text = element_text(size = 16, family = "sans"),
+                  plot.title = element_text(hjust = 0.5),
+                  axis.title = element_text(face="bold"),
+                  axis.text.x=element_text(size = 14),
+                  legend.title = element_blank(),
+                  legend.position = "none"),
+          
+          #cell.deforest %>% filter(CBenefit < -5, edgedist < 4500, edgedist > 2000) %>% #sample_n(100000) %>% 
+          #  ggplot(aes(x=TSDls, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "Mean time since degradation", y = "") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          #
+          #cell.deforest %>% filter(Cat == "UPF") %>% sample_n(100000) %>%
+          #  ggplot(aes(x=UPFls, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461", "#F97B22")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "", y = "") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          #
+          #cell.deforest %>% filter(Cat == "UPF", UPFls > .9) %>% sample_n(100000) %>% 
+          #  ggplot(aes(x=edgedist, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  scale_x_continuous(limits = c(0, 3000)) +
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461", "#F97B22")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "Distance to the edge", y = "Carbon benefit \n(Only <90% UPF)") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          #
+          #cell.deforest %>% filter(Cat == "UPF", UPFls > .9) %>% sample_n(100000) %>% 
+          #  ggplot(aes(x=TSDls, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  scale_x_continuous(limits = c(0, 300)) +
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461", "#F97B22")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "Mean time since degradation", y = "") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          #
+          #cell.deforest %>% filter(Cat == "UPF", UPFls > .9) %>% sample_n(100000) %>%
+          #  ggplot(aes(x=UPFls, y=CBenefit)) + 
+          #  geom_point(aes(colour=Cat), alpha=.2) + 
+          #  #geom_smooth(linewidth = 1.2, colour="#101415") + 
+          #  scale_x_continuous(limits = c(0, 1)) +
+          #  #scale_y_continuous(limits = c(0, 200)) +
+          #  scale_color_manual(values = c("#294B29", "#50623A", "#76453B", 
+          #                                "#B19470", "#789461", "#F97B22")) +
+          #  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+          #  labs(title = "", x = "Proportion of undegraded primary forest", y = "") +
+          #  theme_minimal()+
+          #  theme(text = element_text(size = 16, family = "sans"),
+          #        plot.title = element_text(hjust = 0.5),
+          #        axis.title = element_text(face="bold"),
+          #        axis.text.x=element_text(size = 14),
+          #        legend.title = element_blank(),
+          #        legend.position = "none"),
+          
+          ncol = 2, nrow = 3) #align = "hv", 
+          #labels = c("A", "B", "C", 
+          #           "D", "E", "F",
+          #           "G", "H", "I",
+          #           "J", "K", "L"), 
+          #common.legend = T, legend = "top")
+
+
+
+
+
 #
 
 
 # best strategy under budget constraints =======================================
 cost.biodiv <- costs.principals %>% 
-  dplyr::select(Scenario, Costs, Region, BBenefit, rescaled.BBenefit, B.CBr) %>% 
-  filter(BBenefit>=0) %>% 
+  dplyr::select(Scenario, Costs, Region, BBenefit.year, B.CBr) %>% 
+  filter(BBenefit.year>=0) %>% 
   group_by(Region) %>% 
   arrange(B.CBr) %>% 
   mutate(CumBudget = cumsum(Costs)) %>% 
@@ -716,8 +1557,8 @@ for (m in seq(0,565,.05)) {
     result_df <- cost.biodiv %>% 
     group_by(Region, Scenario) %>% 
     filter(CumBudget<=m*1000000) %>% 
-    mutate(Scenario = factor(case_when(str_detect(Scenario, "Deforestation")~ "Deforestation_area",
-                                       str_detect(Scenario, "Degradation")~ "Degradation_area",
+    mutate(Scenario = factor(case_when(str_detect(Scenario, "deforestation")~ "Deforestation_area",
+                                       str_detect(Scenario, "degradation")~ "Degradation_area",
                                        str_detect(Scenario, "Restoration")~ "Restoration_area"),
                        levels = c("Deforestation_area",
                                   "Degradation_area",
@@ -738,8 +1579,8 @@ for (m in seq(0,565,.05)) {
 
 
 cost.carb <- costs.principals %>% 
-  dplyr::select(Scenario, Costs, Region, CBenefit, C.CBr) %>% 
-  filter(CBenefit>=0) %>% 
+  dplyr::select(Scenario, Costs, Region, CBenefit.year, C.CBr) %>% 
+  filter(CBenefit.year>=0) %>% 
   group_by(Region) %>% 
   arrange(C.CBr) %>% 
   mutate(CumBudget = cumsum(Costs)) %>% 
@@ -753,8 +1594,8 @@ for (m in seq(0,565,.05)) {
     result_df <- cost.carb %>% 
       group_by(Region, Scenario) %>% 
       filter(CumBudget<=m*1000000) %>% 
-      mutate(Scenario = factor(case_when(str_detect(Scenario, "Deforestation")~ "Deforestation_area",
-                                         str_detect(Scenario, "Degradation")~ "Degradation_area",
+      mutate(Scenario = factor(case_when(str_detect(Scenario, "deforestation")~ "Deforestation_area",
+                                         str_detect(Scenario, "degradation")~ "Degradation_area",
                                          str_detect(Scenario, "Restoration")~ "Restoration_area"),
                                levels = c("Deforestation_area",
                                           "Degradation_area",
@@ -820,7 +1661,7 @@ result_df <- result_df %>%
   )
 
 
-write.csv(result_df, "models.output/pixels_rank.csv", row.names = F)
+write.csv(result_df, "models.output/pixels_rank2.csv", row.names = F)
 #result_df <- read.csv("models.output/pixels_rank.csv")
 
 
@@ -828,11 +1669,11 @@ write.csv(result_df, "models.output/pixels_rank.csv", row.names = F)
 fig3ab <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
@@ -854,11 +1695,11 @@ fig3ab <- result_df %>%
 fig3cd <- result_df %>%  
   ggplot(aes(x = Budget)) +
   #geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Deforestation_area, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Restoration_area, color = "Restoration"), linewidth = 2, method = "gam") +
   labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
@@ -866,7 +1707,7 @@ fig3cd <- result_df %>%
   scale_x_continuous(limits = c(50000, 500000000), 
                      labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
                      breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Cumulative proportion of area \nby conservation action") +
+  labs(title = "", x = "Brazilian Reais (Millions)", y = "Cumulative area (ha) \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -877,7 +1718,7 @@ fig3cd <- result_df %>%
   )
 
 
-ggarrange(fig3cd, fig3ab, ncol = 2, common.legend = T, legend = "bottom")
+ggarrange(fig3ab, fig3cd, ncol = 2, common.legend = T, legend = "bottom")
 
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "stm.shp", "pgm.area.change", "stm.area.change",
@@ -887,6 +1728,101 @@ rm(list=ls()[!ls() %in% c("pgm.shp", "stm.shp", "pgm.area.change", "stm.area.cha
 gc()
 #
 #
+
+
+
+
+# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
+blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
+
+#import data on deforestation from mapbiomas
+#all municipalities in BLA
+total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
+  filter(state %in% blm.states) %>%
+  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
+  group_by(state, municipality, class_level_1) %>% 
+  summarise(across('1985':'2020', sum)) %>% 
+  dplyr::select(state, municipality, class_level_1, `2010`, `2020`) %>% 
+  mutate(freq_2010 = `2010` / sum(`2010`),
+         freq_2020 = `2020` / sum(`2020`))
+
+
+#priority municipalities in deforestation arch
+priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
+                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
+                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
+                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
+                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
+                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
+                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
+                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
+                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
+                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
+                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
+
+priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality %in% priority.mun.list)
+
+
+#PGM and STM
+pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+
+ggarrange(
+  ggplot() +
+    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2010, y=after_stat(count/sum(count)), fill = "All municipalities"), bins = 70) +
+    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2010, y=after_stat(count/sum(count)), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+    geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
+    geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
+    #scale_y_continuous(limits = c(0, 0.0000006)) +
+    #scale_x_continuous(limits = c(0, 2000000)) +
+    labs(x="2010 proportional deforested area", y="") +
+    theme_minimal() +
+    theme(text = element_text(size = 16, family = "sans"),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(face="bold"),
+          axis.text.x=element_text(size = 14),
+          legend.title = element_blank(),
+          legend.position = "bottom"),
+  
+  ggplot() +
+    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2020, y=after_stat(count/sum(count)), fill = "All municipalities"), bins = 70) +
+    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2020, y=after_stat(count/sum(count)), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+    geom_vline(xintercept = pgm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
+    geom_vline(xintercept = stm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
+    #scale_y_continuous(limits = c(0, 0.0000006)) +
+    #scale_x_continuous(limits = c(0, 2000000)) +
+    labs(x="2020 proportional deforested area", y="") +
+    theme_minimal() +
+    theme(text = element_text(size = 16, family = "sans"),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(face="bold"),
+          axis.text.x=element_text(size = 14),
+          legend.title = element_blank(),
+          legend.position = "bottom"),
+  
+  nrow = 2, common.legend = T, legend = "bottom"
+)
 
 
 
@@ -1557,225 +2493,9 @@ figs20 <- carbon.benefit.primary %>% #filter(Benefit>=0) %>%
         legend.position = "bottom",
         panel.spacing = unit(2, "lines"))
 
-#
-
-
-# why/where biodiversity benefit is higher then the carbon? ====================
-costs.principals <- costs.principals %>% 
-  mutate(
-    compare.benfit = rescaled.BBenefit - rescaled.CBenefit
-  )
 
 
 
-pgm.cell.deforest <- costs.principals %>% 
-  filter(Region == "PGM" & Scenario == "Avoid Deforestation" & compare.benfit>0) %>% 
-  dplyr::select(Cell) %>% 
-  pull()
-
-
-stm.cell.deforest <- costs.principals %>% 
-  filter(Region == "STM" & Scenario == "Avoid Deforestation" & compare.benfit>0) %>% 
-  dplyr::select(Cell) %>% 
-  pull()
-
-
-pgm.cell.degrad <- costs.principals %>% 
-  filter(Region == "PGM" & Scenario == "Avoid Degradation" & compare.benfit>0) %>% 
-  dplyr::select(Cell) %>% 
-  pull()
-
-
-stm.cell.degrad <- costs.principals %>% 
-  filter(Region == "STM" & Scenario == "Avoid Degradation" & compare.benfit>0) %>% 
-  dplyr::select(Cell) %>% 
-  pull()
-
-
-
-env <- c("TSDls", "edgedist", "UPFls")
-
-
-pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
-pgm.env.2010 <- grep(paste(env, collapse = "|"), pgm.env.2010, value = T)
-pgm.env.2010 <- stack(pgm.env.2010)
-pgm.env.2010 <- mask(pgm.env.2010, pgm.shp)
-pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%  
-  mutate(Cell = row_number()) %>% na.omit() %>%
-  pivot_longer(
-    c(-x, -y, -Cell),
-    names_to = "env.var",
-    values_to = "value"
-  ) %>% 
-  group_by(env.var) %>% 
-  mutate(
-    Region = "PGM",
-    value2 = (value-mean(value))/sd(value),
-    env.var = factor(env.var,
-                      levels = c("TSDls", "edgedist", "UPFls"),
-                      labels = c("Time since degradation",
-                                 "Distance to edge",
-                                 "Proportion of undegraded primary forest")))
-
-
-stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
-stm.env.2010 <- grep(paste(env, collapse = "|"), stm.env.2010, value = T)
-stm.env.2010 <- stack(stm.env.2010)
-stm.env.2010 <- mask(stm.env.2010, stm.shp)
-stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%  
-  mutate(Cell = row_number()) %>% na.omit() %>%
-  pivot_longer(
-    c(-x, -y, -Cell),
-    names_to = "env.var",
-    values_to = "value"
-  ) %>% 
-  group_by(env.var) %>% 
-  mutate(
-    Region = "STM",
-    value2 = (value-mean(value))/sd(value),
-    env.var = factor(env.var,
-                     levels = c("TSDls", "edgedist", "UPFls"),
-                     labels = c("Time since degradation",
-                                "Distance to edge",
-                                "Proportion of undegraded primary forest")))
-
-
-
-figs16a <- ggplot() +
-  geom_histogram(data=pgm.env.2010.df %>% bind_rows(stm.env.2010.df), 
-                 aes(x=value, y=after_stat(density), fill = "Total area")) +
-  geom_histogram(data=pgm.env.2010.df %>% filter(Cell %in% pgm.cell.deforest) %>%
-                          bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.deforest)), 
-                 aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
-  scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
-  facet_wrap(env.var ~ ., dir = "v", scales = "free", strip.position = "bottom") +
-  labs(title = "Avoid deforestation", x="") +
-  theme_minimal() +
-  theme(text = element_text(size = 16, family = "sans"),
-        plot.title = element_text(hjust = 0.5),
-        axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 14),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        strip.placement = "outside")
-
-figs16b <- ggplot() +
-  geom_histogram(data=pgm.env.2010.df %>% bind_rows(stm.env.2010.df), 
-                 aes(x=value, y=after_stat(density), fill = "Total area")) +
-  geom_histogram(data=pgm.env.2010.df %>% filter(Cell %in% pgm.cell.degrad) %>%
-                   bind_rows(stm.env.2010.df %>% filter(Cell %in% stm.cell.degrad)), 
-                 aes(x=value, y=after_stat(density), fill = "Higher biodiversity benefit"), alpha = 0.65) +
-  scale_fill_manual(values = c("Total area"="#e1d3cc", "Higher biodiversity benefit"="#e99561")) +
-  facet_wrap(env.var ~ ., dir = "v", scales = "free", strip.position = "bottom") +
-  labs(title = "Avoid degradation", x="", y="") +
-  theme_minimal() +
-  theme(text = element_text(size = 16, family = "sans"),
-        plot.title = element_text(hjust = 0.5),
-        axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 14),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        strip.placement = "outside")
-
-
-
-ggarrange(figs16a, figs16b, ncol = 2, common.legend = T, legend = "bottom")
-
-#
-
-
-# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
-blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
-
-#import data on deforestation from mapbiomas
-#all municipalities in BLA
-total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
-  filter(state %in% blm.states) %>%
-  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
-  group_by(state, municipality, class_level_1) %>% 
-  summarise(across('1985':'2020', sum)) %>% 
-  #ungroup() %>% rowwise(state, municipality, class_level_1) %>% 
-  #mutate(accum_2010 = sum(c_across('1985':'2010')),
-  #       accum_2020 = sum(c_across('1985':'2020'))) %>% 
-  dplyr::select(state, municipality, class_level_1, `2010`, `2020`)
-
-
-#priority municipalities in deforestation arch
-priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
-                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
-                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
-                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
-                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
-                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
-                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
-                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
-                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
-                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
-                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
-
-priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality %in% priority.mun.list)
-
-
-#PGM and STM
-pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(`2010`) %>% pull()
-
-pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(`2020`) %>% pull()
-
-stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(`2010`) %>% pull()
-
-stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(`2020`) %>% pull()
-
-
-ggarrange(
-  ggplot() +
-    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=`2010`, y=after_stat(ndensity), fill = "All municipalities"), bins = 70) +
-    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=`2010`, y=after_stat(ndensity), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
-    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
-    geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
-    geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", size = 1) +
-    #scale_y_continuous(limits = c(0, 0.0000006)) +
-    scale_x_continuous(limits = c(0, 2000000)) +
-    labs(x="2010 deforested area (ha)", y="") +
-    theme_minimal() +
-    theme(text = element_text(size = 16, family = "sans"),
-          plot.title = element_text(hjust = 0.5),
-          axis.title = element_text(face="bold"),
-          axis.text.x=element_text(size = 14),
-          legend.title = element_blank(),
-          legend.position = "bottom"),
-  
-  ggplot() +
-    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=`2020`, y=after_stat(ndensity), fill = "All municipalities"), bins = 70) +
-    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=`2020`, y=after_stat(ndensity), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
-    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
-    geom_vline(xintercept = pgm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
-    geom_vline(xintercept = stm.deforestation.2020, linetype = "dashed", color = "gray20", size = 1) +
-    #scale_y_continuous(limits = c(0, 0.0000006)) +
-    scale_x_continuous(limits = c(0, 2000000)) +
-    labs(x="2020 deforested area (ha)", y="") +
-    theme_minimal() +
-    theme(text = element_text(size = 16, family = "sans"),
-          plot.title = element_text(hjust = 0.5),
-          axis.title = element_text(face="bold"),
-          axis.text.x=element_text(size = 14),
-          legend.title = element_blank(),
-          legend.position = "bottom"),
-  
-  nrow = 2, common.legend = T, legend = "bottom"
-)
 
 
 
