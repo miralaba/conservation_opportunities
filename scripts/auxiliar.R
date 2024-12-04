@@ -1141,6 +1141,7 @@ gc()
 
 #
 
+#Fig S1 and S2
 #use this part of the script only after load objects in "layer_buide_[...].R" ==
 ## standard projection
 std.proj <- "+proj=longlat +datum=WGS84 +units=m +no_defs"
@@ -1252,6 +1253,61 @@ data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
 #
 
 
+# Fig S6
+layer.names <- c("2010 Real", "2020 Real", "Avoid deforestation", "Avoid degradation", 
+                 "Restoration without avoid", "Avoid both", "Restoration and avoid deforestation",
+                 "Restoration and avoid both", "Avoid deforestation PF only", "Avoid degradation PF only", 
+                 "Avoid both PF only", "Restoration and avoid deforestation PF only",
+                 "Restoration and avoid both PF only")
+
+biodiversity.benefit.list <- list.files("models.output/biodiversity.benefits2/", pattern = ".tif", full.names = T, recursive = T)
+
+pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = T)
+
+pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
+pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+
+
+rm(pgm.biodiversity.benefit.list)
+
+for (i in c(1:13)) {
+  
+  pgm.biodiversity.benefit.total[[i]][pgm.lulc[[i]][] == 0] <- 0
+  names(pgm.biodiversity.benefit.total[[i]]) <- layer.names[i]
+  
+  cat("\n>working on layer", i, "now<\n")
+}
+
+gc()
+
+pgm.biodiversity.benefit.total <- mask(pgm.biodiversity.benefit.total, pgm.shp)
+
+
+stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = T)
+
+stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
+stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+
+rm(stm.biodiversity.benefit.list); rm(biodiversity.benefit.list)
+
+for (i in c(1:13)) {
+  
+  stm.biodiversity.benefit.total[[i]][stm.lulc[[i]][] == 0] <- 0
+  names(stm.biodiversity.benefit.total[[i]]) <- layer.names[i]
+  
+  cat("\n>working on layer", i, "now<\n")
+}
+
+gc()
+
+stm.biodiversity.benefit.total <- mask(stm.biodiversity.benefit.total, stm.shp)
+
+
+
+
+plot(stm.biodiversity.benefit.total[[2:13]], nr=3, 
+     col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 400, by = 10))), 
+     breaks= seq(0, 400, by = 10)) ## res = 1673 x 881
 
 
 
