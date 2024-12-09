@@ -1253,8 +1253,92 @@ data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
 #
 
 
+# Fig S5
+# importing species list and methods and evaluation metrics data frame
+forestdep.spplist <- read.csv("data/species_summary.csv")
+
+
+#checking
+#individual.maps <- c("Pouteriamacrophylla", "Courataristellata", "Rinoreaguianensis", 
+#                     "Handroanthusserratifolius", "Anibamegaphylla", "Manilkaraparaensis",
+#                     "Hymenolobiumexcelsum", "Cedrelaodorata", "Automolusparaensis",
+#                     "Buccotamatia", "Hylopezusmacularius", "Phlegopsisnigromaculata",
+#                     "Geotrygonmontana", "Thamnomanescaesius", "Aburriacujubi",
+#                     "Corythopistorquatus")
+
+pgm.individual.maps.list <- list.files("models.output/biodiversity.maps/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+#pgm.individual.maps <- grep(paste(individual.maps, collapse = "|"), pgm.individual.maps.list, value = T)
+#pgm.individual.maps <- stack(pgm.individual.maps)
+pgm.individual.map1 <- raster(grep("Anibamegaphylla", pgm.individual.maps.list, value = T))
+pgm.individual.map2 <- raster(grep("Phlegopsisnigromaculata", pgm.individual.maps.list, value = T))
+pgm.ext <- extent(-47.35, -47.28, -3.35, -3.27)
+
+
+stm.individual.maps.list <- list.files("models.output/biodiversity.maps/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
+#stm.individual.maps <- grep(paste(individual.maps, collapse = "|"), stm.individual.maps.list, value = T)
+#stm.individual.maps <- stack(stm.individual.maps)
+stm.individual.map1 <- raster(grep("Anibamegaphylla", stm.individual.maps.list, value = T))
+stm.individual.map2 <- raster(grep("Phlegopsisnigromaculata", stm.individual.maps.list, value = T))
+stm.ext <- extent(-54.83, -54.78, -2.98, -2.92)
+
+
+## res = 1673 x 881
+par(mfrow = c(4,2))
+par(mar = c(2, 2.5, 4, .2))
+plot(pgm.individual.map1, 
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2), legend =F)
+
+plot(pgm.ext, add=T)
+
+par(mar = c(2, .2, 4, .2))
+plot(pgm.individual.map1, ext = pgm.ext,
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2))
+
+par(mar = c(4, 2.5, 2, .2))
+plot(stm.individual.map1, 
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2), legend =F)
+
+plot(stm.ext, add=T)
+
+par(mar = c(4, .2, 2, .2))
+plot(stm.individual.map1, ext = stm.ext,
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2))
+
+
+par(mar = c(2, 2.5, 4, .2))
+plot(pgm.individual.map2, 
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2), legend =F)
+
+plot(pgm.ext, add=T)
+
+par(mar = c(2, .2, 4, .2))
+plot(pgm.individual.map2, ext = pgm.ext,
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2))
+
+par(mar = c(4, 2.5, 2, .2))
+plot(stm.individual.map2, 
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2), legend =F)
+
+plot(stm.ext, add=T)
+
+par(mar = c(4, .2, 2, .2))
+plot(stm.individual.map2, ext = stm.ext,
+     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
+     breaks= seq(0, 1, by = .2))
+
+mtext("Aniba megaphylla", side = 3, line = -3, outer = T, font = 4)
+mtext("Phlegopsis nigromaculata", side = 3, line = -38, outer = T, font = 4)
+
+
 # Fig S6
-layer.names <- c("2010 Real", "2020 Real", "Avoid deforestation", "Avoid degradation", 
+layer.names <- c("Real 2010", "Real 2020", "Avoid deforestation", "Avoid degradation", 
                  "Restoration without avoid", "Avoid both", "Restoration and avoid deforestation",
                  "Restoration and avoid both", "Avoid deforestation PF only", "Avoid degradation PF only", 
                  "Avoid both PF only", "Restoration and avoid deforestation PF only",
@@ -1266,7 +1350,7 @@ pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = 
 
 pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
 pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
-
+pgm.biodiversity.benefit.total <- mask(pgm.biodiversity.benefit.total, pgm.shp)
 
 rm(pgm.biodiversity.benefit.list)
 
@@ -1280,15 +1364,15 @@ for (i in c(1:13)) {
 
 gc()
 
-pgm.biodiversity.benefit.total <- mask(pgm.biodiversity.benefit.total, pgm.shp)
 
 
 stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = T)
 
 stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
 stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+stm.biodiversity.benefit.total <- mask(stm.biodiversity.benefit.total, stm.shp)
 
-rm(stm.biodiversity.benefit.list); rm(biodiversity.benefit.list)
+rm(stm.biodiversity.benefit.list)
 
 for (i in c(1:13)) {
   
@@ -1300,14 +1384,227 @@ for (i in c(1:13)) {
 
 gc()
 
-stm.biodiversity.benefit.total <- mask(stm.biodiversity.benefit.total, stm.shp)
-
-
 
 
 plot(stm.biodiversity.benefit.total[[2:13]], nr=3, 
-     col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 400, by = 10))), 
-     breaks= seq(0, 400, by = 10)) ## res = 1673 x 881
+     col = colorRampPalette(c("#FBFCF8", "#0AD1C8", "#14919B", "#213A57"))(length(seq(0, 410, by = 10))), 
+     breaks= seq(0, 420, by = 10)) ## res = 1673 x 881
+
+
+
+# Fig S8
+carbon.benefit.list <- list.files("models.output/carbon.benefits/", pattern = ".tif", full.names = T, recursive = T)
+
+pgm.carbon.benefit.list <- grep("PGM", carbon.benefit.list, value = T)
+
+pgm.carbon.benefit.total <- stack(pgm.carbon.benefit.list)
+pgm.carbon.benefit.total <- pgm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+pgm.carbon.benefit.total <- mask(pgm.carbon.benefit.total, pgm.shp)
+
+rm(pgm.carbon.benefit.list)
+
+for (i in c(1:13)) {
+  
+  pgm.carbon.benefit.total[[i]][pgm.lulc[[i]][] == 0] <- 0
+  names(pgm.carbon.benefit.total[[i]]) <- layer.names[i]
+  
+  cat("\n>working on layer", i, "now<\n")
+}
+
+gc()
+
+
+
+stm.carbon.benefit.list <- grep("STM", carbon.benefit.list, value = T)
+
+stm.carbon.benefit.total <- stack(stm.carbon.benefit.list)
+stm.carbon.benefit.total <- stm.carbon.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+stm.carbon.benefit.total <- mask(stm.carbon.benefit.total, stm.shp)
+
+rm(stm.carbon.benefit.list)
+
+for (i in c(1:13)) {
+  
+  stm.carbon.benefit.total[[i]][stm.lulc[[i]][] == 0] <- 0
+  names(stm.carbon.benefit.total[[i]]) <- layer.names[i]
+  
+  cat("\n>working on layer", i, "now<\n")
+}
+
+gc()
+
+
+
+plot(stm.carbon.benefit.total[[2:13]], nr=3, 
+     col = colorRampPalette(c("#FBFCF8", "#8fce00", "#374f00"))(length(seq(0, 200, by = 25))), 
+     breaks= seq(0, 225, by = 25)) ## res = 1673 x 881
+
+
+
+# Fig S9
+# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
+blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
+
+#import data on deforestation from mapbiomas
+#all municipalities in BLA
+total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
+  filter(state %in% blm.states) %>%
+  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
+  group_by(state, municipality, class_level_1) %>% 
+  summarise(across('1985':'2020', sum)) %>% 
+  dplyr::select(state, municipality, class_level_1, `2010`, `2020`) %>% 
+  mutate(freq_2010 = `2010` / sum(`2010`),
+         freq_2020 = `2020` / sum(`2020`))
+
+
+#priority municipalities in deforestation arch
+priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
+                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
+                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
+                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
+                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
+                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
+                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
+                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
+                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
+                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
+                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
+
+priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality %in% priority.mun.list)
+
+
+#PGM and STM
+pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+
+
+# why/where benefit is higher? ====================================
+## comparing benefit between avoid degradation and avoid deforestation
+
+env <- c("TSDls", "edgedist", "UPFls")
+
+pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+pgm.env.2010 <- grep(paste(env, collapse = "|"), pgm.env.2010, value = T)
+pgm.env.2010 <- stack(pgm.env.2010)
+pgm.env.2010 <- mask(pgm.env.2010, pgm.shp)
+pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%  
+  mutate(Region = "PGM", Cell = row_number()) %>% drop_na()
+
+
+stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
+stm.env.2010 <- grep(paste(env, collapse = "|"), stm.env.2010, value = T)
+stm.env.2010 <- stack(stm.env.2010)
+stm.env.2010 <- mask(stm.env.2010, stm.shp)
+stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%  
+  mutate(Region = "STM", Cell = row_number()) %>% drop_na()
+
+
+env.2010 <- rbind(pgm.env.2010.df, stm.env.2010.df)
+
+
+cell.deforest <- costs.principals %>% 
+  filter(Scenario == "Avoid deforestation", area_change == "Direct") %>% 
+  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
+  left_join(env.2010[,3:7])
+
+cell.degrad <- costs.principals %>% 
+  filter(Scenario == "Avoid degradation", area_change == "Direct") %>% 
+  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
+  left_join(env.2010[,3:7])
+
+cell.restor <- costs.principals %>% 
+  filter(Scenario == "Restoration without avoid", area_change == "Direct") %>% 
+  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
+  left_join(env.2010[,3:7])
+
+cell.full <- costs.principals %>% 
+  filter(Scenario == "Restoration and avoid both", area_change == "Direct") %>% 
+  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
+  left_join(env.2010[,3:7])
+
+
+ggarrange(
+  ggplot() +
+    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2010, y=after_stat(count/nrow(total.blm.deforestation.2010)), fill = "All municipalities"), bins = 70) +
+    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                   aes(x=freq_2010, y=after_stat(count/nrow(priority.mun.deforestation.2010)), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+    geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
+    geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
+    #scale_y_continuous(limits = c(0, 0.0000006)) +
+    #scale_x_continuous(limits = c(0, 2000000)) +
+    labs(x="Deforestation in the Amazon \nmunicipalities by 2010", y="") +
+    theme_minimal() +
+    theme(text = element_text(size = 16, family = "sans"),
+          plot.title = element_text(hjust = 0.5),
+          axis.title = element_text(face="bold"),
+          axis.text.x=element_text(size = 14),
+          legend.title = element_blank(),
+          legend.position = "top"),
+  
+  ggarrange(
+    
+    ggplot() +
+      geom_histogram(data=env.2010, 
+                     aes(x=edgedist, y=after_stat(count / nrow(env.2010))), fill = "#e1d3cc") +
+      geom_freqpoly(data=cell.deforest, 
+                    aes(x=edgedist, y=after_stat(count / nrow(cell.deforest)), color = "Deforestation"), linewidth = 1) +
+      geom_freqpoly(data=cell.degrad, 
+                    aes(x=edgedist, y=after_stat(count / nrow(cell.degrad)), color = "Degradation"), linewidth = 1, linetype = "dashed") +
+      scale_x_continuous(limits = c(0, 7000)) +
+      scale_y_continuous(limits = c(0, 0.4)) +
+      scale_color_manual(values = c("Deforestation"="#294B29", "Degradation"="#50623A")) +
+      labs(title = "", x = "Distance to the edge", y = "Proportion") +
+      facet_wrap(~Region) +
+      theme_minimal() +
+      theme(text = element_text(size = 16, family = "sans"),
+            plot.title = element_text(hjust = 0.5),
+            axis.title = element_text(face="bold"),
+            axis.text.x=element_text(size = 14),
+            legend.title = element_blank()),
+    
+    ggplot() +
+      geom_histogram(data=env.2010, 
+                     aes(x=TSDls, y=after_stat(count / nrow(env.2010))), fill = "#e1d3cc") +
+      geom_freqpoly(data=cell.deforest, 
+                    aes(x=TSDls, y=after_stat(count / nrow(cell.deforest)), color = "Deforestation"), linewidth = 1) +
+      geom_freqpoly(data=cell.degrad, 
+                    aes(x=TSDls, y=after_stat(count / nrow(cell.degrad)), color = "Degradation"), linewidth = 1, linetype = "dashed") +
+      scale_y_continuous(limits = c(0, 0.4)) +
+      scale_color_manual(values = c("Deforestation"="#294B29", "Degradation"="#50623A")) +
+      labs(title = "", x = "Time since degradation", y = "") +
+      facet_wrap(~Region) +
+      theme_minimal() +
+      theme(text = element_text(size = 16, family = "sans"),
+            plot.title = element_text(hjust = 0.5),
+            axis.title = element_text(face="bold"),
+            axis.text.x=element_text(size = 14),
+            legend.title = element_blank()),
+    
+    nrow = 2, common.legend = T, legend = "bottom"),
+  
+  nrow = 2, heights = c(0.35, 0.65), legend = "top"
+)  ## res = 881 x 1673
+
+
+
+
 
 
 
