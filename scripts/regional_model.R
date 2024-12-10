@@ -883,84 +883,6 @@ if (any(occur$Region=="STM")) {
 forestdep.spplist <- read.csv("data/species_summary.csv")
 
 
-#checking
-#individual.maps <- c("Pouteriamacrophylla", "Courataristellata", "Rinoreaguianensis", 
-#                     "Handroanthusserratifolius", "Anibamegaphylla", "Manilkaraparaensis",
-#                     "Hymenolobiumexcelsum", "Cedrelaodorata", "Automolusparaensis",
-#                     "Buccotamatia", "Hylopezusmacularius", "Phlegopsisnigromaculata",
-#                     "Geotrygonmontana", "Thamnomanescaesius", "Aburriacujubi",
-#                     "Corythopistorquatus")
-
-pgm.individual.maps.list <- list.files("models.output/biodiversity.maps/PGM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
-#pgm.individual.maps <- grep(paste(individual.maps, collapse = "|"), pgm.individual.maps.list, value = T)
-#pgm.individual.maps <- stack(pgm.individual.maps)
-pgm.individual.map1 <- raster(grep("Anibamegaphylla", pgm.individual.maps.list, value = T))
-pgm.individual.map2 <- raster(grep("Phlegopsisnigromaculata", pgm.individual.maps.list, value = T))
-pgm.ext <- extent(-47.35, -47.28, -3.35, -3.27)
-
-
-stm.individual.maps.list <- list.files("models.output/biodiversity.maps/STM/2010_real/", pattern = ".tif", full.names = T, recursive = T)
-#stm.individual.maps <- grep(paste(individual.maps, collapse = "|"), stm.individual.maps.list, value = T)
-#stm.individual.maps <- stack(stm.individual.maps)
-stm.individual.map1 <- raster(grep("Anibamegaphylla", stm.individual.maps.list, value = T))
-stm.individual.map2 <- raster(grep("Phlegopsisnigromaculata", stm.individual.maps.list, value = T))
-stm.ext <- extent(-54.83, -54.78, -2.98, -2.92)
-
-
-## res = 1673 x 881
-par(mfrow = c(4,2))
-par(mar = c(2, 2.5, 4, .2))
-plot(pgm.individual.map1, 
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2), legend =F)
-
-plot(pgm.ext, add=T)
-
-par(mar = c(2, .2, 4, .2))
-plot(pgm.individual.map1, ext = pgm.ext,
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2))
-
-par(mar = c(4, 2.5, 2, .2))
-plot(stm.individual.map1, 
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2), legend =F)
-
-plot(stm.ext, add=T)
-
-par(mar = c(4, .2, 2, .2))
-plot(stm.individual.map1, ext = stm.ext,
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2))
-
-
-par(mar = c(2, 2.5, 4, .2))
-plot(pgm.individual.map2, 
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2), legend =F)
-
-plot(pgm.ext, add=T)
-
-par(mar = c(2, .2, 4, .2))
-plot(pgm.individual.map2, ext = pgm.ext,
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2))
-
-par(mar = c(4, 2.5, 2, .2))
-plot(stm.individual.map2, 
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2), legend =F)
-
-plot(stm.ext, add=T)
-
-par(mar = c(4, .2, 2, .2))
-plot(stm.individual.map2, ext = stm.ext,
-     col = c("#FBFCF8", "#FCF596", "#FBD28B", "#FF9C73", "#FF4545"), 
-     breaks= seq(0, 1, by = .2))
-
-mtext("Aniba megaphylla", side = 3, line = -3, outer = T, font = 4)
-mtext("Phlegopsis nigromaculata", side = 3, line = -38, outer = T, font = 4)
-
 #  biodiversity benefit:  adding conservation value ============================
 #' bird conservation value is inverse occurrence area size
 #' scaled from 0 [the biggest] to 1 [the smallest]
@@ -1257,6 +1179,7 @@ print(mod.rf.fn2)
 plot(mod.rf.fn2)
 
 
+# Fig S7
 layout(matrix(c(1,2,3,4,1,5,6,7), 2, 4, byrow = TRUE))
 varImpPlot(mod.rf.fn2$finalModel)
 partialPlot(mod.rf.fn2$finalModel, carbon, TSDls)
