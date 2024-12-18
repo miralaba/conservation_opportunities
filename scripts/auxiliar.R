@@ -1457,6 +1457,7 @@ total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col
          freq_2020 = `2020` / sum(`2020`))
 
 
+
 #priority municipalities in deforestation arch
 priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
                        "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
@@ -1602,6 +1603,71 @@ ggarrange(
   nrow = 2, heights = c(0.35, 0.65), legend = "top"
 )  ## res = 881 x 1673
 
+
+
+# Fig S17
+figS17a <- costs.principals %>% 
+  ggplot(aes(x=Scenario, y=Costs)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#FF4545", color="#0E1514", show.legend = F) + 
+  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
+                   expand = c(.05, .05)) +
+  scale_y_continuous(limits = c(0, 500)) +
+  labs(title = "", x = "", y = "Costs (R$ / year)") +
+  facet_wrap(~Region, ncol = 2) +
+  theme_minimal() +
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        panel.spacing = unit(3, "lines"))
+
+
+
+figS17b <- costs.principals %>% 
+  ggplot(aes(x=Scenario, y=B.CBr)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
+                   expand = c(.05, .05)) +
+  scale_y_continuous(limits = c(0, 500)) +
+  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / Biodiversity)") +
+  facet_wrap(~Region, ncol = 2) +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        panel.spacing = unit(3, "lines"))
+
+
+
+figS17c <- costs.principals %>% 
+  ggplot(aes(x=Scenario, y=C.CBr)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
+                   expand = c(.05, .05)) +
+  scale_y_continuous(limits = c(0, 500)) +
+  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / MgC)") +
+  facet_wrap(~Region, ncol = 2) +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        panel.spacing = unit(3, "lines"))
+
+
+
+
+ggarrange(figS17a, figS17b, figS17c, 
+          nrow = 3, #align = "hv", 
+          labels = c("A", "B", "C"), 
+          common.legend = T, legend = "bottom")
 
 
 
