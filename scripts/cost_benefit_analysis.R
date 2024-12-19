@@ -1007,17 +1007,6 @@ costs.principals <- costs.principals %>%
   droplevels() %>% ungroup()
 
 
-#costs.principals <- costs.principals %>% 
-#  add_row(Scenario = "Business as usual",  B.CBr = -999,  C.CBr = -999) %>%
-#  mutate(Scenario = fct_relevel(Scenario, 
-#                                c("Business as usual",
-#                                  "Avoid deforestation", 
-#                                  "Avoid degradation",
-#                                  "Avoid both",
-#                                  "Restoration without avoid",
-#                                  "Restoration and avoid deforestation",
-#                                  "Restoration and avoid both")))
-  
 rm(carbon.benefit.list); rm(pgm.costs.total); rm(stm.costs.total)
 gc()
 #
@@ -1070,40 +1059,45 @@ ggarrange(fig3a, fig3b,
 
 
 # best strategy under budget constraints =======================================
-cost.biodiv <- costs.principals %>% 
-  dplyr::select(Scenario, Costs, Region, BBenefit.year, B.CBr) %>% 
-  filter(BBenefit.year>=0) %>% 
+target.biodiv <- costs.principals %>% 
+  dplyr::select(Region, Scenario, Cell, BBenefit.year) %>% 
+  filter(Scenario %in% c("Avoid deforestation", "Avoid degradation", "Restoration without avoid")) %>% droplevels() %>% 
+  filter(BBenefit.year > 0) %>% 
   group_by(Region) %>% 
-  arrange(B.CBr) %>% 
-  mutate(CumBudget = cumsum(Costs)) %>% 
+  arrange(desc(BBenefit.year), .by_group = T) %>% 
+  mutate(BBenefit = BBenefit.year*10,
+         Area = 0.08919563,
+         CumArea = cumsum(Area)) %>%
+  dplyr::select(Region, Scenario, Cell, BBenefit, CumArea) %>%
   ungroup()
 
 
-result_df <- data.frame(Region = factor(c("PGM", "STM")),
-                        Budget = c(0,0),
-                        Total_area = c(0,0),
-                        Deforestation_area = c(0,0), 
-                        Degradation_area = c(0,0), 
-                        Restoration_area = c(0,0))
+result_df <- data.frame(Region = as.factor(character(0)),
+                        benefit = as.factor(character(0)),
+                        Total_area = numeric(0), 
+                        Deforestation_area = numeric(0), 
+                        Degradation_area = numeric(0), 
+                        Restoration_area = numeric(0))
 
 
-for (m in seq(0,565,.05)) {
+for (m in rev(seq(0,155000, 100))) {
   
   suppressMessages(
-    result_df <- cost.biodiv %>% 
+    result_df <- target.biodiv %>% 
     group_by(Region, Scenario) %>% 
-    filter(CumBudget<=m*1000000) %>% 
+    filter(CumArea<=m) %>% 
     mutate(Scenario = factor(case_when(str_detect(Scenario, "deforestation")~ "Deforestation_area",
                                        str_detect(Scenario, "degradation")~ "Degradation_area",
                                        str_detect(Scenario, "Restoration")~ "Restoration_area"),
                        levels = c("Deforestation_area",
                                   "Degradation_area",
                                   "Restoration_area"))) %>% 
-    summarise(ncell = n()) %>% 
-    pivot_wider(names_from = Scenario, values_from = ncell) %>% 
+    summarise(Area = n()*0.08919563) %>% 
+    pivot_wider(names_from = Scenario, values_from = Area) %>% 
     ungroup() %>% 
-    mutate(Budget = m*1000000,
-           Total_area = rowSums(select_if(., is.numeric), na.rm=T)) %>% 
+    mutate(Target = m,
+           Total_area = rowSums(select_if(., is.numeric), na.rm=T),
+           benefit = "Biodiversity") %>% 
     full_join(result_df)
     )
   
@@ -1114,33 +1108,38 @@ for (m in seq(0,565,.05)) {
 
 
 
-cost.carb <- costs.principals %>% 
-  dplyr::select(Scenario, Costs, Region, CBenefit.year, C.CBr) %>% 
-  filter(CBenefit.year>=0) %>% 
+target.carb <- costs.principals %>% 
+  dplyr::select(Region, Scenario, Cell, CBenefit.year) %>% 
+  filter(Scenario %in% c("Avoid deforestation", "Avoid degradation", "Restoration without avoid")) %>% droplevels() %>% 
+  filter(CBenefit.year > 0) %>% 
   group_by(Region) %>% 
-  arrange(C.CBr) %>% 
-  mutate(CumBudget = cumsum(Costs)) %>% 
+  arrange(desc(CBenefit.year), .by_group = T) %>% 
+  mutate(CBenefit = CBenefit.year*10,
+         Area = 0.08919563,
+         CumArea = cumsum(Area)) %>%
+  dplyr::select(Region, Scenario, Cell, CBenefit, CumArea) %>%
   ungroup()
 
 
 
-for (m in seq(0,565,.05)) {
+for (m in rev(seq(0,155000, 100))) {
   
   suppressMessages(
-    result_df <- cost.carb %>% 
+    result_df <- target.carb %>% 
       group_by(Region, Scenario) %>% 
-      filter(CumBudget<=m*1000000) %>% 
+      filter(CumArea<=m) %>% 
       mutate(Scenario = factor(case_when(str_detect(Scenario, "deforestation")~ "Deforestation_area",
                                          str_detect(Scenario, "degradation")~ "Degradation_area",
                                          str_detect(Scenario, "Restoration")~ "Restoration_area"),
                                levels = c("Deforestation_area",
                                           "Degradation_area",
                                           "Restoration_area"))) %>% 
-      summarise(ncell = n()) %>% 
-      pivot_wider(names_from = Scenario, values_from = ncell) %>% 
+      summarise(Area = n()*0.08919563) %>% 
+      pivot_wider(names_from = Scenario, values_from = Area) %>% 
       ungroup() %>% 
-      mutate(Budget = m*1000000,
-             Total_area = rowSums(select_if(., is.numeric), na.rm=T)) %>% 
+      mutate(Target = m,
+             Total_area = rowSums(select_if(., is.numeric), na.rm=T),
+             benefit = "Carbon") %>% 
       full_join(result_df)
   )
   
@@ -1149,48 +1148,44 @@ for (m in seq(0,565,.05)) {
 }
 
 
-result_df$benefit <- NA
-result_df[1:22600,"benefit"] <- "Carbon"
-result_df[22601:nrow(result_df),"benefit"] <- "Biodiversity"
-
-pgm.bio.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
-pgm.carb.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
-pgm.bio.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
-pgm.carb.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
-pgm.bio.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
-pgm.carb.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
+pgm.bio.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
+pgm.carb.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
+pgm.bio.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Degradation_area) %>% pull()
+pgm.carb.deg.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% last() %>% dplyr::select(Degradation_area) %>% pull()
+pgm.bio.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Restoration_area) %>% pull()
+pgm.carb.rest.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% last() %>% dplyr::select(Restoration_area) %>% pull()
 
 
-stm.bio.def.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
-stm.carb.def.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Deforestation_area) %>% pull()
-stm.bio.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
-stm.carb.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Degradation_area) %>% pull()
-stm.bio.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
-stm.carb.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% first() %>% dplyr::select(Restoration_area) %>% pull()
+stm.bio.def.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
+stm.carb.def.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
+stm.bio.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Degradation_area) %>% pull()
+stm.carb.deg.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% last() %>% dplyr::select(Degradation_area) %>% pull()
+stm.bio.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Restoration_area) %>% pull()
+stm.carb.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>% last() %>% dplyr::select(Restoration_area) %>% pull()
 
 
 result_df <- result_df %>% 
   mutate(
-    Deforestation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Deforestation_area/pgm.bio.def.area,
-                                   ifelse(Region=="PGM" & benefit=="Carbon", Deforestation_area/pgm.carb.def.area,
-                                          ifelse(Region=="STM" & benefit=="Biodiversity", Deforestation_area/stm.bio.def.area,
-                                                 Deforestation_area/stm.carb.def.area))),
-    Degradation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Degradation_area/pgm.bio.deg.area,
-                                   ifelse(Region=="PGM" & benefit=="Carbon", Degradation_area/pgm.carb.deg.area,
-                                          ifelse(Region=="STM" & benefit=="Biodiversity", Degradation_area/stm.bio.deg.area,
-                                                 Degradation_area/stm.carb.deg.area))),
-    Restoration_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Restoration_area/pgm.bio.rest.area,
-                                 ifelse(Region=="PGM" & benefit=="Carbon", Restoration_area/pgm.carb.rest.area,
-                                        ifelse(Region=="STM" & benefit=="Biodiversity", Restoration_area/stm.bio.rest.area,
-                                               Restoration_area/stm.carb.rest.area)))
+    Deforestation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Deforestation_area/155000,
+                                   ifelse(Region=="PGM" & benefit=="Carbon", Deforestation_area/155000,
+                                          ifelse(Region=="STM" & benefit=="Biodiversity", Deforestation_area/155000,
+                                                 Deforestation_area/155000))),
+    Degradation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Degradation_area/155000,
+                                   ifelse(Region=="PGM" & benefit=="Carbon", Degradation_area/155000,
+                                          ifelse(Region=="STM" & benefit=="Biodiversity", Degradation_area/155000,
+                                                 Degradation_area/155000))),
+    Restoration_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Restoration_area/155000,
+                                 ifelse(Region=="PGM" & benefit=="Carbon", Restoration_area/155000,
+                                        ifelse(Region=="STM" & benefit=="Biodiversity", Restoration_area/155000,
+                                               Restoration_area/155000)))
   ) %>% 
   group_by(Region, benefit) %>% 
-  arrange(Budget) %>% 
+  arrange(Target, .by_group = T) %>% 
   mutate(
-    Total = Total_area - lag(Total_area, default = first(Total_area)),
-    Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
-    Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
-    Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
+    Total = Total_area - lag(Total_area, default = last(Total_area)),
+    Degradation = Degradation_area - lag(Degradation_area, default = last(Degradation_area)),
+    Deforestation = Deforestation_area - lag(Deforestation_area, default = last(Deforestation_area)),
+    Restoration = Restoration_area - lag(Restoration_area, default = last(Restoration_area)),
     Proportion_Degradation = Degradation/Total,
     Proportion_Deforestation = Deforestation/Total,
     Proportion_Restoration = Restoration/Total
@@ -1198,12 +1193,12 @@ result_df <- result_df %>%
 
 
 write.csv(result_df, "models.output/pixels_rank2.csv", row.names = F)
-#result_df <- read.csv("models.output/pixels_rank.csv")
+#result_df <- read.csv("models.output/pixels_rank2.csv")
 
 
 ##create a plot
 fig3ab <- result_df %>%  
-  ggplot(aes(x = Budget)) +
+  ggplot(aes(x = Target)) +
   #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
   geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 1) +
@@ -1213,10 +1208,10 @@ fig3ab <- result_df %>%
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
-  scale_x_continuous(limits = c(50000, 500000000), 
-                     labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
-                     breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Proportion of combined \nconservation actions") +
+  #scale_x_continuous(limits = c(50000, 500000000), 
+  #                   labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
+  #                   breaks = c(50000, seq(100000000, 500000000, 100000000))) +
+  labs(title = "", x = "Total area (ha)", y = "Proportion of combined \nconservation actions") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1229,7 +1224,7 @@ fig3ab <- result_df %>%
 
 
 fig3cd <- result_df %>%  
-  ggplot(aes(x = Budget)) +
+  ggplot(aes(x = Target)) +
   #geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
   geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
   #geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
@@ -1240,9 +1235,9 @@ fig3cd <- result_df %>%
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
-  scale_x_continuous(limits = c(50000, 500000000), 
-                     labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
-                     breaks = c(50000, seq(100000000, 500000000, 100000000))) +
+  #scale_x_continuous(limits = c(50000, 500000000), 
+  #                   labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
+  #                   breaks = c(50000, seq(100000000, 500000000, 100000000))) +
   labs(title = "", x = "Brazilian Reais (Millions)", y = "Cumulative area (ha) \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
