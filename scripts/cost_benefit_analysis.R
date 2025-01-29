@@ -768,7 +768,8 @@ ggarrange(fig2a + theme(plot.margin = margin(42, 1, 7, 1, unit = "pt")),
           fig2b + theme(plot.margin = margin(42, 1, 20, 1, unit = "pt")),
           fig2c, 
           fig2d + theme(plot.margin = margin(20, 1, 20, 1, unit = "pt")),
-          ncol = 4, labels = c("A", "", "B", ""), widths = c(1.9,.5,1,.5),
+          ncol = 4, labels = c("                                A", "", "    B", ""), 
+          widths = c(1.7,.7,1.1,.7),
           common.legend = T, legend = "bottom")
 #
 
@@ -1080,7 +1081,7 @@ result_df <- data.frame(Region = as.factor(character(0)),
                         Restoration_area = numeric(0))
 
 
-for (m in rev(seq(0,155000, 100))) {
+for (m in rev(seq(0,530000, 100))) {
   
   suppressMessages(
     result_df <- target.biodiv %>% 
@@ -1122,7 +1123,7 @@ target.carb <- costs.principals %>%
 
 
 
-for (m in rev(seq(0,155000, 100))) {
+for (m in rev(seq(0,530000, 100))) {
   
   suppressMessages(
     result_df <- target.carb %>% 
@@ -1147,6 +1148,8 @@ for (m in rev(seq(0,155000, 100))) {
   
 }
 
+write.csv(result_df, "models.output/pixels_rank2.csv", row.names = F)
+#result_df <- read.csv("models.output/pixels_rank2.csv")
 
 pgm.bio.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Biodiversity") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
 pgm.carb.def.area <- result_df %>% filter(Region=="PGM" & benefit=="Carbon") %>% last() %>% dplyr::select(Deforestation_area) %>% pull()
@@ -1165,53 +1168,62 @@ stm.carb.rest.area <- result_df %>% filter(Region=="STM" & benefit=="Carbon") %>
 
 
 result_df <- result_df %>% 
-  mutate(
-    Deforestation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Deforestation_area/155000,
-                                   ifelse(Region=="PGM" & benefit=="Carbon", Deforestation_area/155000,
-                                          ifelse(Region=="STM" & benefit=="Biodiversity", Deforestation_area/155000,
-                                                 Deforestation_area/155000))),
-    Degradation_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Degradation_area/155000,
-                                   ifelse(Region=="PGM" & benefit=="Carbon", Degradation_area/155000,
-                                          ifelse(Region=="STM" & benefit=="Biodiversity", Degradation_area/155000,
-                                                 Degradation_area/155000))),
-    Restoration_area_pp = ifelse(Region=="PGM" & benefit=="Biodiversity", Restoration_area/155000,
-                                 ifelse(Region=="PGM" & benefit=="Carbon", Restoration_area/155000,
-                                        ifelse(Region=="STM" & benefit=="Biodiversity", Restoration_area/155000,
-                                               Restoration_area/155000)))
-  ) %>% 
+  mutate(Region = factor(Region,
+                         levels = c("PGM",
+                                    "STM")),
+         benefit = factor(benefit,
+                          levels = c("Biodiversity",
+                                     "Carbon")),
+         across(Deforestation_area:Degradation_area, ~replace_na(.x, 0))) %>% 
+  add_row(Region = c("PGM", "PGM", "STM", "STM"),
+          Target = as.numeric(c(0,0,0,0)),
+          benefit = c("Biodiversity", "Carbon", "Biodiversity", "Carbon"),
+          Total_area = as.numeric(c(0,0,0,0)),
+          Deforestation_area = as.numeric(c(0,0,0,0)),
+          Degradation_area = as.numeric(c(0,0,0,0)),
+          Restoration_area = as.numeric(c(0,0,0,0)),
+          .before = 1) %>%  
   group_by(Region, benefit) %>% 
   arrange(Target, .by_group = T) %>% 
   mutate(
-    Total = Total_area - lag(Total_area, default = last(Total_area)),
-    Degradation = Degradation_area - lag(Degradation_area, default = last(Degradation_area)),
-    Deforestation = Deforestation_area - lag(Deforestation_area, default = last(Deforestation_area)),
-    Restoration = Restoration_area - lag(Restoration_area, default = last(Restoration_area)),
-    Proportion_Degradation = Degradation/Total,
-    Proportion_Deforestation = Deforestation/Total,
-    Proportion_Restoration = Restoration/Total
+    Deforestation_area_pp = round(ifelse(Region=="PGM" & benefit=="Biodiversity", Deforestation_area/pgm.bio.def.area,
+                                   ifelse(Region=="PGM" & benefit=="Carbon", Deforestation_area/pgm.carb.def.area,
+                                          ifelse(Region=="STM" & benefit=="Biodiversity", Deforestation_area/stm.bio.def.area,
+                                                 Deforestation_area/stm.carb.def.area))),2),
+    Restoration_area_pp = round(ifelse(Region=="PGM" & benefit=="Biodiversity", Restoration_area/pgm.bio.rest.area,
+                                 ifelse(Region=="PGM" & benefit=="Carbon", Restoration_area/pgm.carb.rest.area,
+                                        ifelse(Region=="STM" & benefit=="Biodiversity", Restoration_area/stm.bio.rest.area,
+                                               Restoration_area/stm.carb.rest.area))),2),
+    Degradation_area_pp = round(ifelse(Region=="PGM" & benefit=="Biodiversity", Degradation_area/pgm.bio.deg.area,
+                                 ifelse(Region=="PGM" & benefit=="Carbon", Degradation_area/pgm.carb.deg.area,
+                                        ifelse(Region=="STM" & benefit=="Biodiversity", Degradation_area/stm.bio.deg.area,
+                                               Degradation_area/stm.carb.deg.area))),2),
+    Total = Total_area - lag(Total_area, default = first(Total_area)),
+    Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
+    Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
+    Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
+    Proportion_Deforestation = ifelse(Deforestation == 0, 0, Deforestation/Total),
+    Proportion_Restoration = ifelse(Restoration == 0, 0, Restoration/Total),
+    Proportion_Degradation = ifelse(Degradation == 0, 0, Degradation/Total)
   )
 
 
-write.csv(result_df, "models.output/pixels_rank2.csv", row.names = F)
-#result_df <- read.csv("models.output/pixels_rank2.csv")
 
 
 ##create a plot
-fig3ab <- result_df %>%  
+fig4ab <- result_df %>%  
   ggplot(aes(x = Target)) +
-  #geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
-  #geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
-  #geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), linewidth = 1) +
-  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 2, method = "gam") +
+  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation"), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration"), linewidth = 1.2, method = "loess") +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
-  #scale_x_continuous(limits = c(50000, 500000000), 
-  #                   labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
-  #                   breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Total area (ha)", y = "Proportion of combined \nconservation actions") +
+  scale_x_continuous(limits = c(0, 530000), 
+                     breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
+                     labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = "", x = "Total landscape area", y = "Proportional combination of \nconservation actions") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1223,22 +1235,18 @@ fig3ab <- result_df %>%
 
 
 
-fig3cd <- result_df %>%  
+fig4cd <- result_df %>%  
   ggplot(aes(x = Target)) +
-  #geom_line(aes(y = Degradation_area_pp, color = "Avoid Degradation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation"), linewidth = 2, method = "gam") +
-  #geom_line(aes(y = Deforestation_area_pp, color = "Avoid Deforestation", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Deforestation_area, color = "Avoid Deforestation"), linewidth = 2, method = "gam") +
-  #geom_line(aes(y = Restoration_area_pp, color = "Restoration", linetype=Region), linewidth = 1) +
-  geom_smooth(aes(y = Restoration_area, color = "Restoration"), linewidth = 2, method = "gam") +
-  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
+  stat_summary(aes(y = Degradation_area, color = "Avoid Degradation", group = 1), fun.y = mean, geom = "line", linewidth = 1.2) +
+  stat_summary(aes(y = Deforestation_area, color = "Avoid Deforestation", group = 1), fun.y = mean, geom = "line", linewidth = 1.2) +
+  stat_summary(aes(y = Restoration_area, color = "Restoration", group = 1), fun.y = mean, geom = "line", linewidth = 1.2) +
   scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
   facet_wrap(~benefit, ncol=1) +
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
-  #scale_x_continuous(limits = c(50000, 500000000), 
-  #                   labels = as.character(paste0(c(0.05, seq(100, 500, 100)),"M")), 
-  #                   breaks = c(50000, seq(100000000, 500000000, 100000000))) +
-  labs(title = "", x = "Brazilian Reais (Millions)", y = "Cumulative area (ha) \nby conservation action") +
+  scale_x_continuous(limits = c(0, 530000), 
+                     breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
+                     labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
+  labs(title = "", x = "Total landscape area", y = "Cumulative area (ha) \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1249,7 +1257,76 @@ fig3cd <- result_df %>%
   )
 
 
-ggarrange(fig3ab, fig3cd, ncol = 2, common.legend = T, legend = "bottom")
+#fig4cd <- result_df %>%  
+#  ggplot(aes(x = Target)) +
+#  geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation"), linewidth = 1.2, method = "loess") +
+#  geom_smooth(aes(y = Deforestation_area, color = "Avoid Deforestation"), linewidth = 1.2, method = "loess") +
+#  geom_smooth(aes(y = Restoration_area, color = "Restoration"), linewidth = 1.2, method = "loess") +
+#  scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
+#  facet_wrap(~benefit, ncol=1) +
+#  guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
+#  scale_x_continuous(limits = c(0, 530000), 
+#                     breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000)) +
+#  labs(title = "", x = "Total area (ha)", y = "Cumulative area (ha) \nby conservation action") +
+#  theme_minimal()+
+#  theme(text = element_text(size = 16, family = "sans"),
+#        plot.title = element_text(hjust = 0.5),
+#        axis.title = element_text(face="bold"),
+#        axis.text.x=element_text(size = 14),
+#        legend.title = element_blank(),
+#        legend.position = "bottom"
+#  )
+
+
+ggarrange(fig4ab, fig4cd, ncol = 2, common.legend = T, legend = "bottom")
+
+
+figS17ab <- result_df %>%  
+  ggplot(aes(x = Target)) +
+  geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation", linetype = Region), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation", linetype = Region), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Proportion_Restoration, color = "Restoration", linetype = Region), linewidth = 1.2, method = "loess") +
+  scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
+  facet_wrap(~benefit, ncol=1) +
+  guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
+  scale_x_continuous(limits = c(0, 530000), 
+                     breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
+                     labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = "", x = "Total landscape area", y = "Proportional combination of \nconservation actions") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom"
+  )
+
+
+
+figS17cd <- result_df %>%  
+  ggplot(aes(x = Target)) +
+  geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation", linetype = Region), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Deforestation_area, color = "Avoid Deforestation", linetype = Region), linewidth = 1.2, method = "loess") +
+  geom_smooth(aes(y = Restoration_area, color = "Restoration", linetype = Region), linewidth = 1.2, method = "loess") +
+  scale_color_manual(values = c("Avoid Deforestation" = "#294B29", "Restoration" = "#789461", "Avoid Degradation" = "#76453B")) +
+  facet_wrap(~benefit, ncol=1) +
+  guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
+  scale_x_continuous(limits = c(0, 530000), 
+                     breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000)) +
+  labs(title = "", x = "Total landscape area", y = "Cumulative area (ha) \nby conservation action") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "bottom"
+  )
+
+
+ggarrange(figS17ab, figS17cd, ncol = 2, common.legend = T, legend = "bottom")
 
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "stm.shp", "pgm.lulc", "stm.lulc",
@@ -1712,8 +1789,9 @@ ggarrange(figS10a, figS10b + theme(plot.margin = margin(1, 1, 20, 1, unit = "pt"
           figS10c, figS10d + theme(plot.margin = margin(1, 1, 20, 1, unit = "pt")), 
           ncol = 4, 
           labels = c("                                 PGM", "", "          STM", ""), 
-          widths = c(1.7,.5,1,.5), 
+          widths = c(1.7,.7,1.2,.7), 
           common.legend = T, legend = "bottom")
+
 gc()
 
 
@@ -1941,7 +2019,7 @@ ggarrange(figS11a, figS11b + theme(plot.margin = margin(20, 1, 20, 1, unit = "pt
           figS11c, figS11d + theme(plot.margin = margin(20, 1, 20, 1, unit = "pt")), 
           ncol = 4, 
           labels = c("                                 PGM", "", "          STM", ""), 
-          widths = c(1.7,.5,1,.5), 
+          widths = c(1.7,.7,1.2,.7), 
           common.legend = T, legend = "bottom")
 
 
