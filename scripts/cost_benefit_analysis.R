@@ -504,6 +504,11 @@ fig2b <- biodiversity.benefit.principals %>% #filter(Scenario == "Avoid deforest
         legend.position = "bottom")
 
 
+biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+  rstatix::kruskal_effsize(rescaled.BBenefit ~ Scenario)
+
+biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+  rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
 
 #
@@ -760,6 +765,11 @@ fig2d <- carbon.benefit.principals %>% #filter(Scenario == "Avoid deforestation"
         legend.position = "bottom")
 
 
+carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+  rstatix::kruskal_effsize(rescaled.BBenefit ~ Scenario)
+
+carb.scenario.diff <- carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+  rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
 
 
