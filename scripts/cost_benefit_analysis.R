@@ -505,7 +505,7 @@ fig2b <- biodiversity.benefit.principals %>% #filter(Scenario == "Avoid deforest
 
 
 biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::kruskal_effsize(rescaled.BBenefit ~ Scenario)
+  rstatix::kruskal_test(rescaled.BBenefit ~ Scenario)
 
 biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
   rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
@@ -766,10 +766,10 @@ fig2d <- carbon.benefit.principals %>% #filter(Scenario == "Avoid deforestation"
 
 
 carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::kruskal_effsize(rescaled.BBenefit ~ Scenario)
+  rstatix::kruskal_test(rescaled.CBenefit ~ Scenario)
 
 carb.scenario.diff <- carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
+  rstatix::dunn_test(rescaled.CBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
 
 
@@ -1233,7 +1233,9 @@ fig4ab <- result_df %>%
                      breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
                      labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
   scale_y_continuous(limits = c(0, 1)) +
-  labs(title = "", x = "Total landscape area", y = "Proportional combination of \nconservation actions") +
+  labs(title = "", 
+       x = "Percentage of modified landscape \neligible for conservation", 
+       y = "Proportional combination of \nconservation actions") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1256,7 +1258,9 @@ fig4cd <- result_df %>%
   scale_x_continuous(limits = c(0, 530000), 
                      breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
                      labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
-  labs(title = "", x = "Total landscape area", y = "Cumulative area (ha) \nby conservation action") +
+  labs(title = "", 
+       x = "Percentage of modified landscape \neligible for conservation", 
+       y = "Cumulative area (ha) \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1291,7 +1295,7 @@ fig4cd <- result_df %>%
 ggarrange(fig4ab, fig4cd, ncol = 2, common.legend = T, legend = "bottom")
 
 
-figS17ab <- result_df %>%  
+figS18ab <- result_df %>%  
   ggplot(aes(x = Target)) +
   geom_smooth(aes(y = Proportion_Degradation, color = "Avoid Degradation", linetype = Region), linewidth = 1.2, method = "loess") +
   geom_smooth(aes(y = Proportion_Deforestation, color = "Avoid Deforestation", linetype = Region), linewidth = 1.2, method = "loess") +
@@ -1303,7 +1307,9 @@ figS17ab <- result_df %>%
                      breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000),
                      labels = c("0", "20%", "40%", "60%", "80%", "100%")) +
   scale_y_continuous(limits = c(0, 1)) +
-  labs(title = "", x = "Total landscape area", y = "Proportional combination of \nconservation actions") +
+  labs(title = "", 
+       x = "Percentage of modified landscape \neligible for conservation", 
+       y = "Proportional combination of \nconservation actions") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1315,7 +1321,7 @@ figS17ab <- result_df %>%
 
 
 
-figS17cd <- result_df %>%  
+figS18cd <- result_df %>%  
   ggplot(aes(x = Target)) +
   geom_smooth(aes(y = Degradation_area, color = "Avoid Degradation", linetype = Region), linewidth = 1.2, method = "loess") +
   geom_smooth(aes(y = Deforestation_area, color = "Avoid Deforestation", linetype = Region), linewidth = 1.2, method = "loess") +
@@ -1325,7 +1331,9 @@ figS17cd <- result_df %>%
   guides(color=guide_legend(override.aes=list(fill=NA)), linetype="none")+
   scale_x_continuous(limits = c(0, 530000), 
                      breaks = c(0, 530000*.2, 530000*.4, 530000*.6, 530000*.8, 530000)) +
-  labs(title = "", x = "Total landscape area", y = "Cumulative area (ha) \nby conservation action") +
+  labs(title = "", 
+       x = "Percentage of modified landscape \neligible for conservation", 
+       y = "Cumulative area (ha) \nby conservation action") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1336,7 +1344,7 @@ figS17cd <- result_df %>%
   )
 
 
-ggarrange(figS17ab, figS17cd, ncol = 2, common.legend = T, legend = "bottom")
+ggarrange(figS18ab, figS18cd, ncol = 2, common.legend = T, legend = "bottom")
 
 
 rm(list=ls()[!ls() %in% c("pgm.shp", "stm.shp", "pgm.lulc", "stm.lulc",
