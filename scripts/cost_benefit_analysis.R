@@ -464,99 +464,132 @@ biodiv.summation <- biodiversity.benefit.principals %>%
                           TRUE                          ~ sum(area_change=="Direct", na.rm = T))) %>% 
   summarise(sum.benefit = sum(rescaled.BBenefit),
             area = (first(area)*0.08919563)) %>% 
-  ungroup() %>% 
-  mutate(sort = c(0,2,1,5,3,6,4),
-         type = c("noint","sing","sing","comb","sing","comb","comb")) %>% 
-  arrange(sort) %>% 
-  mutate(distance.to.bau = sum.benefit - sum.benefit[Scenario=="Business as usual"],
-         accumulated.benef = case_when(Scenario=="Avoid degradation" ~ sum.benefit[Scenario=="Avoid degradation"],
-                                       Scenario=="Avoid deforestation" ~ sum.benefit[Scenario=="Avoid degradation"] + distance.to.bau[Scenario=="Avoid deforestation"],
-                                       Scenario=="Restoration without avoid" ~ sum.benefit[Scenario=="Avoid degradation"] + distance.to.bau[Scenario=="Avoid deforestation"] + distance.to.bau[Scenario=="Restoration without avoid"],
-                                       Scenario=="Restoration and avoid both" ~ sum.benefit[Scenario=="Restoration and avoid both"],
-                                       Scenario=="Avoid both" ~ sum.benefit[Scenario=="Avoid both"],
-                                       Scenario=="Restoration and avoid deforestation" ~ sum.benefit[Scenario=="Restoration and avoid deforestation"],
-                                       .default = sum.benefit[Scenario=="Business as usual"]),
-         accumulated.area = case_when(Scenario=="Avoid degradation" ~ area[Scenario=="Avoid degradation"],
-                                      Scenario=="Avoid deforestation" ~ area[Scenario=="Avoid degradation"] + area[Scenario=="Avoid deforestation"],
-                                      Scenario=="Restoration without avoid" ~ area[Scenario=="Business as usual"] - area[Scenario=="Restoration without avoid"],
-                                      Scenario=="Restoration and avoid both" ~ area[Scenario=="Business as usual"] - area[Scenario=="Restoration without avoid"],
-                                      Scenario=="Avoid both" ~ area[Scenario=="Avoid both"],
-                                      Scenario=="Restoration and avoid deforestation" ~ area[Scenario=="Restoration and avoid deforestation"],
-                                      .default = area[Scenario=="Business as usual"] - area[Scenario=="Restoration without avoid"]))
+  ungroup()
+
+
+fig1a <- biodiv.summation %>% 
+  filter(Scenario %in% c("Business as usual",
+                         "Avoid degradation", 
+                         "Avoid deforestation", 
+                         "Restoration without avoid")) %>% 
+  droplevels() %>% 
+  mutate(area2 = c(655980 - 80705, 158980, 286790, 80705),
+         b.size = rescale(area, from = c(0,max(area2)), to = c(0.01, 1))*20) %>% 
+  ggplot() + 
+  #Observed change
+  annotate("segment", x = "Business as usual", xend = "Business as usual", 
+           y = 0, yend = -2170000, colour = "orange", linewidth = 22.8, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.45, "inches")))+
+  #Avoid degradation
+  annotate("segment", x = "Avoid degradation", xend = "Avoid degradation", 
+           y = -2535758, yend = -940000, colour = "darkgreen", linewidth = 10.1, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.35, "inches"))) +
+  #Avoid deforestation
+  annotate("segment", x = "Avoid deforestation", xend = "Avoid deforestation", 
+           y = -2535758, yend = -1900000, colour = "green", linewidth = 5.67, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.25, "inches"))) +
+  #Restoration alone
+  annotate("segment", x = "Restoration without avoid", xend = "Restoration without avoid", 
+           y = -2535758, yend = -2400000, colour = "lightgreen", linewidth = 2.98, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.15, "inches"))) +
+  #baseline & bau thresholds
+  geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = -2535758, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_label(aes(x=4.2, y=0, label = "Biodiversity condition in 2010", hjust = "left"), fill = "white")+
+  geom_label(aes(x=4.2, y=-2535758, label = "Biodiversity condition in 2020", hjust = "left"), fill = "white") +
+  scale_x_discrete(limits = c("Business as usual",
+                              "Avoid degradation",
+                              "Avoid deforestation",
+                              "Restoration without avoid"),
+                   labels = c("Observed \nchange",
+                              "Avoid \ndegradation",
+                              "Avoid \ndeforestation",
+                              "Restoration \nwithout avoid"),
+                   expand = c(0,0)) +
+  #labeling
+  #avoid degradation
+  annotate("segment", x=2, xend=4.2, y=-799940, yend=-799940, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=-799940, label = "Avoided loss from degradation", hjust = "left"), fill = "white")+
+  #avoid deforestation
+  annotate("segment", x=3, xend=4.2, y=-1824964, yend=-1824964, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=-1824964, label = "Avoided loss from deforestation", hjust = "left"), fill = "white")+
+  #restoration alone
+  annotate("segment", x=4, xend=4.2, y=-2368627, yend=-2368627, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=-2368627, label = "Compensated loss from restoration", hjust = "left"), fill = "white")+
+  #style
+  coord_cartesian(xlim = c(0, 5.5), ylim = c(-2600000, 700000), clip = "off") +
+  labs(x="", y="Sum of biodiversity values") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+
+
+
+
+fig1b <- biodiv.summation %>% 
+  filter(Scenario %in% c("Business as usual", 
+                         "Restoration and avoid deforestation", 
+                         "Avoid both", 
+                         "Restoration and avoid both")) %>% droplevels() %>% 
+  mutate(area2 = c(655980 - 80705, 445770, 239685, 655980 - 80705),
+         b.size = rescale(area, from = c(0,max(area2)), to = c(0.01, 1))*20) %>% 
+  ggplot() + 
+  #Observed change
+  annotate("segment", x = "Business as usual", xend = "Business as usual", 
+           y = 0, yend = -2170000, colour = "orange", linewidth = 22.8, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.45, "inches")))+
+  #Restoration and avoid deforestation
+  annotate("segment", x = "Restoration and avoid deforestation", xend = "Restoration and avoid deforestation",
+           y = -2535758, yend = -1700000, colour = "green", linewidth = 8.45, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.40, "inches"))) +
+  #Avoid both
+  annotate("segment", x = "Avoid both", xend = "Avoid both", 
+           y = -2535758, yend = 96000, colour = "lightblue", linewidth = 15.5, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.40, "inches"))) +
+  #Restoration and avoid both
+  annotate("segment", x = "Restoration and avoid both", xend = "Restoration and avoid both", 
+           y = -2535758, yend = 230000, colour = "blue", linewidth = 20, linejoin = "mitre",
+           arrow = arrow(angle = 29, length = unit(0.45, "inches"))) +
+  #baseline & bau thresholds
+  geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = -2535758, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 567386, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_label(aes(x=4.2, y=0, label = "Biodiversity condition in 2010", hjust = "left"), fill = "white")+
+  geom_label(aes(x=4.2, y=-2535758, label = "Biodiversity condition in 2020", hjust = "left"), fill = "white") +
+  #geom_label(aes(x=4.2, y=567386, label = "Net Gain potential \nfrom all interventions combined", hjust = "left"), fill = "white") +
+  scale_x_discrete(limits = c("Business as usual",
+                              "Restoration and avoid deforestation",
+                              "Avoid both",
+                              "Restoration and avoid both"),
+                   labels = c("Observed \nchange",
+                              "Avoid \nboth", 
+                              "Restoration \nand avoid deforestation", 
+                              "Restoration \nand avoid both"),
+                   expand = c(0,0)) +
+  #labeling
+  #restoration and avoid deforest.
+  annotate("segment", x=2, xend=4.2, y=-1572037, yend=-1572037, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=-1572037, label = "Avoided and compensated loss \nfrom avoiding deforestation and restoration", hjust = "left"), fill = "white")+
+  #avoid both
+  annotate("segment", x=3, xend=4.2, y=292608, yend=292608, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=292608, label = "Net gain potential \nfrom avoiding interventions", hjust = "left"), fill = "white")+
+  #restoration and avoid both
+  annotate("segment", x=4, xend=4.2, y=567386, yend=567386, colour="gray65", linewidth=1, linetype=3)+
+  geom_label(aes(x=4.2, y=570000, label = "Net Gain potential \nfrom all interventions combined", hjust = "left"), fill = "white")+
+  #style
+  coord_cartesian(xlim = c(0, 5.5), ylim = c(-2600000, 700000), clip = "off") +
+  labs(x="", y="") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+
+
+ggarrange(fig1a, 
+          fig1b)
   
   
   
-  biodiv.summation %>% filter(Scenario != "Business as usual") %>% 
-  ggplot(aes(accumulated.area, accumulated.benef)) +
-    #single solutions
-    #avoid degradation
-    geom_segment(aes(x = 0, xend = 286790, y = -2535757, yend = -799940), 
-                 colour = "gray33", linewidth = 1)+
-    #avoid deforestation
-    geom_segment(aes(x = 286790, xend = 445770, y = -799940, yend = -89148), 
-                 colour = "gray33", linewidth = 1)+
-    #restoration alone 
-    geom_segment(aes(x = 445770, xend = 575275, y = -89148, yend = 77982), 
-                 colour = "gray33", linewidth = 1)+
-    #combined
-    #restoration and avoid both
-    geom_segment(aes(x = 0, xend = 575275, y = -2535757, yend = 567386), 
-                 colour = "gray33", linewidth = 1, linetype = 2)+
-    #avoid both
-    geom_segment(aes(x = 0, xend = 445770, y = -2535757, yend = 292608), 
-                 colour = "gray33", linewidth = 1, linetype = 2)+
-    #restoration and avoid deforest.
-    geom_segment(aes(x = 0, xend = 239685, y = -2535757, yend = -1572037), 
-                 colour = "gray33", linewidth = 1, linetype = 2) +
-    
-    #baseline & bau thresholds
-    geom_hline(yintercept = -2535757, colour = "gray33", linewidth = 1)+
-    geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2)+
-    
-    #labeling
-    #observed loss of condition
-    annotate("segment", x=-35000, xend=-35000, y=0, yend=-2350000, colour="orange", linewidth=10, linejoin="mitre",
-             arrow=arrow(angle = 29, length=unit(0.35, "inches")))+
-    annotate("text", x=-35000, y=-1000000, label="Loss     2010 - 2020", colour="white",
-             angle=90, hjust=.6, vjust=.4, size=7, fontface="bold")+
-    #avoid degradation
-    annotate("segment", x=640000, xend=640000, y=-2535757, yend=-850000, colour="green", linewidth=3, linejoin="mitre",
-             arrow=arrow(angle = 29, length=unit(0.15, "inches")))+
-    annotate("segment", x=286790, xend=750000, y=-799940, yend=-799940, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=750000, y=-1650000, label = "Avoid degradation"), fill = "white")+
-    #avoid deforestation
-    annotate("segment", x=640000, xend=640000, y=-799940, yend=-125000, colour="green", linewidth=3, linejoin="mitre",
-             arrow=arrow(angle = 29, length=unit(0.15, "inches")))+
-    annotate("segment", x=445770, xend=750000, y=-89148, yend=-89148, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=750000, y=-425000, label = "Avoid deforestation"), fill = "white")+
-    #restoration alone
-    annotate("segment", x=640000, xend=640000, y=-89148, yend=50000, colour="green", linewidth=3, linejoin="mitre",
-             arrow=arrow(angle = 29, length=unit(0.15, "inches")))+
-    annotate("segment", x=575275, xend=750000, y=77982, yend=77982, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=765000, y=-10000, label = "Restoration without avoid"), fill = "white")+
-    #restoration and avoid deforest.
-    annotate("segment", x=239685, xend=450000, y=-1572037, yend=-1572037, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=450000, y=-1572037, label = "Restoration and \navoid deforestation"), fill = "white")+
-    #avoid both
-    annotate("segment", x=445770, xend=750000, y=292608, yend=292608, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=730000, y=310000, label = "Avoid both"), fill = "white")+
-    #restoration and avoid both
-    annotate("segment", x=575275, xend=750000, y=567386, yend=567386, colour="gray65", linewidth=1, linetype=3)+
-    geom_label(aes(x=750000, y=570000, label = "Restoration and \navoid both"), fill = "white")+
-    
-    geom_label(aes(x=0, y=0, label = "Biodiversity condition in 2010"), fill = "white")+
-    geom_label(aes(x=0, y=-2535757, label = "Biodiversity condition in 2020"), fill = "white")+
-    coord_cartesian(xlim = c(-40000, 800000)) +
-    
-    geom_point(size = 5) +
-    labs(x="Area", y="Sum of biodiversity value") +
-    theme_classic() +
-    theme(legend.position = "none")
-    
-  #grid.locator("native")
-  grid.brackets(x1=781,y1=125,x2=781,y2=154,h=.025,curvature=.1,type=2,lwd=2.5,col="gray")
-  grid.brackets(x1=781,y1=155,x2=781,y2=279,h=.025,curvature=.1,type=2,lwd=2.5,col="gray")
-  grid.brackets(x1=781,y1=280,x2=781,y2=590,h=.025,curvature=.1,type=2,lwd=2.5,col="gray")
+  
   
   
 
