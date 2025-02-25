@@ -1351,6 +1351,8 @@ pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = 
 pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
 pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
 pgm.biodiversity.benefit.total <- mask(pgm.biodiversity.benefit.total, pgm.shp)
+pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total/586
+
 
 rm(pgm.biodiversity.benefit.list)
 
@@ -1371,6 +1373,8 @@ stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = 
 stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
 stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
 stm.biodiversity.benefit.total <- mask(stm.biodiversity.benefit.total, stm.shp)
+stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total/586
+
 
 rm(stm.biodiversity.benefit.list)
 
@@ -1387,8 +1391,8 @@ gc()
 
 
 plot(stm.biodiversity.benefit.total[[2:13]], nr=3, 
-     col = colorRampPalette(c("#FBFCF8", "#0AD1C8", "#14919B", "#213A57"))(length(seq(0, 410, by = 10))), 
-     breaks= seq(0, 420, by = 10)) ## res = 1673 x 881
+     col = colorRampPalette(c("#FBFCF8", "#0AD1C8", "#14919B", "#213A57"))(length(seq(0, .7, length.out = 42))), 
+     breaks= round(seq(0, .7, length.out = 42),2)) ## res = 1673 x 881
 
 
 
