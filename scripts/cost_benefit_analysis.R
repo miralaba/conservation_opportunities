@@ -73,7 +73,7 @@ pgm.area.change.df.principals <- pgm.area.change.df.principals %>%
     X_lulc_2020_real:X_lulc_2020_restor_n_avoidboth,
     names_to = "Scenario",
     values_to = "Cat"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -96,7 +96,7 @@ pgm.area.change.df.principals <- pgm.area.change.df.principals %>%
     Cat = factor(Cat,
                  levels = c(1,10,25,125,100,0),
                  labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
-  ) %>% ungroup() %>% drop_na()
+  ) %>% ungroup()
 
 
 pgm.area.change.bau <- pgm.area.change.df.principals %>% filter(Scenario=="Business as usual") %>% droplevels() %>% dplyr::rename(BAU.Cat = Cat)
@@ -182,7 +182,7 @@ stm.area.change.df.principals <- stm.area.change.df.principals %>%
     X_lulc_2020_real:X_lulc_2020_restor_n_avoidboth,
     names_to = "Scenario",
     values_to = "Cat"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -205,7 +205,7 @@ stm.area.change.df.principals <- stm.area.change.df.principals %>%
     Cat = factor(Cat,
                  levels = c(1,10,25,125,100,0),
                  labels = c("UPF", "DPF", "RDPF", "DSF", "SF", "D"))
-  ) %>% ungroup() %>% drop_na()
+  ) %>% ungroup()
 
 
 stm.area.change.bau <- stm.area.change.df.principals %>% filter(Scenario=="Business as usual") %>% droplevels() %>% dplyr::rename(BAU.Cat = Cat)
@@ -276,8 +276,10 @@ pgm.biodiversity.benefit.list <- grep("PGM", biodiversity.benefit.list, value = 
 
 pgm.biodiversity.benefit.total <- stack(pgm.biodiversity.benefit.list)
 pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
-#figS8a-l
-#plot(pgm.biodiversity.benefit.total[[2:13]], nr=3, col = colorRampPalette(c("#FCDAB7", "#1E5F74", "#133B5C", "#1D2D50"))(length(seq(0, 400, by = 10))), breaks= seq(0, 400, by = 10)) ## res = 1673 x 881
+
+## weighted mean of suitable/occupied area
+### divide the sums of species suitability by the total number of species (N=586)
+pgm.biodiversity.benefit.total <- pgm.biodiversity.benefit.total/586
 
 rm(pgm.biodiversity.benefit.list)
 
@@ -314,7 +316,7 @@ pgm.biodiversity.benefit.df.principals <- pgm.biodiversity.benefit.df.principals
     PGM_2020_real_biodiversity_benefit:PGM_2020_restor_n_avoidboth_biodiversity_benefit,
     names_to = "Scenario",
     values_to = "BBenefit"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -334,9 +336,9 @@ pgm.biodiversity.benefit.df.principals <- pgm.biodiversity.benefit.df.principals
                                  "Restoration without avoid",
                                  "Restoration and avoid deforestation",
                                  "Restoration and avoid both"))
-  ) %>% ungroup() %>% drop_na() %>% 
-  mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
-                                       TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
+  ) %>% ungroup() %>% 
+  #mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
+  #                                     TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
   right_join(pgm.area.change.df.principals)
 
 
@@ -365,6 +367,8 @@ stm.biodiversity.benefit.list <- grep("STM", biodiversity.benefit.list, value = 
 
 stm.biodiversity.benefit.total <- stack(stm.biodiversity.benefit.list)
 stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total[[c(1,8,4,6,13,2,11,9,5,7,3,12,10)]]
+
+stm.biodiversity.benefit.total <- stm.biodiversity.benefit.total/586
 
 rm(stm.biodiversity.benefit.list); rm(biodiversity.benefit.list)
 
@@ -401,7 +405,7 @@ stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals
     STM_2020_real_biodiversity_benefit:STM_2020_restor_n_avoidboth_biodiversity_benefit,
     names_to = "Scenario",
     values_to = "BBenefit"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -421,9 +425,9 @@ stm.biodiversity.benefit.df.principals <- stm.biodiversity.benefit.df.principals
                                  "Restoration without avoid",
                                  "Restoration and avoid deforestation",
                                  "Restoration and avoid both"))
-  ) %>% ungroup() %>% drop_na() %>% 
-  mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
-                                       TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
+  ) %>% ungroup() %>%
+  #mutate(rescaled.BBenefit = case_when(BBenefit >= 0 ~ BBenefit / (max(abs(max(BBenefit)), abs(min(BBenefit)))), 
+  #                                     TRUE ~ - BBenefit / - (max(abs(max(BBenefit)), abs(min(BBenefit)))))) %>% 
   right_join(stm.area.change.df.principals)
 
 
@@ -504,7 +508,7 @@ pgm.carbon.benefit.df.principals <- pgm.carbon.benefit.df.principals %>%
     PGM_2020_real_carbon_benefit:PGM_2020_restor_n_avoidboth_carbon_benefit,
     names_to = "Scenario",
     values_to = "CBenefit"
-  ) %>% 
+  ) %>% drop_na() %>%
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -524,9 +528,9 @@ pgm.carbon.benefit.df.principals <- pgm.carbon.benefit.df.principals %>%
                                  "Restoration without avoid",
                                  "Restoration and avoid deforestation",
                                  "Restoration and avoid both"))
-  ) %>% ungroup() %>% drop_na() %>% 
-  mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
-                                       TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
+  ) %>% ungroup() %>% 
+  #mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
+  #                                     TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
   right_join(pgm.area.change.df.principals)
 
 
@@ -593,7 +597,7 @@ stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>%
     STM_2020_real_carbon_benefit:STM_2020_restor_n_avoidboth_carbon_benefit,
     names_to = "Scenario",
     values_to = "CBenefit"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -613,9 +617,9 @@ stm.carbon.benefit.df.principals <- stm.carbon.benefit.df.principals %>%
                                  "Restoration without avoid",
                                  "Restoration and avoid deforestation",
                                  "Restoration and avoid both"))
-  ) %>% ungroup() %>% drop_na() %>% 
-  mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
-                                       TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
+  ) %>% ungroup() %>% 
+  #mutate(rescaled.CBenefit = case_when(CBenefit >= 0 ~ CBenefit / (max(abs(max(CBenefit)), abs(min(CBenefit)))), 
+  #                                     TRUE ~ - CBenefit / - (max(abs(max(CBenefit)), abs(min(CBenefit)))))) %>%
   right_join(stm.area.change.df.principals)
 
 
@@ -655,7 +659,7 @@ biodiv.summation <- biodiversity.benefit.principals %>%
   group_by(Scenario) %>% 
   mutate(area = case_when(Scenario=="Business as usual" ~ sum(area_change=="Others", na.rm = T),
                           TRUE                          ~ sum(area_change=="Direct", na.rm = T))) %>% 
-  summarise(sum.benefit = sum(rescaled.BBenefit)) %>% 
+  summarise(sum.benefit = sum(BBenefit)) %>% 
   ungroup()
 
 
@@ -664,25 +668,25 @@ fig1a <- biodiv.summation %>%
   geom_bar(position = "dodge", stat = "identity", width = .7) +
   ##Observed change
   #annotate("segment", x = "Business as usual", xend = "Business as usual", 
-  #         y = 2535757, yend = 340000, colour = "orange", linewidth = 22.8, linejoin = "mitre",
-  #         arrow = arrow(angle = 29, length = unit(0.45, "inches"))) +
+  #         y = 1731695, yend = 65000, colour = "gray65", linewidth = 8, linejoin = "mitre",
+  #         arrow = arrow(angle = 29, length = unit(0.25, "inches"))) +
   #baseline & observed changes thresholds
-  #geom_hline(yintercept = 3103143, colour = "gray33", linewidth = 1, linetype = 2) +
-  geom_hline(yintercept = 2535758, colour = "gray33", linewidth = 1, linetype = 2) +
-  #geom_hline(yintercept = 1735817, colour = "gray33", linewidth = 1, linetype = 2) +
+  #geom_hline(yintercept = 2116651, colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 1731695, colour = "gray33", linewidth = 1, linetype = 2) +
+  #geom_hline(yintercept = 1185406, colour = "gray33", linewidth = 1, linetype = 2) +
   geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
-  #geom_text(aes(x=7.8, y=3180000, label = "(iii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
-  geom_text(aes(x=7.8, y=2620000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
-  geom_text(aes(x=7.8, y=100000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
+  #geom_text(aes(x=7.8, y=2175000, label = "(iii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
+  geom_text(aes(x=7.8, y=1800000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
+  geom_text(aes(x=7.8, y=75000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   geom_text(aes(x=1, y=-500000, label = "Observed"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   geom_text(aes(x=3, y=-500000, label = "Single \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   geom_text(aes(x=6, y=-500000, label = "Combined \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   #style
-  scale_y_continuous("Biodiversity Net Change", 
-                     breaks = c(0, 1267879, 2535758, 3103143), 
-                     labels = paste0(round((c(0, 1267879, 2535758, 3103143) + min(biodiv.summation$sum.benefit)) / - min(biodiv.summation$sum.benefit) * 100, 1), "%")) +#,
-                     #sec.axis = sec_axis(~ ., breaks = c(0, 1e+06, 2e+06, 3e+06), 
-                     #                    labels = paste0(round(c(0, 1e+06, 2e+06, 3e+06) / - min(biodiv.summation$sum.benefit) * 100, 1), "%"),
+  scale_y_continuous("Biodiversity Net Change \n(weighted mean difference in occupied area)", 
+                     breaks = c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06), 
+                     labels = round((c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06) + min(biodiv.summation$sum.benefit)) / 1e+06, 1)) +#,
+                     #sec.axis = sec_axis(~ ., breaks = c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06), 
+                     #                    labels = paste0(round(c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06) / - min(biodiv.summation$sum.benefit) * 100, 1), "%"),
                      #                    name = "Summed benefict \nof interventions")) +
   scale_x_discrete(limits = c("Business as usual",
                               "Avoid degradation",
@@ -707,14 +711,14 @@ fig1a <- biodiv.summation %>%
                                "",
                                "",
                                ""),
-                    values = c("#6ECCAF80", "#3E7B2780", "#A9C46C80",
+                    values = c("#6ECCAF75", "#3E7B2775", "#A9C46C75",
                                "gray33", "gray85", "gray65", "gray45"),
                     drop = F) +
   guides(fill = guide_legend(ncol = 3)) + #, y.sec = guide_axis(cap = T)) +
   coord_cartesian(xlim = c(0, 8.1), clip = "off") +
   labs(x="", y="") +
   theme_classic() +
-  theme(axis.title.y = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+  theme(axis.title.y = element_text(family = "sans", size = 22, colour = "gray33"),
         axis.text.y = element_text(family = "sans", size = 16, colour = "gray33"),
         legend.position = "top",
         legend.title = element_blank(),
@@ -744,17 +748,18 @@ fig1b <- carb.summation %>%
   #geom_hline(yintercept = 150379293, colour = "gray33", linewidth = 1, linetype = 2) +
   geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
   #geom_text(aes(x=7.8, y=358500000, label = "(iii)", hjust = "left"), family = "sans", colour = "gray33", size = 5)+
-  geom_text(aes(x=7.8, y=255000000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5)+
+  geom_text(aes(x=7.8, y=257000000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5)+
   geom_text(aes(x=7.8, y=9900000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   geom_text(aes(x=1, y=-50000000, label = "Observed"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   geom_text(aes(x=3, y=-50000000, label = "Single \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   geom_text(aes(x=6, y=-50000000, label = "Combined \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   #style
-  scale_y_continuous("Carbon Net Change", breaks = c(0, 123582291, 247164581, 351538153), 
-                     labels = paste0(round((c(0, 123582291, 247164581, 351538153) + min(carb.summation$sum.benefit)) / - min(carb.summation$sum.benefit) *100, 1), "%"),
-                     sec.axis = sec_axis(~ ., breaks = c(0, 1e+08, 2e+08, 3e+08, 3.5e+08), 
-                                         labels = paste0(round(c(0, 1e+08, 2e+08, 3e+08, 3.5e+08) / 1e+06, 1), "MtC"),
-                                         name = "Summed benefict \nof interventions")) +
+  scale_y_continuous(expression("Carbon Net Change (MtC ha"^{-1}~")"), 
+                     breaks = c(0, 0.47e+08, 0.97e+08, 1.47e+08, 1.97e+08, 247164581, 2.97e+08), 
+                     labels = round((c(0, 0.47e+08, 0.97e+08, 1.47e+08, 1.97e+08, 247164581, 2.97e+08) + min(carb.summation$sum.benefit)) / 1e+06, 0)) +#,
+                     #sec.axis = sec_axis(~ ., breaks = c(0, 1e+08, 2e+08, 3e+08, 3.5e+08), 
+                     #                    labels = paste0(round(c(0, 1e+08, 2e+08, 3e+08, 3.5e+08) / 1e+06, 1), "MtC"),
+                     #                    name = "Summed benefict \nof interventions")) +
   scale_x_discrete(limits = c("Business as usual",
                               "Avoid degradation",
                               "Avoid deforestation",
@@ -781,11 +786,11 @@ fig1b <- carb.summation %>%
                     values = c("#6ECCAF80", "#3E7B2780", "#A9C46C80",
                                "gray33", "gray85", "gray65", "gray45"),
                     drop = F) +
-  guides(fill = guide_legend(ncol = 3), y.sec = guide_axis(cap = T)) +
+  guides(fill = guide_legend(ncol = 3)) + #, y.sec = guide_axis(cap = T)
   coord_cartesian(xlim = c(0, 8.1), clip = "off") +
   labs(x="", y="") +
   theme_classic() +
-  theme(axis.title.y = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+  theme(axis.title.y = element_text(family = "sans", size = 22, colour = "gray33"),
         axis.text.y = element_text(family = "sans", size = 16, colour = "gray33"),
         legend.position = "top",
         legend.title = element_blank(),
@@ -802,33 +807,48 @@ ggarrange(fig1a, fig1b,
 
 ## violin plot + jitter [dots colored by LULC category]
 ### biodiversity
-fig2a <- biodiversity.benefit.principals %>%
-  group_by(Region) %>% sample_n(100000) %>% 
-  ggplot() +
-  stat_summary(aes(x = Scenario, y = rescaled.BBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
-  #geom_boxplot(aes(x = Scenario, y = rescaled.CBenefit), width = .5, outlier.shape = NA) +
-  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_x_discrete(limits = rev(levels(biodiversity.benefit.principals$Scenario))) +
-  scale_y_continuous("Biodiversity benefit", limits = c(-1,1)) +
-  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  labs(title = "", x = "", y = "") +
-  coord_flip() +
-  theme_classic()+
-  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
-        axis.text = element_text(family = "sans", size = 16, colour = "gray33"))
+#fig2a <- biodiversity.benefit.principals %>%
+#  group_by(Region) %>% sample_n(100000) %>% 
+#  ggplot() +
+#  stat_summary(aes(x = Scenario, y = BBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
+#  #geom_boxplot(aes(x = Scenario, y = CBenefit), width = .5, outlier.shape = NA) +
+#  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+#  scale_x_discrete(limits = rev(levels(biodiversity.benefit.principals$Scenario))) +
+#  scale_y_continuous("Biodiversity benefit", limits = c(-1,1)) +
+#  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+#  labs(title = "", x = "", y = "") +
+#  coord_flip() +
+#  theme_classic()+
+#  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+#        axis.text = element_text(family = "sans", size = 16, colour = "gray33"))
 
 
 fig2b <- biodiversity.benefit.principals %>% 
-  mutate(Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
+  mutate(Scenario = factor(Scenario,
+                      levels = c("Business as usual",
+                                 "Avoid deforestation", 
+                                 "Avoid degradation", 
+                                 "Restoration without avoid",
+                                 "Avoid both",
+                                 "Restoration and avoid deforestation",
+                                 "Restoration and avoid both"),
+                      labels = c("Observed change",
+                                 "Avoided deforestation", 
+                                 "Avoided degradation", 
+                                 "Restoration only",
+                                 "Avoided deforestation and degradation",
+                                 "Restoration and avoided deforestation",
+                                 "Restoration and avoid deforestation and degradation")),
+         Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
                                 Cat == "DSF" ~ "SF",
                                 .default = Cat),
                       levels = c("UPF", "DPF", "SF", "D"))) %>% 
   group_by(Region) %>% sample_n(100000) %>% 
   ggplot() +
-  geom_sina(aes(x = area_change, y = rescaled.BBenefit, colour = Cat, group = area_change),
+  geom_sina(aes(x = area_change, y = BBenefit, colour = Cat, group = area_change),
             shape = 16, scale = "width") +
   geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_y_continuous("", limits = c(-1,1)) +
+  scale_y_continuous("Biodiversity benefit \n(weighted mean difference in occupied area)", limits = c(-1,1)) +
   scale_color_manual(values = c("#294B2985", "#50623A85", #"#76453B","#B19470",
                                 "#78946185", "#F97B2290")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
@@ -837,10 +857,10 @@ fig2b <- biodiversity.benefit.principals %>%
   facet_wrap(~Scenario, nrow = 7, strip.position = "left",
              labeller = label_wrap_gen(multi_line = T)) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.background = element_blank(), 
-        strip.text.y.left = element_blank(),
+        strip.text.y.left = element_text(family = "sans", size = 16, colour = "gray33", angle = 0),
         strip.placement = "outside",
         legend.title = element_blank(),
         legend.text = element_text(family = "sans", size = 16),
@@ -856,44 +876,59 @@ biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% s
 
 
 ### carbon 
-ly.lbl <- c(-round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0), 
-            -round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 0,
-            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 
-            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0))
-
-
-fig2c <- carbon.benefit.principals %>%
-  group_by(Region) %>% sample_n(100000) %>% 
-  ggplot() +
-  stat_summary(aes(x = Scenario, y = rescaled.CBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
-  #geom_boxplot(aes(x = Scenario, y = rescaled.CBenefit), width = .5, outlier.shape = NA) +
-  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_x_discrete(limits = rev(levels(biodiversity.benefit.principals$Scenario))) +
-  scale_y_continuous("Carbon benefit", limits = c(-1,1),
-                     sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
-                                         name = "MgC/ha")) +
-  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-  labs(title = "", x = "", y = "") +
-  coord_flip() +
-  theme_classic()+
-  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
-        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
-        axis.text.y = element_blank())
+#ly.lbl <- c(-round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0), 
+#            -round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 0,
+#            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit))))/2,0), 
+#            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0))
+#
+#
+#fig2c <- carbon.benefit.principals %>%
+#  group_by(Region) %>% sample_n(100000) %>% 
+#  ggplot() +
+#  stat_summary(aes(x = Scenario, y = rescaled.CBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
+#  #geom_boxplot(aes(x = Scenario, y = rescaled.CBenefit), width = .5, outlier.shape = NA) +
+#  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+#  scale_x_discrete(limits = rev(levels(biodiversity.benefit.principals$Scenario))) +
+#  scale_y_continuous("Carbon benefit", limits = c(-1,1),
+#                     sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
+#                                         name = "MgC/ha")) +
+#  guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+#  labs(title = "", x = "", y = "") +
+#  coord_flip() +
+#  theme_classic()+
+#  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+#        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+#        axis.text.y = element_blank())
 
 
 fig2d <- carbon.benefit.principals %>% 
-  mutate(Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
+  mutate(Scenario = factor(Scenario,
+                           levels = c("Business as usual",
+                                      "Avoid deforestation", 
+                                      "Avoid degradation", 
+                                      "Restoration without avoid",
+                                      "Avoid both",
+                                      "Restoration and avoid deforestation",
+                                      "Restoration and avoid both"),
+                           labels = c("Observed change",
+                                      "Avoided deforestation", 
+                                      "Avoided degradation", 
+                                      "Restoration only",
+                                      "Avoided deforestation and degradation",
+                                      "Restoration and avoided deforestation",
+                                      "Restoration and avoid deforestation and degradation")),
+         Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
                                 Cat == "DSF" ~ "SF",
                                 .default = Cat),
                       levels = c("UPF", "DPF", "SF", "D"))) %>% 
   group_by(Region) %>% sample_n(100000) %>% 
   ggplot() +
-  geom_sina(aes(x = area_change, y = rescaled.CBenefit, colour = Cat, group = area_change),
+  geom_sina(aes(x = area_change, y = CBenefit, colour = Cat, group = area_change),
             shape = 16, scale = "width") +
   geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_y_continuous("", limits = c(-1,1),
-                     sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
-                                         name = "")) +
+  scale_y_continuous(expression("Carbon Net Change (MtC ha"^{-1}~")"), limits = c(-200,200)) +#,
+                     #sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
+                     #                    name = "")) +
   scale_color_manual(values = c("#294B2985", "#50623A85", #"#76453B","#B19470",
                                 "#78946185", "#F97B2290")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
@@ -902,7 +937,7 @@ fig2d <- carbon.benefit.principals %>%
   facet_wrap(~Scenario, nrow = 7, strip.position = "left",
              labeller = label_wrap_gen(multi_line = T)) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", face = "bold", size = 22, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.background = element_blank(), 
         strip.text.y.left = element_blank(),
@@ -921,13 +956,13 @@ carb.scenario.diff <- carbon.benefit.principals %>% group_by(Region) %>% sample_
 
 
 ### Fig 2 -- res W: 1680; H: 1080
-ggarrange(fig2a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit = "pt")), 
-          fig2b + theme(plot.margin = margin(t = 47, r = 7, b = 3, l = 1, unit = "pt")),
-          fig2c + theme(plot.margin = margin(t = 1, r = 7, b = 1, l = 1, unit = "pt")), 
-          fig2d + theme(plot.margin = margin(t = 3, r = 7, b = 3, l = 1, unit = "pt")),
-          ncol = 4, labels = c("                                       A", "", " B", ""), 
-          widths = c(1.7,1,.8,1),
-          common.legend = T, legend = "bottom")
+ggarrange(#fig2a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit = "pt")), 
+          fig2b, # + theme(plot.margin = margin(t = 47, r = 7, b = 3, l = 1, unit = "pt")),
+          #fig2c + theme(plot.margin = margin(t = 1, r = 7, b = 1, l = 1, unit = "pt")), 
+          fig2d, # + theme(plot.margin = margin(t = 3, r = 7, b = 3, l = 1, unit = "pt")),
+          ncol = 2, labels = c("                              A", "B"), 
+          widths = c(1.3,1),
+          common.legend = T, legend = "bottom", align = "h")
 #
 
 
@@ -1010,7 +1045,7 @@ pgm.costs.df.principals <- pgm.costs.df.principals %>%
     PGM_2020_avoiddeforest_costs:PGM_2020_restor_n_avoidboth_costs,
     names_to = "Scenario",
     values_to = "Costs"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -1029,7 +1064,7 @@ pgm.costs.df.principals <- pgm.costs.df.principals %>%
                            "Restoration and avoid deforestation",
                            "Restoration and avoid both"))
     #Costs = na_if(Costs, 0)
-  ) %>% ungroup() %>% drop_na() %>% 
+  ) %>% ungroup() %>% 
   left_join(pgm.area.change.df.principals)
 #head(pgm.costs.df.principals)
 
@@ -1113,7 +1148,7 @@ stm.costs.df.principals <- stm.costs.df.principals %>%
     STM_2020_avoiddeforest_costs:STM_2020_restor_n_avoidboth_costs,
     names_to = "Scenario",
     values_to = "Costs"
-  ) %>% 
+  ) %>% drop_na() %>% 
   group_by(Scenario) %>% 
   mutate(
     Cell = row_number(),
@@ -1132,7 +1167,7 @@ stm.costs.df.principals <- stm.costs.df.principals %>%
                                  "Restoration and avoid deforestation",
                                  "Restoration and avoid both"))
     #Costs = na_if(Costs, 0)
-  ) %>% ungroup() %>% drop_na() %>% 
+  ) %>% ungroup() %>% 
   left_join(stm.area.change.df.principals)
 #head(stm.costs.df.principals)
 
@@ -1155,13 +1190,15 @@ carb.real <- carbon.benefit.principals %>% filter(Scenario == "Business as usual
   dplyr::select(Region, Cell, CBenefit) %>% dplyr::rename(CBenefit.real = CBenefit)
 
 
-costs.principals <- costs.principals %>% 
+
+
+costs.principals <- costs.principals %>% filter(!(is.na(BBenefit))) %>% 
   left_join(biodiv.real) %>% 
   mutate(BBenefit.year = ((BBenefit - BBenefit.real)/10),
-         B.CBr = ifelse(BBenefit.year == 0, NA, Costs/BBenefit.year)) %>% 
+         B.CBr = BBenefit.year/Costs) %>% 
   left_join(carb.real) %>% 
     mutate(CBenefit.year = ((CBenefit - CBenefit.real)/10),
-           C.CBr = ifelse(CBenefit.year == 0, NA, Costs/CBenefit.year)) %>% 
+           C.CBr = CBenefit.year/Costs) %>% 
   droplevels() %>% ungroup()
 
 
@@ -1176,7 +1213,7 @@ fig3a <- costs.principals %>%
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 250)) +
+  scale_y_continuous(limits = c(0, .002)) +
   labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / Biodiversity)") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
