@@ -451,7 +451,8 @@ gc()
 biodiversity.benefit.principals <- rbind(pgm.biodiversity.benefit.df.principals, stm.biodiversity.benefit.df.principals)
 biodiversity.benefit.principals <- biodiversity.benefit.principals %>% 
   mutate(Region = factor(Region, levels = c("PGM", "STM")),
-         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")),
+         BBenefit_ha = BBenefit*0.08919563)
 biodiversity.benefit.principals <- biodiversity.benefit.principals %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
 #biodiversity.benefit.principals <- biodiversity.benefit.principals %>% filter(Cat!="D") %>% droplevels()
 rm(pgm.biodiversity.benefit.df.principals); rm(stm.biodiversity.benefit.df.principals) 
@@ -643,7 +644,8 @@ gc()
 carbon.benefit.principals <- rbind(pgm.carbon.benefit.df.principals, stm.carbon.benefit.df.principals)
 carbon.benefit.principals <- carbon.benefit.principals %>%  
   mutate(Region = factor(Region, levels = c("PGM", "STM")),
-         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")),
+         CBenefit_ha = CBenefit*0.08919563)
 carbon.benefit.principals <- carbon.benefit.principals %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
 #carbon.benefit.principals <- carbon.benefit.principals %>% filter(Cat!="D") %>% droplevels()
 rm(pgm.carbon.benefit.df.principals); rm(stm.carbon.benefit.df.principals)
@@ -663,7 +665,7 @@ biodiv.summation <- biodiversity.benefit.principals %>%
   ungroup()
 
 
-fig1a <- biodiv.summation %>% 
+fig2a <- biodiv.summation %>% 
   ggplot(aes(x = Scenario, y = sum.benefit - min(sum.benefit), fill = Scenario)) +
   geom_bar(position = "dodge", stat = "identity", width = .7) +
   ##Observed change
@@ -678,13 +680,13 @@ fig1a <- biodiv.summation %>%
   #geom_text(aes(x=7.8, y=2175000, label = "(iii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   geom_text(aes(x=7.8, y=1800000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   geom_text(aes(x=7.8, y=75000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
-  geom_text(aes(x=1, y=-500000, label = "Observed"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
-  geom_text(aes(x=3, y=-500000, label = "Single \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
-  geom_text(aes(x=6, y=-500000, label = "Combined \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
+  geom_text(aes(x=1, y=-350000, label = "Observed"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
+  geom_text(aes(x=3, y=-350000, label = "Single \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
+  geom_text(aes(x=6, y=-350000, label = "Combined \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   #style
-  scale_y_continuous("Biodiversity Net Change \n(weighted mean difference in occupied area)", 
-                     breaks = c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06), 
-                     labels = round((c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06) + min(biodiv.summation$sum.benefit)) / 1e+06, 1)) +#,
+  scale_y_continuous("Biodiversity Net Change", 
+                     breaks = c(0, 0.23e+06, 0.73e+06, 1.23e+06, 1731695, 2.23e+06), 
+                     labels = paste0(round((c(0, 0.23e+06, 0.73e+06, 1.23e+06, 1731695, 2.23e+06) + min(biodiv.summation$sum.benefit)) / 1e+06, 1), "M")) +#,
                      #sec.axis = sec_axis(~ ., breaks = c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06), 
                      #                    labels = paste0(round(c(0, 0.5e+06, 1e+06, 1.5e+06, 1731695, 2e+06) / - min(biodiv.summation$sum.benefit) * 100, 1), "%"),
                      #                    name = "Summed benefict \nof interventions")) +
@@ -735,7 +737,7 @@ carb.summation <- carbon.benefit.principals %>%
   ungroup()
 
 
-fig1b <- carb.summation %>% 
+fig2b <- carb.summation %>% 
   ggplot(aes(x = Scenario, y = sum.benefit - min(sum.benefit), fill = Scenario)) +
   geom_bar(position = "dodge", stat = "identity", width = .7) +
   ##Observed change
@@ -754,9 +756,9 @@ fig1b <- carb.summation %>%
   geom_text(aes(x=3, y=-50000000, label = "Single \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   geom_text(aes(x=6, y=-50000000, label = "Combined \ninterventions"), family = "sans", colour = "gray33", size = 8, vjust = .2) +
   #style
-  scale_y_continuous(expression("Carbon Net Change (MtC ha"^{-1}~")"), 
+  scale_y_continuous(expression("Carbon Net Change"), 
                      breaks = c(0, 0.47e+08, 0.97e+08, 1.47e+08, 1.97e+08, 247164581, 2.97e+08), 
-                     labels = round((c(0, 0.47e+08, 0.97e+08, 1.47e+08, 1.97e+08, 247164581, 2.97e+08) + min(carb.summation$sum.benefit)) / 1e+06, 0)) +#,
+                     labels = paste0(round((c(0, 0.47e+08, 0.97e+08, 1.47e+08, 1.97e+08, 247164581, 2.97e+08) + min(carb.summation$sum.benefit)) / 1e+06, 0), "MtC")) +#,
                      #sec.axis = sec_axis(~ ., breaks = c(0, 1e+08, 2e+08, 3e+08, 3.5e+08), 
                      #                    labels = paste0(round(c(0, 1e+08, 2e+08, 3e+08, 3.5e+08) / 1e+06, 1), "MtC"),
                      #                    name = "Summed benefict \nof interventions")) +
@@ -798,16 +800,16 @@ fig1b <- carb.summation %>%
 
 
 
-### Fig 1 -- some editions were made outside R -- res: W: 1272; H: 1680 
-ggarrange(fig1a, fig1b,
-          ncol = 1, labels = c("          A", "          B"), 
+### Fig 2 -- some editions were made outside R -- res: W: 1272; H: 1680 
+ggarrange(fig2a, fig2b,
+          ncol = 1, labels = c("  A", "   B"), 
           common.legend = T, legend = "top", align = "v")
 
 
 
 ## violin plot + jitter [dots colored by LULC category]
 ### biodiversity
-#fig2a <- biodiversity.benefit.principals %>%
+#fig3a <- biodiversity.benefit.principals %>%
 #  group_by(Region) %>% sample_n(100000) %>% 
 #  ggplot() +
 #  stat_summary(aes(x = Scenario, y = BBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
@@ -823,7 +825,7 @@ ggarrange(fig1a, fig1b,
 #        axis.text = element_text(family = "sans", size = 16, colour = "gray33"))
 
 
-fig2b <- biodiversity.benefit.principals %>% 
+fig3b <- biodiversity.benefit.principals %>% 
   mutate(Scenario = factor(Scenario,
                       levels = c("Business as usual",
                                  "Avoid deforestation", 
@@ -838,19 +840,21 @@ fig2b <- biodiversity.benefit.principals %>%
                                  "Restoration only",
                                  "Avoided deforestation and degradation",
                                  "Restoration and avoided deforestation",
-                                 "Restoration and avoid deforestation and degradation")),
+                                 "Restoration and avoided deforestation and degradation")),
          Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
                                 Cat == "DSF" ~ "SF",
                                 .default = Cat),
                       levels = c("UPF", "DPF", "SF", "D"))) %>% 
   group_by(Region) %>% sample_n(100000) %>% 
   ggplot() +
-  geom_sina(aes(x = area_change, y = BBenefit, colour = Cat, group = area_change),
+  geom_sina(aes(x = area_change, y = BBenefit_ha, colour = Cat, group = area_change),
             shape = 16, scale = "width") +
   geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_y_continuous("Biodiversity benefit \n(weighted mean difference in occupied area)", limits = c(-1,1)) +
-  scale_color_manual(values = c("#294B2985", "#50623A85", #"#76453B","#B19470",
-                                "#78946185", "#F97B2290")) + #
+  scale_y_continuous(expression(atop("Weighted mean difference in", 
+                                "occupied area (Sp ∙ ha"^{-1}~")")), 
+                     limits = c(-0.07,0.07)) +
+  scale_color_manual(values = c("#294B2985", "#76453B85", #"#50623A85", "#B19470",
+                                "#78946185", "#F97B2285")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
   labs(title = "", x = "", y = "") +
   coord_flip() +
@@ -866,12 +870,12 @@ fig2b <- biodiversity.benefit.principals %>%
         legend.text = element_text(family = "sans", size = 16),
         legend.position = "bottom")
 
-
-biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::kruskal_test(rescaled.BBenefit ~ Scenario)
-
-biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
+#### kruskal-wallis and dunn's tests
+#biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+#  rstatix::kruskal_test(rescaled.BBenefit ~ Scenario)
+#
+#biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+#  rstatix::dunn_test(rescaled.BBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
 
 
@@ -882,7 +886,7 @@ biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% s
 #            round((max(abs(max(carbon.benefit.principals$CBenefit)), abs(min(carbon.benefit.principals$CBenefit)))),0))
 #
 #
-#fig2c <- carbon.benefit.principals %>%
+#fig3c <- carbon.benefit.principals %>%
 #  group_by(Region) %>% sample_n(100000) %>% 
 #  ggplot() +
 #  stat_summary(aes(x = Scenario, y = rescaled.CBenefit), fun.data = data_summary, size = 1, linewidth = 1.2) +
@@ -901,7 +905,7 @@ biod.scenario.diff <- biodiversity.benefit.principals %>% group_by(Region) %>% s
 #        axis.text.y = element_blank())
 
 
-fig2d <- carbon.benefit.principals %>% 
+fig3d <- carbon.benefit.principals %>% 
   mutate(Scenario = factor(Scenario,
                            levels = c("Business as usual",
                                       "Avoid deforestation", 
@@ -916,21 +920,23 @@ fig2d <- carbon.benefit.principals %>%
                                       "Restoration only",
                                       "Avoided deforestation and degradation",
                                       "Restoration and avoided deforestation",
-                                      "Restoration and avoid deforestation and degradation")),
+                                      "Restoration and avoided deforestation and degradation")),
          Cat = factor(case_when(Cat == "RDPF" ~ "DPF",
                                 Cat == "DSF" ~ "SF",
                                 .default = Cat),
                       levels = c("UPF", "DPF", "SF", "D"))) %>% 
   group_by(Region) %>% sample_n(100000) %>% 
   ggplot() +
-  geom_sina(aes(x = area_change, y = CBenefit, colour = Cat, group = area_change),
+  geom_sina(aes(x = area_change, y = CBenefit_ha, colour = Cat, group = area_change),
             shape = 16, scale = "width") +
   geom_hline(yintercept = 0, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
-  scale_y_continuous(expression("Carbon Net Change (MtC ha"^{-1}~")"), limits = c(-200,200)) +#,
+  scale_y_continuous(expression(atop("Mean difference in", 
+                                     "carbon stock (MtC ∙ ha"^{-1}~")")), 
+                     limits = c(-18,18)) +#,
                      #sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
                      #                    name = "")) +
-  scale_color_manual(values = c("#294B2985", "#50623A85", #"#76453B","#B19470",
-                                "#78946185", "#F97B2290")) + #
+  scale_color_manual(values = c("#294B2985", "#76453B85", #"#50623A85","#B19470",
+                                "#78946185", "#F97B2285")) + #
   guides(colour = guide_legend(override.aes = list(size = 5, alpha = 1))) +
   labs(title = "", x = "", y = "") +
   coord_flip() +
@@ -947,19 +953,20 @@ fig2d <- carbon.benefit.principals %>%
         legend.position = "bottom")
 
 
-carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::kruskal_test(rescaled.CBenefit ~ Scenario)
+#### kruskal-wallis and dunn's tests
+#carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+#  rstatix::kruskal_test(rescaled.CBenefit ~ Scenario)
+#
+#carb.scenario.diff <- carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
+#  rstatix::dunn_test(rescaled.CBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
-carb.scenario.diff <- carbon.benefit.principals %>% group_by(Region) %>% sample_n(100000) %>% ungroup() %>% 
-  rstatix::dunn_test(rescaled.CBenefit ~ Scenario, p.adjust.method = 'bonferroni')
 
 
-
-### Fig 2 -- res W: 1680; H: 1080
-ggarrange(#fig2a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit = "pt")), 
-          fig2b, # + theme(plot.margin = margin(t = 47, r = 7, b = 3, l = 1, unit = "pt")),
-          #fig2c + theme(plot.margin = margin(t = 1, r = 7, b = 1, l = 1, unit = "pt")), 
-          fig2d, # + theme(plot.margin = margin(t = 3, r = 7, b = 3, l = 1, unit = "pt")),
+### Fig 3 -- res: W: 1655; H: 803 
+ggarrange(#fig3a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit = "pt")), 
+          fig3b, # + theme(plot.margin = margin(t = 47, r = 7, b = 3, l = 1, unit = "pt")),
+          #fig3c + theme(plot.margin = margin(t = 1, r = 7, b = 1, l = 1, unit = "pt")), 
+          fig3d, # + theme(plot.margin = margin(t = 3, r = 7, b = 3, l = 1, unit = "pt")),
           ncol = 2, labels = c("                              A", "B"), 
           widths = c(1.3,1),
           common.legend = T, legend = "bottom", align = "h")
@@ -1194,10 +1201,10 @@ carb.real <- carbon.benefit.principals %>% filter(Scenario == "Business as usual
 
 costs.principals <- costs.principals %>% filter(!(is.na(BBenefit))) %>% 
   left_join(biodiv.real) %>% 
-  mutate(BBenefit.year = ((BBenefit - BBenefit.real)/10),
+  mutate(BBenefit.year = BBenefit - BBenefit.real,
          B.CBr = BBenefit.year/Costs) %>% 
   left_join(carb.real) %>% 
-    mutate(CBenefit.year = ((CBenefit - CBenefit.real)/10),
+    mutate(CBenefit.year = CBenefit - CBenefit.real,
            C.CBr = CBenefit.year/Costs) %>% 
   droplevels() %>% ungroup()
 
@@ -1208,13 +1215,53 @@ gc()
   
   
 ##boxplot
-fig3a <- costs.principals %>% 
+fig4a <- costs.principals %>% 
+  ggplot(aes(x=Scenario, y=BBenefit.year)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#163E64", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(-0.007, 0.007)) +
+  #scale_y_continuous(limits = c(0, .002)) +
+  labs(title = "", x = "", y = expression("Biodiversity benefit ∙ ha"^{-1}~" ∙ year"^{-1})) +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14))
+
+
+
+fig4b <- costs.principals %>% 
   ggplot(aes(x=Scenario, y=B.CBr)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(.05, .05)) +
+  scale_y_continuous(limits = c(-0.0001, .0002)) +
+  labs(title = "", x = "", y = "Benefit-Cost ratio\n(Biodiversity / R$)") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14))
+
+
+
+fig4c <- costs.principals %>% 
+  ggplot(aes(x=Scenario, y=C.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, .002)) +
-  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / Biodiversity)") +
+  scale_y_continuous(limits = c(0, 250)) +
+  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / MgC)") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
@@ -1225,7 +1272,7 @@ fig3a <- costs.principals %>%
 
 
 
-fig3b <- costs.principals %>% 
+fig4d <- costs.principals %>% 
   ggplot(aes(x=Scenario, y=C.CBr)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
@@ -1243,6 +1290,7 @@ fig3b <- costs.principals %>%
 
 
 
+### Fig 4 -- res: W: 1272; H: 1680 
 ggarrange(fig3a, fig3b, 
           nrow = 2, #align = "hv", 
           labels = c("A", "B"), 
