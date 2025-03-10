@@ -1234,21 +1234,25 @@ data_df2 <- data.frame(
 )
 
 
-###change the axis2 to check lulc transition in each scenario
+###change the axis2 to check lulc transition in each scenario -- res: W: 814; H: 1080 
 set.seed(1237)
 data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
   ggplot(aes(axis1 = Period1, axis2 = Period2)) +
-  geom_flow(aes(fill = Period2), width = .15, curve_type = "quintic") +
-  geom_stratum(width = .15) +
+  geom_flow(aes(fill = Period2), alpha = .8, width = .05, curve_type = "quintic") +
+  geom_stratum(width = .05) +
   scale_x_discrete(limits = c("Period1", "Period2"), 
                    breaks=c("Period1", "Period2"), 
-                   labels=addline_format(c("2010 Real", "2020 restoration and avoid both (PF_only)")), # (PF_only)
+                   labels=addline_format(c("2010", "2020")), # (PF_only)
                    expand = c(.05, .05)) +
-  scale_fill_manual(values = c("#294B29", "#50623A", "#76453B", 
-                               "#B19470", "#789461", "#F97B22")) +
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_fill_manual(values = c("#294B29", "#76453B", "#76453B", 
+                               "#789461", "#789461", "#F97B22")) +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size= 6,
+            nudge_x = c(-.2, -.2, -.2, -.2, -.2, -.2, .2, .2, .2, .2, .2, .2)) +
+  coord_cartesian(xlim = c(0.85, 2.15), clip = "off") +
   theme_minimal()+
-  theme(axis.text.y= element_blank(), legend.position = "none")
+  theme(text = element_text(family = "sans", size = 22, colour = "gray33"),
+        axis.text.y= element_blank(),
+        legend.position = "none")
 
 #
 
