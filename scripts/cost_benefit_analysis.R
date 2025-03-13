@@ -1575,9 +1575,9 @@ gc()
 
 
 
-pgm.biodiversity.benefit.plants.df <- as.data.frame(pgm.biodiversity.benefit[[1:12]], xy = TRUE)
-names(pgm.biodiversity.benefit.plants.df)[14] <- "PGM_2020_restor_n_avoidboth2_biodiversity_benefit"
-pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>% 
+pgm.biodiversity.benefit.birds.df <- as.data.frame(pgm.biodiversity.benefit[[1:12]], xy = TRUE)
+names(pgm.biodiversity.benefit.birds.df)[14] <- "PGM_2020_restor_n_avoidboth2_biodiversity_benefit"
+pgm.biodiversity.benefit.birds.df <- pgm.biodiversity.benefit.birds.df %>% 
   pivot_longer(
     PGM_2020_real_biodiversity_benefit:PGM_2020_restor_n_avoidboth2_biodiversity_benefit,
     names_to = "Scenario",
@@ -1587,7 +1587,7 @@ pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>%
   mutate(
     Cell = row_number(),
     Region = "PGM",
-    Taxa = "Plants",
+    Taxa = "Birds",
     Scenario = factor(Scenario,
                       levels = c("PGM_2020_real_biodiversity_benefit",
                                  "PGM_2020_avoiddeforest_biodiversity_benefit",
@@ -1619,9 +1619,9 @@ pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>%
   right_join(pgm.area.change.df)
 #head(pgm.biodiversity.benefit.df)
 
-pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>% mutate(area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
-pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
-pgm.biodiversity.benefit.plants.df <- pgm.biodiversity.benefit.plants.df %>% filter(!(Scenario == "Restoration and avoid both (PF only)" & Cat == "D"))
+pgm.biodiversity.benefit.birds.df <- pgm.biodiversity.benefit.birds.df %>% mutate(area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+pgm.biodiversity.benefit.birds.df <- pgm.biodiversity.benefit.birds.df %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
+pgm.biodiversity.benefit.birds.df <- pgm.biodiversity.benefit.birds.df %>% filter(!(Scenario == "Restoration and avoid both (PF only)" & Cat == "D"))
 
 
 rm(pgm.biodiversity.benefit.total); rm(pgm.biodiversity.benefit)
@@ -1635,9 +1635,9 @@ gc()
 
 
 
-stm.biodiversity.benefit.plants.df <- as.data.frame(stm.biodiversity.benefit[[1:12]], xy = TRUE)
-names(stm.biodiversity.benefit.plants.df)[14] <- "STM_2020_restor_n_avoidboth2_biodiversity_benefit"
-stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>% 
+stm.biodiversity.benefit.birds.df <- as.data.frame(stm.biodiversity.benefit[[1:12]], xy = TRUE)
+names(stm.biodiversity.benefit.birds.df)[14] <- "STM_2020_restor_n_avoidboth2_biodiversity_benefit"
+stm.biodiversity.benefit.birds.df <- stm.biodiversity.benefit.birds.df %>% 
   pivot_longer(
     STM_2020_real_biodiversity_benefit:STM_2020_restor_n_avoidboth2_biodiversity_benefit,
     names_to = "Scenario",
@@ -1647,7 +1647,7 @@ stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>%
   mutate(
     Cell = row_number(),
     Region = "STM",
-    Taxa = "Plants",
+    Taxa = "Birds",
     Scenario = factor(Scenario,
                       levels = c("STM_2020_real_biodiversity_benefit",
                                  "STM_2020_avoiddeforest_biodiversity_benefit",
@@ -1679,9 +1679,9 @@ stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>%
   right_join(stm.area.change.df)
 #head(pgm.biodiversity.benefit.df)
 
-stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>% mutate(area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
-stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
-stm.biodiversity.benefit.plants.df <- stm.biodiversity.benefit.plants.df %>% filter(!(Scenario == "Restoration and avoid both (PF only)" & Cat == "D"))
+stm.biodiversity.benefit.birds.df <- stm.biodiversity.benefit.birds.df %>% mutate(area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct")))
+stm.biodiversity.benefit.birds.df <- stm.biodiversity.benefit.birds.df %>% filter(!(Scenario == "Restoration and avoid both" & Cat == "D"))
+stm.biodiversity.benefit.birds.df <- stm.biodiversity.benefit.birds.df %>% filter(!(Scenario == "Restoration and avoid both (PF only)" & Cat == "D"))
 
 
 
@@ -1692,26 +1692,30 @@ gc()
 
 
 
-biodiversity.benefit.plants <- rbind(pgm.biodiversity.benefit.plants.df, stm.biodiversity.benefit.plants.df)
-biodiversity.benefit.plants <- biodiversity.benefit.plants %>% 
+biodiversity.benefit.birds <- rbind(pgm.biodiversity.benefit.birds.df, stm.biodiversity.benefit.birds.df)
+biodiversity.benefit.birds <- biodiversity.benefit.birds %>% 
   mutate(Region = factor(Region, levels = c("PGM", "STM")),
          BBenefit_ha = BBenefit*0.08919563)
 
-rm(pgm.biodiversity.benefit.plants.df); rm(stm.biodiversity.benefit.plants.df) 
+rm(pgm.biodiversity.benefit.birds.df); rm(stm.biodiversity.benefit.birds.df) 
 gc()
 
 
-biodiv.real <- biodiversity.benefit.plants %>% filter(Scenario == "Business as usual") %>% droplevels() %>% 
+biodiv.real <- biodiversity.benefit.birds %>% filter(Scenario == "Business as usual") %>% droplevels() %>% 
   dplyr::select(Region, Cell, BBenefit_ha) %>% dplyr::rename(BBenefit_ha.real = BBenefit_ha)
 
-biodiversity.benefit.plants <- biodiversity.benefit.plants %>% left_join(biodiv.real)
+biodiversity.benefit.birds <- biodiversity.benefit.birds %>% left_join(biodiv.real)
 
 rm(biodiv.real)
 gc()
 
 
 
-biodiv.summation <- biodiversity.benefit.plants %>%
+
+
+
+
+biodiv.summation <- biodiversity.benefit.birds %>%
   group_by(Region, Scenario) %>% 
   summarise(net.change = sum(BBenefit)) %>% 
   mutate(sum.benefit = net.change - min(net.change),
@@ -1736,9 +1740,17 @@ biodiv.summation <- biodiversity.benefit.plants %>%
   ungroup()
 
 
+hline <- biodiv.summation %>% group_by(Region, area) %>% 
+  summarize(oc = -min(net.change))
+
+
 biodiv.summation %>%
   ggplot(aes(x = Scenario, y = sum.benefit, fill = Scenario)) +
   geom_bar(position = "dodge", stat = "identity", width = .7) +
+  geom_hline(data = hline, aes(yintercept = oc), colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
+  #geom_text(data = hline, aes(x=7.8, y=oc+10000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
+  #geom_text(aes(x=7.8, y=75000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   scale_x_discrete(limits = c("Business as usual",
                               "Avoid degradation",
                               "Avoid deforestation",
@@ -1748,6 +1760,7 @@ biodiv.summation %>%
                               "Restoration and avoid both"),
                    labels = c("", "", "", "", "", "", ""),
                    expand = c(0,0)) +
+  scale_y_continuous(labels = scientific) +
   scale_fill_manual(limits = c("Avoid degradation",
                                "Avoid deforestation",
                                "Restoration without avoid",
@@ -1779,7 +1792,7 @@ biodiv.summation %>%
 
 
 
-biodiversity.benefit.plants %>% 
+biodiversity.benefit.birds %>% 
   mutate(area = factor(case_when(str_detect(Scenario, "(PF only)") ~ 1,
                                  .default = 0),
                        levels = c(0,1),
@@ -1828,7 +1841,7 @@ biodiversity.benefit.plants %>%
                                       "Avoided deforestation and degradation",
                                       "Restoration and avoided deforestation",
                                       "Restoration and avoided deforestation and degradation"))) + 
-      scale_y_continuous("Plants biodiversity difference", 
+      scale_y_continuous("Birds biodiversity difference", 
                          limits = c(-0.07,0.07)) +#,
       #sec.axis = sec_axis(~ ., breaks = c(-1,-0.5,0,0.5,1), labels = ly.lbl,
       #                    name = "")) +
@@ -2015,9 +2028,17 @@ carb.summation <- carbon.benefit %>%
   ungroup()
 
 
+hline <- carb.summation %>% group_by(Region, area) %>% 
+  summarize(oc = -min(net.change))
+
+
 carb.summation %>%
   ggplot(aes(x = Scenario, y = sum.benefit, fill = Scenario)) +
   geom_bar(position = "dodge", stat = "identity", width = .7) +
+  geom_hline(data = hline, aes(yintercept = oc), colour = "gray33", linewidth = 1, linetype = 2) +
+  geom_hline(yintercept = 0, colour = "gray33", linewidth = 1, linetype = 2) +
+  #geom_text(data = hline, aes(x=7.8, y=oc+10000, label = "(ii)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
+  #geom_text(aes(x=7.8, y=75000, label = "(i)", hjust = "left"), family = "sans", colour = "gray33", size = 5) +
   scale_x_discrete(limits = c("Business as usual",
                               "Avoid degradation",
                               "Avoid deforestation",
@@ -2027,6 +2048,7 @@ carb.summation %>%
                               "Restoration and avoid both"),
                    labels = c("", "", "", "", "", "", ""),
                    expand = c(0,0)) +
+  scale_y_continuous(labels = scientific) +
   scale_fill_manual(limits = c("Avoid degradation",
                                "Avoid deforestation",
                                "Restoration without avoid",
