@@ -779,7 +779,7 @@ candidate.areas.rl[candidate.areas.rl[]!=1] <- NA
 
 
 
-################################################################################
+################################################################################.
 ##select pixels based on slope                                                 #
 ##obs: there are no deforested areas in PGM with slope >=45o                   #
 ##slope <- terrain(elevation, opt = 'slope', unit = 'degrees', neighbors=8)    #
@@ -791,7 +791,7 @@ candidate.areas.rl[candidate.areas.rl[]!=1] <- NA
 ##candidate.areas.slope <- mask(candidate.areas.slope, slope)                  #
 ##values(candidate.areas.slope)[is.na(values(candidate.areas.slope))] = 0      #
 ###plot(candidate.areas.slope, col="#ffffff")                                  #
-################################################################################
+################################################################################.
 
 
 
@@ -1141,7 +1141,88 @@ gc()
 
 #
 
-#Fig S1 and S2
+#Fig S1
+# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
+blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
+
+#import data on deforestation from mapbiomas
+#all municipalities in BLA
+total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
+  filter(state %in% blm.states) %>%
+  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
+  group_by(state, municipality, class_level_1) %>% 
+  summarise(across('1985':'2020', sum)) %>% 
+  dplyr::select(state, municipality, class_level_1, `2010`, `2020`) %>% 
+  mutate(freq_2010 = `2010` / sum(`2010`),
+         freq_2020 = `2020` / sum(`2020`))
+
+
+
+#priority municipalities in deforestation arch
+priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
+                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
+                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
+                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
+                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
+                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
+                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
+                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
+                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
+                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
+                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
+
+priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality %in% priority.mun.list)
+
+
+#PGM and STM
+pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2010) %>% pull()
+
+stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
+  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
+  ungroup() %>% dplyr::select(freq_2020) %>% pull()
+
+
+# map of amazonian municipalities, highlighting arc-of-deforestation priorities
+all.mun <- readOGR(dsn = "C:/Users/miral/Dropbox/GIS/Politico/Municipios BR", layer = "55mu2500gsr")
+
+
+plot(all.mun[all.mun$SIGLA %in% c("AC", "AM", "AP", "MA", "MT", "PA", "RO", "RR", "TO"),], col="#e1d3cc")
+plot(all.mun[all.mun$NOME_MUNIC %in% priority.mun.list,], col="#e99561", add=T)
+plot(all.mun[all.mun$NOME_MUNIC %in% c("Santarém", "Mojuí dos Campos", "Belterra", "Paragominas"),], col="gray20", add=T)
+
+
+ggplot() +
+  geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                 aes(x=freq_2010, y=after_stat(count/nrow(total.blm.deforestation.2010)), fill = "All municipalities"), bins = 70) +
+  geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
+                 aes(x=freq_2010, y=after_stat(count/nrow(priority.mun.deforestation.2010)), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
+  scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
+  geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
+  geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
+  #scale_y_continuous(limits = c(0, 0.0000006)) +
+  #scale_x_continuous(limits = c(0, 2000000)) +
+  labs(x="Deforestation in the Amazon \nmunicipalities by 2010", y="") +
+  theme_minimal() +
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "top")
+
+
+#Fig S3 and S4
 #use this part of the script only after load objects in "layer_buide_[...].R" ==
 ## standard projection
 std.proj <- "+proj=longlat +datum=WGS84 +units=m +no_defs"
@@ -1257,9 +1338,28 @@ data_df2 %>% drop_na() %>% sample_n(size = 100000, replace = T) %>%
 #
 
 
-# Fig S5
+# Fig S7 and S8
 # importing species list and methods and evaluation metrics data frame
 forestdep.spplist <- read.csv("data/species_summary.csv")
+
+
+ggplot() + 
+  geom_histogram(data = forestdep.spplist,
+    aes(x=Shape_Area *100, y=after_stat(count/nrow(forestdep.spplist)), fill = "All species"))+
+  geom_histogram(data = forestdep.spplist %>% filter(method == "SDM"),
+    aes(x=Shape_Area *100, y=after_stat(count/nrow(forestdep.spplist)), fill = "Used species"), alpha = 0.55)+
+  scale_fill_manual(values = c("All species"="#e1d3cc", "Used species"="#e99561"))+
+  scale_x_continuous(labels = scientific)+
+  labs(x="Species ocurrence range (ha)", y="") +
+  facet_wrap(~Group, scales = "free")+
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_text(size = 14),
+        legend.title = element_blank(),
+        legend.position = "top")
+
 
 
 #checking
@@ -1341,7 +1441,7 @@ mtext("Aniba megaphylla", side = 3, line = -3, outer = T, font = 4)
 mtext("Phlegopsis nigromaculata", side = 3, line = -38, outer = T, font = 4)
 
 
-# Fig S6
+# Fig S9
 layer.names <- c("Real 2010", "Real 2020", "Avoid deforestation", "Avoid degradation", 
                  "Restoration without avoid", "Avoid both", "Restoration and avoid deforestation",
                  "Restoration and avoid both", "Avoid deforestation PF only", "Avoid degradation PF only", 
@@ -1400,7 +1500,7 @@ plot(stm.biodiversity.benefit.total[[2:13]], nr=3,
 
 
 
-# Fig S8
+# Fig S11
 carbon.benefit.list <- list.files("models.output/carbon.benefits/", pattern = ".tif", full.names = T, recursive = T)
 
 pgm.carbon.benefit.list <- grep("PGM", carbon.benefit.list, value = T)
@@ -1449,138 +1549,63 @@ plot(stm.carbon.benefit.total[[2:13]], nr=3,
 
 
 
-# Fig S9
-# where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
-blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
-
-#import data on deforestation from mapbiomas
-#all municipalities in BLA
-total.blm.deforestation.2010 <- readxl::read_xlsx("data/raw/mapbiomas_brasil_col9_state_municipality.xlsx", sheet = 2) %>% 
-  filter(state %in% blm.states) %>%
-  mutate(class_level_1 = ifelse(class_level_1 %in% c("3. Farming", "4. Non vegetated area"), "3. Deforest", class_level_1)) %>% 
-  group_by(state, municipality, class_level_1) %>% 
-  summarise(across('1985':'2020', sum)) %>% 
-  dplyr::select(state, municipality, class_level_1, `2010`, `2020`) %>% 
-  mutate(freq_2010 = `2010` / sum(`2010`),
-         freq_2020 = `2020` / sum(`2020`))
-
-
-
-#priority municipalities in deforestation arch
-priority.mun.list <- c("Feijó","Manoel Urbano","Rio Branco","Sena Madureira","Tarauacá","Apuí","Boca do Acre",
-                       "Canutama","Humaitá","Itapiranga","Lábrea","Manicoré","Maués","Novo Apurinã","Apiacás",
-                       "Aripuanã","Bom Jesus do Araguaia","Cláudia","Colniza","Comodoro","Cotriguaçu","Feliz Natal",
-                       "Gaúcha do Norte","Juara","Juína","Marcelândia","Nova Bandeirantes","Nova Maringá",
-                       "Nova Ubiratã","Paranaíta","Paranatinga","Peixoto de Azevedo","Querência","Rondonlandia",
-                       "São José do Xingú","União do Sul","Altamira","Anapu","Cumaru do Norte","Dom Eliseu","Itaituba",
-                       "Itupiranga","Jacareaganga","Marabá","Medicilândia","Moju","Mojuí dos Campos","Novo Progresso",
-                       "Novo Repartimento","Pacajá","Paragominas","Placas","Portel","Prainha","Rondon do Pará",
-                       "Rurópolis","Santana do Araguaia","São Félix do Xingu","Senador José Porfírio","Trairão",
-                       "Ulianópolis","Uruará","Buritis","Candeias Do Jamari","Cujubim","Machadinho D'Oeste",
-                       "Nova Mamoré","Porto Velho","Mucajaí","Rorainópolis")
-
-priority.mun.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality %in% priority.mun.list)
-
-
-#PGM and STM
-pgm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(freq_2010) %>% pull()
-
-pgm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Paragominas" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(freq_2020) %>% pull()
-
-stm.deforestation.2010 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(freq_2010) %>% pull()
-
-stm.deforestation.2020 <- total.blm.deforestation.2010 %>% 
-  filter(municipality == "Santarém" & class_level_1 == "3. Deforest") %>% 
-  ungroup() %>% dplyr::select(freq_2020) %>% pull()
-
-
-
-# why/where benefit is higher? ====================================
+# Fig S12
+# why/where benefit is higher?
 ## comparing benefit between avoid degradation and avoid deforestation
-
-env <- c("TSDls", "edgedist", "UPFls")
+env <- c("TSDls", "edgedist")
 
 pgm.env.2010 <- list.files("rasters/PGM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 pgm.env.2010 <- grep(paste(env, collapse = "|"), pgm.env.2010, value = T)
 pgm.env.2010 <- stack(pgm.env.2010)
 pgm.env.2010 <- mask(pgm.env.2010, pgm.shp)
-pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>%  
-  mutate(Region = "PGM", Cell = row_number()) %>% drop_na()
+pgm.env.2010.df <- as.data.frame(pgm.env.2010, xy = TRUE) %>% drop_na() %>%  
+  mutate(Region = "PGM") %>%   #, Cell = row_number()
+  right_join(pgm.area.change.df.principals)
 
 
 stm.env.2010 <- list.files("rasters/STM/2010_real", pattern = ".tif", full.names = T, recursive = T)
 stm.env.2010 <- grep(paste(env, collapse = "|"), stm.env.2010, value = T)
 stm.env.2010 <- stack(stm.env.2010)
 stm.env.2010 <- mask(stm.env.2010, stm.shp)
-stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>%  
-  mutate(Region = "STM", Cell = row_number()) %>% drop_na()
-
+stm.env.2010.df <- as.data.frame(stm.env.2010, xy = TRUE) %>% drop_na() %>%  
+  mutate(Region = "STM") %>%   #, Cell = row_number()
+  right_join(stm.area.change.df.principals)
 
 env.2010 <- rbind(pgm.env.2010.df, stm.env.2010.df)
 
 
 cell.deforest <- costs.principals %>% 
-  filter(Scenario == "Avoid deforestation", area_change == "Direct") %>% 
-  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
-  left_join(env.2010[,3:7])
+  filter(Scenario == "Avoid deforestation", area_change == "Direct") %>% droplevels() %>% 
+  dplyr::select(x, y, Region, Cat, BBenefit, CBenefit) %>% 
+  group_by(Region) %>% 
+  left_join(env.2010) %>% 
+  ungroup()
 
 cell.degrad <- costs.principals %>% 
-  filter(Scenario == "Avoid degradation", area_change == "Direct") %>% 
-  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
-  left_join(env.2010[,3:7])
+  filter(Scenario == "Avoid degradation", area_change == "Direct") %>% droplevels() %>% 
+  dplyr::select(x, y, Region, Cat, BBenefit, CBenefit) %>% 
+  group_by(Region) %>% 
+  left_join(env.2010) %>% 
+  ungroup()
 
-cell.restor <- costs.principals %>% 
-  filter(Scenario == "Restoration without avoid", area_change == "Direct") %>% 
-  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
-  left_join(env.2010[,3:7])
 
-cell.full <- costs.principals %>% 
-  filter(Scenario == "Restoration and avoid both", area_change == "Direct") %>% 
-  dplyr::select(Region, Cell, Cat, BBenefit, CBenefit) %>% 
-  left_join(env.2010[,3:7])
+
 
 
 ggarrange(
-  ggplot() +
-    geom_histogram(data=total.blm.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=freq_2010, y=after_stat(count/nrow(total.blm.deforestation.2010)), fill = "All municipalities"), bins = 70) +
-    geom_histogram(data=priority.mun.deforestation.2010 %>% filter(class_level_1 == "3. Deforest"), 
-                   aes(x=freq_2010, y=after_stat(count/nrow(priority.mun.deforestation.2010)), fill = "Priority municipalities"), bins = 70, alpha = 0.55) +
-    scale_fill_manual(values = c("All municipalities"="#e1d3cc", "Priority municipalities"="#e99561")) +
-    geom_vline(xintercept = pgm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
-    geom_vline(xintercept = stm.deforestation.2010, linetype = "dashed", color = "gray20", linewidth = 1) +
-    #scale_y_continuous(limits = c(0, 0.0000006)) +
-    #scale_x_continuous(limits = c(0, 2000000)) +
-    labs(x="Deforestation in the Amazon \nmunicipalities by 2010", y="") +
-    theme_minimal() +
-    theme(text = element_text(size = 16, family = "sans"),
-          plot.title = element_text(hjust = 0.5),
-          axis.title = element_text(face="bold"),
-          axis.text.x=element_text(size = 14),
-          legend.title = element_blank(),
-          legend.position = "top"),
-  
-  ggarrange(
     
     ggplot() +
-      geom_histogram(data=env.2010, 
-                     aes(x=edgedist, y=after_stat(count / nrow(env.2010))), fill = "#e1d3cc") +
-      geom_freqpoly(data=cell.deforest, 
-                    aes(x=edgedist, y=after_stat(count / nrow(cell.deforest)), color = "Deforestation"), linewidth = 1) +
-      geom_freqpoly(data=cell.degrad, 
-                    aes(x=edgedist, y=after_stat(count / nrow(cell.degrad)), color = "Degradation"), linewidth = 1, linetype = "dashed") +
+      geom_histogram(data=env.2010 %>% filter(Scenario=="Business as usual"), 
+                     aes(x=edgedist, y=after_stat(count / nrow(env.2010 %>% filter(Scenario == "Business as usual")))), fill = "#e1d3cc") +
+      geom_freqpoly(data=env.2010 %>% filter(Scenario=="Avoid deforestation", area_change == 1), 
+                    aes(x=edgedist, y=after_stat(count / nrow(env.2010 %>% filter(Scenario == "Avoid deforestation", area_change == 1))), color = "Deforestation"), linewidth = 1) +
+      geom_freqpoly(data=env.2010 %>% filter(Scenario=="Avoid degradation", area_change == 1), 
+                    aes(x=edgedist, y=after_stat(count / nrow(env.2010 %>% filter(Scenario=="Avoid degradation", area_change == 1))), color = "Degradation"), linewidth = 1, linetype = "dashed") +
       scale_x_continuous(limits = c(0, 7000)) +
-      scale_y_continuous(limits = c(0, 0.4)) +
+      #scale_y_continuous(limits = c(0, 0.4)) +
       scale_color_manual(values = c("Deforestation"="#294B29", "Degradation"="#50623A")) +
       labs(title = "", x = "Distance to the edge", y = "Proportion") +
-      facet_wrap(~Region) +
+      facet_wrap(~Region, scales = "free") +
       theme_minimal() +
       theme(text = element_text(size = 16, family = "sans"),
             plot.title = element_text(hjust = 0.5),
@@ -1589,16 +1614,16 @@ ggarrange(
             legend.title = element_blank()),
     
     ggplot() +
-      geom_histogram(data=env.2010, 
-                     aes(x=TSDls, y=after_stat(count / nrow(env.2010))), fill = "#e1d3cc") +
-      geom_freqpoly(data=cell.deforest, 
-                    aes(x=TSDls, y=after_stat(count / nrow(cell.deforest)), color = "Deforestation"), linewidth = 1) +
-      geom_freqpoly(data=cell.degrad, 
-                    aes(x=TSDls, y=after_stat(count / nrow(cell.degrad)), color = "Degradation"), linewidth = 1, linetype = "dashed") +
-      scale_y_continuous(limits = c(0, 0.4)) +
+      geom_histogram(data=env.2010 %>% filter(Scenario=="Business as usual"), 
+                     aes(x=TSDls, y=after_stat(count / nrow(env.2010 %>% filter(Scenario=="Business as usual")))), fill = "#e1d3cc") +
+      geom_freqpoly(data=env.2010 %>% filter(Scenario=="Avoid deforestation", area_change == 1), 
+                    aes(x=TSDls, y=after_stat(count / nrow(env.2010 %>% filter(Scenario=="Avoid deforestation", area_change == 1))), color = "Deforestation"), linewidth = 1) +
+      geom_freqpoly(data=env.2010 %>% filter(Scenario=="Avoid degradation", area_change == 1), 
+                    aes(x=TSDls, y=after_stat(count / nrow(env.2010 %>% filter(Scenario=="Avoid degradation", area_change == 1))), color = "Degradation"), linewidth = 1, linetype = "dashed") +
+      #scale_y_continuous(limits = c(0, 0.4)) +
       scale_color_manual(values = c("Deforestation"="#294B29", "Degradation"="#50623A")) +
       labs(title = "", x = "Time since degradation", y = "") +
-      facet_wrap(~Region) +
+      facet_wrap(~Region, scales = "free") +
       theme_minimal() +
       theme(text = element_text(size = 16, family = "sans"),
             plot.title = element_text(hjust = 0.5),
@@ -1606,76 +1631,131 @@ ggarrange(
             axis.text.x=element_text(size = 14),
             legend.title = element_blank()),
     
-    nrow = 2, common.legend = T, legend = "bottom"),
-  
-  nrow = 2, heights = c(0.35, 0.65), legend = "top"
-)  ## res = 881 x 1673
+    nrow = 2, common.legend = T, legend = "bottom")  ## res = 881 x 1673
 
 
 
-# Fig S17
-figS17a <- costs.principals %>% 
-  ggplot(aes(x=Scenario, y=Costs)) +
-  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#FF4545", color="#0E1514", show.legend = F) + 
-  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
-                   expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 500)) +
-  labs(title = "", x = "", y = "Costs (R$ / year)") +
+# Fig S20
+fig20a <- costs.principals %>% filter(area_change=="Direct") %>% 
+  ggplot(aes(x=Scenario, y=(BBenefit_ha-BBenefit_ha.real)/10)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#163E64", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(limits = c("Avoid deforestation", 
+                              "Avoid degradation", 
+                              "Restoration without avoid",
+                              "Avoid both",
+                              "Restoration and avoid deforestation",
+                              "Restoration and avoid both"),
+                   labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(0.05, 0.05)) +
+  scale_y_continuous(limits = c(0, .01)) +
   facet_wrap(~Region, ncol = 2) +
-  theme_minimal() +
-  theme(text = element_text(size = 16, family = "sans"),
-        plot.title = element_text(hjust = 0.5),
-        axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 14),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        panel.spacing = unit(3, "lines"))
-
-
-
-figS17b <- costs.principals %>% 
-  ggplot(aes(x=Scenario, y=B.CBr)) +
-  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
-  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
-                   expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 500)) +
-  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / Biodiversity)") +
-  facet_wrap(~Region, ncol = 2) +
+  labs(title = "", x = "", y = expression("Biodiversity benefit ∙ ha"^{-1}~" ∙ year"^{-1})) +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 14),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        panel.spacing = unit(3, "lines"))
+        axis.text.x=element_blank(),
+        panel.spacing.x = unit(5, "lines")) #element_text(size = 14)
 
 
 
-figS17c <- costs.principals %>% 
-  ggplot(aes(x=Scenario, y=C.CBr)) +
+fig20b <- costs.principals %>% filter(area_change=="Direct") %>% 
+  ggplot(aes(x=Scenario, y=(((BBenefit_ha-BBenefit_ha.real)/10)/Costs)*10000)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
-  scale_x_discrete(labels=addline_format(levels(costs.principals$Scenario)),
+  scale_x_discrete(limits = c("Avoid deforestation", 
+                              "Avoid degradation", 
+                              "Restoration without avoid",
+                              "Avoid both",
+                              "Restoration and avoid deforestation",
+                              "Restoration and avoid both"),
+                   labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
                    expand = c(.05, .05)) +
-  scale_y_continuous(limits = c(0, 500)) +
-  labs(title = "", x = "", y = "Cost-Benefit ratio\n(R$ / MgC)") +
+  scale_y_continuous(limits = c(0, 1.5)) +
   facet_wrap(~Region, ncol = 2) +
+  labs(title = "", x = "", y = "Benefit-Cost ratio\n(Biodiversity / R$)") +
   theme_minimal()+
   theme(text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_text(size = 14),
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        panel.spacing = unit(3, "lines"))
+        axis.text.x=element_blank(),
+        panel.spacing.x = unit(5, "lines")) #element_text(size = 14
+
+
+
+fig20c <- costs.principals %>% filter(area_change=="Direct") %>% 
+  ggplot(aes(x=Scenario, y=(CBenefit_ha-CBenefit_ha.real)/10)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#163E64", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(limits = c("Avoid deforestation", 
+                              "Avoid degradation", 
+                              "Restoration without avoid",
+                              "Avoid both",
+                              "Restoration and avoid deforestation",
+                              "Restoration and avoid both"),
+                   labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(0.05, 0.05)) +
+  scale_y_continuous(limits = c(0, 1.5)) +
+  facet_wrap(~Region, ncol = 2) +
+  labs(title = "", x = "", y = expression("Carbon benefit ∙ ha"^{-1}~" ∙ year"^{-1})) +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_blank(),
+        panel.spacing.x = unit(5, "lines"))
+
+
+
+fig20d <- costs.principals %>% filter(area_change=="Direct") %>% 
+  ggplot(aes(x=Scenario, y=(((CBenefit_ha-CBenefit_ha.real)/10)/Costs)*10000)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(limits = c("Avoid deforestation", 
+                              "Avoid degradation", 
+                              "Restoration without avoid",
+                              "Avoid both",
+                              "Restoration and avoid deforestation",
+                              "Restoration and avoid both"),
+                   labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(.05, .05)) +
+  scale_y_continuous(limits = c(0, 250)) +
+  facet_wrap(~Region, ncol = 2) +
+  labs(title = "", x = "", y = "Benefit-Cost ratio\n(MgC / R$)") +
+  theme_minimal()+
+  theme(text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_blank(),
+        panel.spacing.x = unit(5, "lines"))
 
 
 
 
-ggarrange(figS17a, figS17b, figS17c, 
-          nrow = 3, #align = "hv", 
-          labels = c("A", "B", "C"), 
-          common.legend = T, legend = "bottom")
+### Fig 20 -- res: W: 1272; H: 1680 
+ggarrange(fig20a, fig20b, fig20c, fig20d, 
+          nrow = 4, ncol = 1, align = "hv")
+
+
+#
+#
 
 
 
