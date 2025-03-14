@@ -820,7 +820,8 @@ ggarrange(fig2a, fig2b,
           common.legend = T, legend = "top", align = "v")
 
 
-
+biodiv.summation %>% mutate(y = sum.benefit - min(sum.benefit), "%" = (y/-min(sum.benefit))*100)
+carb.summation %>% mutate(y = sum.benefit - min(sum.benefit), "%" = (y/-min(sum.benefit))*100)
 ## violin plot + jitter [dots colored by LULC category]
 ### biodiversity
 #fig3a <- biodiversity.benefit.principals %>%
@@ -1322,7 +1323,15 @@ ggarrange(fig4a, fig4c, fig4b, fig4d,
 
 #
 #
-
+costs.principals %>% filter(area_change=="Direct") %>% group_by(Scenario) %>% 
+  summarise(md.biobenefit = median((BBenefit_ha-BBenefit_ha.real)/10, na.rm=T),
+            sd.biobenefit = sd((BBenefit_ha-BBenefit_ha.real)/10, na.rm=T),
+            md.carbbenefit = median((CBenefit_ha-CBenefit_ha.real)/10, na.rm=T),
+            sd.carbbenefit = sd((CBenefit_ha-CBenefit_ha.real)/10, na.rm=T),
+            md.bioeffectiveness = median((((BBenefit_ha-BBenefit_ha.real)/10)/Costs)*10000, na.rm=T),
+            sd.bioeffectiveness = sd((((BBenefit_ha-BBenefit_ha.real)/10)/Costs)*10000, na.rm=T),
+            md.carbeffectiveness = median((((CBenefit_ha-CBenefit_ha.real)/10)/Costs)*10000, na.rm=T),
+            sd.carbeffectiveness = sd((((CBenefit_ha-CBenefit_ha.real)/10)/Costs)*10000, na.rm=T))
 
 # comparing benefits between localities and considering all possibilityies =====
 #converting to dataframe
