@@ -1,8 +1,8 @@
-# Achieving Net Gains in Amazonian Conservation
+# Achieving net-positive outcomes in Amazonia
 
 ## Introduction
 
-This repository hosts pre-processed data and R scripts for the analysis presented in the manuscript *"Achieving net-positive in Amazonia requires avoided degradation"*. The project compares the biodiversity and carbon benefits and costs of three major conservation strategies—avoiding deforestation, avoiding degradation, and promoting restoration—across two regions of the Brazilian Amazon using remote sensing, ecological field data, and socioeconomic assessments.
+This repository hosts pre-processed data and R scripts for the analysis presented in the manuscript *"Combined interventions required to reverse biodiversity and carbon losses in tropical forest frontiers"*. The project compares the biodiversity and carbon benefits and costs of three major conservation strategies—avoiding deforestation, avoiding degradation, and promoting restoration—across two regions of the Brazilian Amazon using remote sensing, ecological field data, and socioeconomic assessments.
 
 ## Repository Structure
 
