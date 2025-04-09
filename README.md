@@ -9,13 +9,13 @@ This repository hosts pre-processed data and R scripts for the analysis presente
 - `data/`: Pre-processed datasets derived from publicly available sources
   - `carbon.csv`: Field-based carbon estimates
   - `presence_records.csv`: Presence-only species records (birds and plants)
-  - `property.csv`: Information on rural property boundaries
-  - `species_summary.csv`: Summary data used in biodiversity modelling
+  - `property.csv`: Information on rural property (socioeconomic surveys)
+  - `species_summary.csv`: Summary data used in biodiversity modelling (table S1)
   - `transect_harvest_value.csv`: Timber value estimates from field transects
 
 - `scripts/`: R scripts used to prepare data layers, model biodiversity and carbon, and run cost-benefit analyses
   - `auxiliar.R`: Functions used across scripts
-  - `cost_benefit_analysis.R`: Main script for analysing cost-effectiveness
+  - `cost_benefit_analysis.R`: Main script for analysing, benefits, costs and cost-effectiveness
   - `layer_buide_pgm.R`: Spatial processing for Paragominas region
   - `layer_buide_stm.R`: Spatial processing for Santarém region
   - `regional_model.R`: Models for biodiversity and carbon predictions
@@ -23,7 +23,6 @@ This repository hosts pre-processed data and R scripts for the analysis presente
 
 - `shapes/`: Spatial masks and shapefiles
   - Files include spatial boundaries for `Paragominas` and `Santarém` study regions
-  - File types: `.shp`, `.shx`, `.dbf`, `.prj`, `.cpg`, `.qix`, `.xml`
 
 ## Prerequisites
 
