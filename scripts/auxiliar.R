@@ -1635,8 +1635,36 @@ ggarrange(
 
 
 
-# Fig S20
-fig20a <- costs.principals %>% filter(area_change=="Direct") %>% 
+#FigS20
+figS20a <- costs.principals %>% filter(area_change=="Direct") %>% 
+  ggplot(aes(x=Scenario, y=Costs)) +
+  geom_boxplot(varwidth = T, outlier.shape = NA, fill="#F97B22", color="#A4A4A4", show.legend = F) + 
+  scale_x_discrete(limits = c("Avoid deforestation", 
+                              "Avoid degradation", 
+                              "Restoration without avoid",
+                              "Avoid both",
+                              "Restoration and avoid deforestation",
+                              "Restoration and avoid both"),
+                   labels=addline_format(c("Avoided deforestation", 
+                                           "Avoided degradation", 
+                                           "Restoration only",
+                                           "Avoided deforestation and degradation",
+                                           "Restoration and avoided deforestation",
+                                           "Restoration and avoided deforestation and degradation")),
+                   expand = c(0.05, 0.05)) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  facet_wrap(~Region) + 
+  labs(title = "", x = "", y = expression("Costs ∙ ha"^{-1}~" ∙ year"^{-1})) +
+  theme_minimal()+
+  theme(panel.spacing.x = unit(3,"lines"),
+        text = element_text(size = 16, family = "sans"),
+        plot.title = element_text(hjust = 0.5),
+        axis.title = element_text(face="bold"),
+        axis.text.x=element_blank()) #element_text(size = 14)
+
+
+
+figS20b <- costs.principals %>% filter(area_change=="Direct") %>% 
   ggplot(aes(x=Scenario, y=(BBenefit_ha-BBenefit_ha.real)/10)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#163E64", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(limits = c("Avoid deforestation", 
@@ -1653,18 +1681,18 @@ fig20a <- costs.principals %>% filter(area_change=="Direct") %>%
                                            "Restoration and avoided deforestation and degradation")),
                    expand = c(0.05, 0.05)) +
   scale_y_continuous(limits = c(0, .01)) +
-  facet_wrap(~Region, ncol = 2) +
+  facet_wrap(~Region) + 
   labs(title = "", x = "", y = expression("Biodiversity benefit ∙ ha"^{-1}~" ∙ year"^{-1})) +
   theme_minimal()+
-  theme(text = element_text(size = 16, family = "sans"),
+  theme(panel.spacing.x = unit(3,"lines"),
+        text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_blank(),
-        panel.spacing.x = unit(5, "lines")) #element_text(size = 14)
+        axis.text.x=element_blank()) #element_text(size = 14)
 
 
 
-fig20b <- costs.principals %>% filter(area_change=="Direct") %>% 
+figS20c <- costs.principals %>% filter(area_change=="Direct") %>% 
   ggplot(aes(x=Scenario, y=(((BBenefit_ha-BBenefit_ha.real)/10)/Costs)*10000)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(limits = c("Avoid deforestation", 
@@ -1681,18 +1709,18 @@ fig20b <- costs.principals %>% filter(area_change=="Direct") %>%
                                            "Restoration and avoided deforestation and degradation")),
                    expand = c(.05, .05)) +
   scale_y_continuous(limits = c(0, 1.5)) +
-  facet_wrap(~Region, ncol = 2) +
+  facet_wrap(~Region) + 
   labs(title = "", x = "", y = "Benefit-Cost ratio\n(Biodiversity / R$)") +
   theme_minimal()+
-  theme(text = element_text(size = 16, family = "sans"),
+  theme(panel.spacing.x = unit(3,"lines"),
+        text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_blank(),
-        panel.spacing.x = unit(5, "lines")) #element_text(size = 14
+        axis.text.x=element_blank()) #element_text(size = 14
 
 
 
-fig20c <- costs.principals %>% filter(area_change=="Direct") %>% 
+figS20d <- costs.principals %>% filter(area_change=="Direct") %>% 
   ggplot(aes(x=Scenario, y=(CBenefit_ha-CBenefit_ha.real)/10)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#163E64", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(limits = c("Avoid deforestation", 
@@ -1709,18 +1737,18 @@ fig20c <- costs.principals %>% filter(area_change=="Direct") %>%
                                            "Restoration and avoided deforestation and degradation")),
                    expand = c(0.05, 0.05)) +
   scale_y_continuous(limits = c(0, 1.5)) +
-  facet_wrap(~Region, ncol = 2) +
+  facet_wrap(~Region) + 
   labs(title = "", x = "", y = expression("Carbon benefit ∙ ha"^{-1}~" ∙ year"^{-1})) +
   theme_minimal()+
-  theme(text = element_text(size = 16, family = "sans"),
+  theme(panel.spacing.x = unit(3,"lines"),
+        text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_blank(),
-        panel.spacing.x = unit(5, "lines"))
+        axis.text.x=element_blank())
 
 
 
-fig20d <- costs.principals %>% filter(area_change=="Direct") %>% 
+figS20e <- costs.principals %>% filter(area_change=="Direct") %>% 
   ggplot(aes(x=Scenario, y=(((CBenefit_ha-CBenefit_ha.real)/10)/Costs)*10000)) +
   geom_boxplot(varwidth = T, outlier.shape = NA, fill="#603a62", color="#A4A4A4", show.legend = F) + 
   scale_x_discrete(limits = c("Avoid deforestation", 
@@ -1737,25 +1765,32 @@ fig20d <- costs.principals %>% filter(area_change=="Direct") %>%
                                            "Restoration and avoided deforestation and degradation")),
                    expand = c(.05, .05)) +
   scale_y_continuous(limits = c(0, 250)) +
-  facet_wrap(~Region, ncol = 2) +
+  facet_wrap(~Region) + 
   labs(title = "", x = "", y = "Benefit-Cost ratio\n(MgC / R$)") +
   theme_minimal()+
-  theme(text = element_text(size = 16, family = "sans"),
+  theme(panel.spacing.x = unit(3,"lines"),
+        text = element_text(size = 16, family = "sans"),
         plot.title = element_text(hjust = 0.5),
         axis.title = element_text(face="bold"),
-        axis.text.x=element_blank(),
-        panel.spacing.x = unit(5, "lines"))
+        axis.text.x=element_blank())
 
 
 
 
-### Fig 20 -- res: W: 1272; H: 1680 
-ggarrange(fig20a, fig20b, fig20c, fig20d, 
-          nrow = 4, ncol = 1, align = "hv")
+### Fig S20 -- res: W: 940; H: 1680 
+ggarrange(figS20a, figS20b, figS20c, figS20d, figS20e, 
+          nrow = 5, ncol = 1, align = "hv")
 
 
 #
 #
+
+
+#
+#
+
+
+
 
 
 
@@ -1786,7 +1821,7 @@ plot(stm.costs.total[[3]], main="Opportunity farming", col = terrain.colors(9, r
 
 
 
-#=================================|end
+#end =================================
 
 
 
@@ -1843,281 +1878,248 @@ plot(stm.costs.total[[3]], main="Opportunity farming", col = terrain.colors(9, r
 
 
 
-#==============================| previous approach
-
-
-
-
-
-# checking for impossible transition scenarios
-#e.g., secondary forests becoming undegraded/degraded primary forest
-# or non-forest degraded primary forest
-#par(mfrow = c(2, 3))
-#PGM 2010
-#undegradded primary forest == 1
-UPF2010.sk <- UPF2010
-#UPF2010.sk <- raster("rasters/PGM/input/UPF2010_real.tif")
-#UPF2010.sk[UPF2010.sk==1]<-1
-#plot(UPF2010.sk, main="undegradded primary forest", legend=F)
-
-#degradded primary forest == 10
-DPF2010.sk <- DPF2010
-#DPF2010.sk <- raster("rasters/PGM/input/DPF2010_real.tif")
-DPF2010.sk[DPF2010.sk==1]<-10
-#plot(DPF2010.sk, main="degradded primary forest", legend=F)
-
-#secondary forest == 100
-SF2010.sk <- SF2010
-#SF2010.sk <- raster("rasters/PGM/input/SF2010_real.tif")
-SF2010.sk[SF2010.sk==1]<-100
-#plot(SF2010.sk, main="secondary forest", legend=F)
-
-LULC2010 <- sum(UPF2010.sk, SF2010.sk, na.rm = T)
-LULC2010 <- sum(LULC2010, DPF2010.sk, na.rm = T)
-#plot(LULC2010)
-#sort(unique(LULC2010[]))
-
-
-#PGM 2020
-#undegradded primary forest == 1
-UPF2020.sk <- UPF2020
-#UPF2020.sk <- raster("rasters/PGM/input/UPF2020_real.tif")
-#UPF2020.sk[UPF2020.sk==1]<-1
-#plot(UPF2020.sk, legend=F)
-
-#degradded primary forest == 10
-DPF2020.sk <- DPF2020
-#DPF2020.sk <- raster("rasters/PGM/input/DPF2020_real.tif")
-DPF2020.sk[DPF2020.sk==1]<-10
-#plot(DPF2020.sk, legend=F)
-
-#secondary forest == 100
-SF2020.sk <- SF2020
-#SF2020.sk <- raster("rasters/PGM/input/SF2020_real.tif")
-SF2020.sk[SF2020.sk==1]<-100
-#plot(SF2020.sk, legend=F)
-
-LULC2020 <- sum(UPF2020.sk, SF2020.sk, na.rm = T)
-LULC2020 <- sum(LULC2020, DPF2020.sk, na.rm = T)
-#plot(LULC2020)
-#sort(unique(LULC2020[]))
-
-
-
-#set.seed(123)
-
-# Create a data frame with the transition data
-data_df <- data.frame(
-  Period1 = factor(LULC2010[], levels = c(1, 10, 100, 0), labels = c("UPF", "DPF", "SF", "DF")),
-  Period2 = factor(LULC2020[], levels = c(1, 10, 100, 0), labels = c("UPF", "DPF", "SF", "DF"))
-)
-
-# Create the alluvial plot
-library(ggalluvial)
-#> Loading required package: ggplot2
-library(ggfittext)
-library(scales)
-
-
-#par(mfrow = c(1, 1))
-
-addline_format <- function(x,...){
-  gsub('\\s','\n',x)
-}
-
-data_df %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
-  ggplot(aes(axis1 = Period1, axis2 = Period2)) +
-  geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
-  geom_stratum(width = .15) +
-  scale_x_discrete(limits = c("Period1", "Period2"), 
-                   breaks=c("Period1", "Period2"), 
-                   labels=addline_format(c("2010 Real", "2020 Real")),
-                   expand = c(.05, .05)) +
-  scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
-  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-  theme_minimal()+
-  theme(axis.text.y= element_blank(), legend.position = "none")
-
-
-
-
-
-
-#data(vaccinations)
-#vaccinations <- transform(vaccinations, freq = freq * 1000)
+##==============================| previous approach
 #
 #
-#ggplot(vaccinations,
-#       aes(x = survey, stratum = response, alluvium = subject,
-#           y = freq,
-#           fill = response, label = freq)) +
-#  scale_x_discrete(expand = c(.1, .1)) +
-#  geom_flow() +
-#  geom_stratum(alpha = .5) +
-#  geom_fit_text(stat = "stratum", size = 10, min.size = 6, formatter = comma) +
-#  theme(legend.position = "bottom") +
-#  ggtitle("vaccination survey responses at three points in time")
-
-
-
-
-# Load your four rasters
-carbon.degradation <- pgm.conservact.avoiddegrad.carbbenefitmask
-cost.degradation <- pgm.conservact.avoiddegrad.costmask
-
-carbon.deforestation <- pgm.conservact.avoiddeforest.carbbenefitmask
-cost.deforestation <- pgm.conservact.avoiddeforest.costmask
-
-carbon.restoration <- pgm.conservact.restor_wo_avoid.carbbenefitmask
-cost.restoration <- pgm.conservact.restor_wo_avoid.costmask
-
-# Create an empty dataframe to store results
-result_df <- data.frame(Budget = numeric(0),
-                        Total_area = numeric(0),
-                        Degradation_area = numeric(0), 
-                        Deforestation_area = numeric(0), 
-                        Restoration_area = numeric(0))
-
-
-# Initialize areas reached
-reached.areas <- raster("imagens/mapbiomas-brazil-collection-70-pgm-2010-100mpx.tif")
-reached.areas[!is.na(reached.areas)] <- 0
-
-ncell.degradation <- c()
-ncell.deforestation <- c()
-ncell.restoration <- c()
-
-# Loop through each budget constraint
-for (r in seq(0,100,2)) {
-  # Initialize total carbon stocks and costs
-  total.carbon.degradation <- 0
-  total.cost.degradation <- 0
-  
-  total.carbon.deforestation <- 0
-  total.cost.deforestation <- 0
-  
-  total.carbon.restoration <- 0
-  total.cost.restoration <- 0
-
-    
-  # Iterate while budget is not exhausted
-  while (round(sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation), 0) <= r*1000000) {
-    #excluding areas after conservation action
-    carbon.degradation <- mask(carbon.degradation, reached.areas)
-    cost.degradation <- mask(cost.degradation, reached.areas)
-    
-    carbon.deforestation <- mask(carbon.deforestation, reached.areas)
-    cost.deforestation <- mask(cost.deforestation, reached.areas)
-    
-    carbon.restoration <- mask(carbon.restoration, reached.areas)
-    cost.restoration <- mask(cost.restoration, reached.areas)
-    
-    # Calculate the remaining budget
-    remaining.budget <- round(r*1000000 - (sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation)),0)
-    
-    cat("\n\t> The remaining budget is", remaining.budget, "and this is the round", r)
-    
-    # Calculate the maximum carbon stock for each scenario
-    max.carbon.degradation <- max(carbon.degradation[], na.rm = T)
-    max.carbon.deforestation <- max(carbon.deforestation[], na.rm = T)
-    max.carbon.restoration <- max(carbon.restoration[], na.rm = T)
-        
-    # Determine which scenario has the highest maximum carbon stock
-    max.carbon <- max(max.carbon.deforestation, max.carbon.restoration, max.carbon.degradation)
-    
-    # Select the cell with the highest carbon stock based on the scenario
-    if (max.carbon == max.carbon.degradation) {
-      cell.to.select <- which(values(carbon.degradation)==max.carbon)
-      ncell.degradation <- c(ncell.degradation, cell.to.select)
-      total.cost.degradation <- sum(total.cost.degradation, cost.degradation[cell.to.select], na.rm = T)
-    } else if (max.carbon == max.carbon.deforestation) {
-      cell.to.select <- which(values(carbon.deforestation)==max.carbon)
-      ncell.deforestation <- c(ncell.deforestation, cell.to.select)
-      total.cost.deforestation <- sum(total.cost.deforestation, cost.deforestation[cell.to.select], na.rm = T)
-    } else {
-      cell.to.select <- which(values(carbon.restoration)==max.carbon)
-      ncell.restoration <- c(ncell.restoration, cell.to.select)
-      total.cost.restoration <- sum(total.cost.restoration, cost.restoration[cell.to.select], na.rm = T)
-    }
-    
-    # Mark the selected cell as reached
-    reached.areas[cell.to.select] <- NA
-  }
-  
-  
-  # Append results to the dataframe
-  result_df <- rbind(result_df, data.frame(Budget = r*1000000,
-                                           Total_area = length(which(is.na(values(reached.areas)))),
-                                           Degradation_area = length(ncell.degradation), 
-                                           Deforestation_area = length(ncell.deforestation), 
-                                           Restoration_area = length(ncell.restoration)))
-}
-
-
-
-
-
-
-
-# Create a plot
-result_df %>% mutate(Total = Total_area - lag(Total_area, default = first(Total_area)),
-                     Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
-                     Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
-                     Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
-                     Proportion_Degradation = Degradation/Total,
-                     Proportion_Deforestation = Deforestation/Total,
-                     Proportion_Restoration = Restoration/Total) %>% 
-  ggplot(aes(x = Budget)) +
-  geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), size = 1) +
-  geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), size = 1) +
-  geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), size = 1) +
-  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
-  scale_color_manual(values = c("Avoid Deforestation" = "blue", "Passive Restoration" = "green", "Avoid Degradation" = "red")) +
-  theme_minimal() +
-  theme(legend.title = element_blank())
-
-
-
-
-
-
-par(mfrow = c(1, 3))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#
+#
+#
+## checking for impossible transition scenarios
+##e.g., secondary forests becoming undegraded/degraded primary forest
+## or non-forest degraded primary forest
+##par(mfrow = c(2, 3))
+##PGM 2010
+##undegradded primary forest == 1
+#UPF2010.sk <- UPF2010
+##UPF2010.sk <- raster("rasters/PGM/input/UPF2010_real.tif")
+##UPF2010.sk[UPF2010.sk==1]<-1
+##plot(UPF2010.sk, main="undegradded primary forest", legend=F)
+#
+##degradded primary forest == 10
+#DPF2010.sk <- DPF2010
+##DPF2010.sk <- raster("rasters/PGM/input/DPF2010_real.tif")
+#DPF2010.sk[DPF2010.sk==1]<-10
+##plot(DPF2010.sk, main="degradded primary forest", legend=F)
+#
+##secondary forest == 100
+#SF2010.sk <- SF2010
+##SF2010.sk <- raster("rasters/PGM/input/SF2010_real.tif")
+#SF2010.sk[SF2010.sk==1]<-100
+##plot(SF2010.sk, main="secondary forest", legend=F)
+#
+#LULC2010 <- sum(UPF2010.sk, SF2010.sk, na.rm = T)
+#LULC2010 <- sum(LULC2010, DPF2010.sk, na.rm = T)
+##plot(LULC2010)
+##sort(unique(LULC2010[]))
+#
+#
+##PGM 2020
+##undegradded primary forest == 1
+#UPF2020.sk <- UPF2020
+##UPF2020.sk <- raster("rasters/PGM/input/UPF2020_real.tif")
+##UPF2020.sk[UPF2020.sk==1]<-1
+##plot(UPF2020.sk, legend=F)
+#
+##degradded primary forest == 10
+#DPF2020.sk <- DPF2020
+##DPF2020.sk <- raster("rasters/PGM/input/DPF2020_real.tif")
+#DPF2020.sk[DPF2020.sk==1]<-10
+##plot(DPF2020.sk, legend=F)
+#
+##secondary forest == 100
+#SF2020.sk <- SF2020
+##SF2020.sk <- raster("rasters/PGM/input/SF2020_real.tif")
+#SF2020.sk[SF2020.sk==1]<-100
+##plot(SF2020.sk, legend=F)
+#
+#LULC2020 <- sum(UPF2020.sk, SF2020.sk, na.rm = T)
+#LULC2020 <- sum(LULC2020, DPF2020.sk, na.rm = T)
+##plot(LULC2020)
+##sort(unique(LULC2020[]))
+#
+#
+#
+##set.seed(123)
+#
+## Create a data frame with the transition data
+#data_df <- data.frame(
+#  Period1 = factor(LULC2010[], levels = c(1, 10, 100, 0), labels = c("UPF", "DPF", "SF", "DF")),
+#  Period2 = factor(LULC2020[], levels = c(1, 10, 100, 0), labels = c("UPF", "DPF", "SF", "DF"))
+#)
+#
+## Create the alluvial plot
+#library(ggalluvial)
+##> Loading required package: ggplot2
+#library(ggfittext)
+#library(scales)
+#
+#
+##par(mfrow = c(1, 1))
+#
+#addline_format <- function(x,...){
+#  gsub('\\s','\n',x)
+#}
+#
+#data_df %>% drop_na() %>% sample_n(size = 50000, replace = T) %>%
+#  ggplot(aes(axis1 = Period1, axis2 = Period2)) +
+#  geom_flow(aes(fill = Period1), width = .15, curve_type = "quintic") +
+#  geom_stratum(width = .15) +
+#  scale_x_discrete(limits = c("Period1", "Period2"), 
+#                   breaks=c("Period1", "Period2"), 
+#                   labels=addline_format(c("2010 Real", "2020 Real")),
+#                   expand = c(.05, .05)) +
+#  scale_fill_manual(values = c("#263A29", "#65451F", "#83764F", "#F97B22")) +
+#  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+#  theme_minimal()+
+#  theme(axis.text.y= element_blank(), legend.position = "none")
+#
+#
+#
+#
+#
+#
+##data(vaccinations)
+##vaccinations <- transform(vaccinations, freq = freq * 1000)
+##
+##
+##ggplot(vaccinations,
+##       aes(x = survey, stratum = response, alluvium = subject,
+##           y = freq,
+##           fill = response, label = freq)) +
+##  scale_x_discrete(expand = c(.1, .1)) +
+##  geom_flow() +
+##  geom_stratum(alpha = .5) +
+##  geom_fit_text(stat = "stratum", size = 10, min.size = 6, formatter = comma) +
+##  theme(legend.position = "bottom") +
+##  ggtitle("vaccination survey responses at three points in time")
+#
+#
+#
+#
+## Load your four rasters
+#carbon.degradation <- pgm.conservact.avoiddegrad.carbbenefitmask
+#cost.degradation <- pgm.conservact.avoiddegrad.costmask
+#
+#carbon.deforestation <- pgm.conservact.avoiddeforest.carbbenefitmask
+#cost.deforestation <- pgm.conservact.avoiddeforest.costmask
+#
+#carbon.restoration <- pgm.conservact.restor_wo_avoid.carbbenefitmask
+#cost.restoration <- pgm.conservact.restor_wo_avoid.costmask
+#
+## Create an empty dataframe to store results
+#result_df <- data.frame(Budget = numeric(0),
+#                        Total_area = numeric(0),
+#                        Degradation_area = numeric(0), 
+#                        Deforestation_area = numeric(0), 
+#                        Restoration_area = numeric(0))
+#
+#
+## Initialize areas reached
+#reached.areas <- raster("imagens/mapbiomas-brazil-collection-70-pgm-2010-100mpx.tif")
+#reached.areas[!is.na(reached.areas)] <- 0
+#
+#ncell.degradation <- c()
+#ncell.deforestation <- c()
+#ncell.restoration <- c()
+#
+## Loop through each budget constraint
+#for (r in seq(0,100,2)) {
+#  # Initialize total carbon stocks and costs
+#  total.carbon.degradation <- 0
+#  total.cost.degradation <- 0
+#  
+#  total.carbon.deforestation <- 0
+#  total.cost.deforestation <- 0
+#  
+#  total.carbon.restoration <- 0
+#  total.cost.restoration <- 0
+#
+#    
+#  # Iterate while budget is not exhausted
+#  while (round(sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation), 0) <= r*1000000) {
+#    #excluding areas after conservation action
+#    carbon.degradation <- mask(carbon.degradation, reached.areas)
+#    cost.degradation <- mask(cost.degradation, reached.areas)
+#    
+#    carbon.deforestation <- mask(carbon.deforestation, reached.areas)
+#    cost.deforestation <- mask(cost.deforestation, reached.areas)
+#    
+#    carbon.restoration <- mask(carbon.restoration, reached.areas)
+#    cost.restoration <- mask(cost.restoration, reached.areas)
+#    
+#    # Calculate the remaining budget
+#    remaining.budget <- round(r*1000000 - (sum(total.cost.deforestation, total.cost.restoration, total.cost.degradation)),0)
+#    
+#    cat("\n\t> The remaining budget is", remaining.budget, "and this is the round", r)
+#    
+#    # Calculate the maximum carbon stock for each scenario
+#    max.carbon.degradation <- max(carbon.degradation[], na.rm = T)
+#    max.carbon.deforestation <- max(carbon.deforestation[], na.rm = T)
+#    max.carbon.restoration <- max(carbon.restoration[], na.rm = T)
+#        
+#    # Determine which scenario has the highest maximum carbon stock
+#    max.carbon <- max(max.carbon.deforestation, max.carbon.restoration, max.carbon.degradation)
+#    
+#    # Select the cell with the highest carbon stock based on the scenario
+#    if (max.carbon == max.carbon.degradation) {
+#      cell.to.select <- which(values(carbon.degradation)==max.carbon)
+#      ncell.degradation <- c(ncell.degradation, cell.to.select)
+#      total.cost.degradation <- sum(total.cost.degradation, cost.degradation[cell.to.select], na.rm = T)
+#    } else if (max.carbon == max.carbon.deforestation) {
+#      cell.to.select <- which(values(carbon.deforestation)==max.carbon)
+#      ncell.deforestation <- c(ncell.deforestation, cell.to.select)
+#      total.cost.deforestation <- sum(total.cost.deforestation, cost.deforestation[cell.to.select], na.rm = T)
+#    } else {
+#      cell.to.select <- which(values(carbon.restoration)==max.carbon)
+#      ncell.restoration <- c(ncell.restoration, cell.to.select)
+#      total.cost.restoration <- sum(total.cost.restoration, cost.restoration[cell.to.select], na.rm = T)
+#    }
+#    
+#    # Mark the selected cell as reached
+#    reached.areas[cell.to.select] <- NA
+#  }
+#  
+#  
+#  # Append results to the dataframe
+#  result_df <- rbind(result_df, data.frame(Budget = r*1000000,
+#                                           Total_area = length(which(is.na(values(reached.areas)))),
+#                                           Degradation_area = length(ncell.degradation), 
+#                                           Deforestation_area = length(ncell.deforestation), 
+#                                           Restoration_area = length(ncell.restoration)))
+#}
+#
+#
+#
+#
+#
+#
+#
+## Create a plot
+#result_df %>% mutate(Total = Total_area - lag(Total_area, default = first(Total_area)),
+#                     Degradation = Degradation_area - lag(Degradation_area, default = first(Degradation_area)),
+#                     Deforestation = Deforestation_area - lag(Deforestation_area, default = first(Deforestation_area)),
+#                     Restoration = Restoration_area - lag(Restoration_area, default = first(Restoration_area)),
+#                     Proportion_Degradation = Degradation/Total,
+#                     Proportion_Deforestation = Deforestation/Total,
+#                     Proportion_Restoration = Restoration/Total) %>% 
+#  ggplot(aes(x = Budget)) +
+#  geom_line(aes(y = Proportion_Degradation, color = "Avoid Degradation"), size = 1) +
+#  geom_line(aes(y = Proportion_Deforestation, color = "Avoid Deforestation"), size = 1) +
+#  geom_line(aes(y = Proportion_Restoration, color = "Passive Restoration"), size = 1) +
+#  labs(x = "Budget (Brazilian Reais)", y = "Proportion of Area") +
+#  scale_color_manual(values = c("Avoid Deforestation" = "blue", "Passive Restoration" = "green", "Avoid Degradation" = "red")) +
+#  theme_minimal() +
+#  theme(legend.title = element_blank())
+#
+#
+#
+#
+#
+#
+#par(mfrow = c(1, 3))
+#
+#
+#
+#
+#
+#
