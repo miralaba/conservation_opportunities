@@ -1338,7 +1338,162 @@ costs.principals %>% filter(area_change=="Direct") %>% group_by(Scenario) %>%
 
 
 
-# 
+# sensitivity analysis of costs ================================================
+# extract to data frame
+pgm.costs.df <- as.data.frame(pgm.costs.total, xy = TRUE)
+names(pgm.costs.df)[3:6] <- c("fire_breaks_cost", "restoration_cost", "farming_cost", "logging_cost")
+pgm.costs.df <- pgm.costs.df %>% 
+  drop_na() %>% 
+  mutate(Region = "PGM") %>% 
+  right_join(pgm.area.change.df.principals)
+
+
+stm.costs.df <- as.data.frame(stm.costs.total, xy = TRUE)
+names(stm.costs.df)[3:6] <- c("fire_breaks_cost", "restoration_cost", "farming_cost", "logging_cost")
+stm.costs.df <- stm.costs.df %>% 
+  drop_na() %>% 
+  mutate(Region = "STM") %>% 
+  right_join(stm.area.change.df.principals)
+
+
+costs.df <- rbind(pgm.costs.df, stm.costs.df)
+
+costs.df <- costs.df %>% filter(Scenario %in% c("Avoid deforestation", "Avoid degradation", "Restoration without avoid")) %>% droplevels()
+
+# set paramenters
+set.seed(123)
+n_boot <- 5000
+shift_range <- seq(-0.95, 10, by = 0.1)
+cost_components <- c("fire_breaks_cost", "restoration_cost", "farming_cost", "logging_cost")
+
+scenario_costs <- list(
+  "Avoid deforestation" = c("farming_cost"),
+  "Avoid disturbance" = c("fire_breaks_cost", "logging_cost"),
+  "Restoration" = c("restoration_cost", "farming_cost")
+)
+
+scenarios <- names(scenario_costs)
+
+
+#bootstrapping
+# Storage
+all_boot_results <- list()
+all_thresholds <- list()
+
+for (b in 1:n_boot) {
+  cat("Bootstrap:", b, "/", n_boot, "\r")
+  #flush.console()
+  
+  # Resample rows (with replacement)
+  df_boot <- costs.df[sample(1:nrow(costs.df), replace = T), ]
+  
+  # Per-cost component loop
+  for (cost_var in cost_components) {
+    scenario_ttcost <- list()
+    
+    for (s in shift_range) {
+      mult <- 1 + s
+      df_temp <- df_boot
+      df_temp[[cost_var]] <- df_temp[[cost_var]] * mult
+      df_temp[[cost_var]] <- ifelse(df_temp[[cost_var]] < 0, 0, df_temp[[cost_var]])
+      
+      df_temp <- df_temp %>%
+        mutate(total_cost = case_when(
+          Scenario == "Avoid deforestation" ~ farming_cost,
+          Scenario == "Avoid degradation" ~ fire_breaks_cost + logging_cost,
+          Scenario == "Restoration without avoid" ~ restoration_cost + farming_cost
+        ),
+        shift = s,
+        cost_component = cost_var,
+        boot = b)
+      
+      summary <- df_temp %>%
+        group_by(Scenario, shift, cost_component, boot) %>%
+        summarise(mean_ttcost = mean(total_cost, na.rm = T), .groups = "drop")
+      
+      scenario_ttcost[[as.character(s)]] <- summary
+    }
+    
+    # Combine all shifts
+    all_boot_results[[paste0("boot", b, "_", cost_var)]] <- bind_rows(scenario_ttcost)
+    
+    # Crossover estimation
+    sub <- bind_rows(scenario_ttcost)
+    wide <- sub %>% 
+      dplyr::select(Scenario, shift, mean_ttcost) %>%
+      pivot_wider(names_from = Scenario, values_from = mean_ttcost)
+    
+    
+    find_crossover <- function(x1, x2) {
+      diffs <- wide[[x1]] - wide[[x2]]
+      signs <- sign(diffs)
+      changes <- which(diff(signs) != 0)
+      
+      if (length(changes) == 0) return(data.frame(cost_component = cost_var, boot = b, pair = paste(x1, x2, sep = "_"), threshold = NA))
+      
+      i <- changes[1]
+      x0 <- wide$shift[i] - diffs[i] * (wide$shift[i+1] - wide$shift[i]) / (diffs[i+1] - diffs[i])
+      data.frame(cost_component = cost_var, boot = b, pair = paste(x1, x2, sep = "_"), threshold = x0)
+      
+    }
+    
+    
+    cr_list <- list(
+      find_crossover("Avoid deforestation", "Restoration without avoid"),
+      find_crossover("Avoid degradation", "Restoration without avoid"),
+      find_crossover("Avoid deforestation", "Avoid degradation")
+    )
+    
+    all_thresholds[[paste0("boot", b, "_", cost_var)]] <- bind_rows(cr_list)
+  }
+}
+
+
+# Combine everything
+boot_df <- bind_rows(all_boot_results)
+thresh_df <- bind_rows(all_thresholds)
+
+# Total costs summary (mean and 95% CI)
+ttcost_summary <- boot_df %>%
+  group_by(cost_component, Scenario, shift) %>%
+  summarise(mean = mean(total_cost, na.rm = T),
+            lower = quantile(total_cost, 0.025, na.rm = T),
+            upper = quantile(total_cost, 0.975, na.rm = T),
+            .groups = "drop")
+
+# Threshold summary
+threshold_summary <- thresh_df %>%
+  group_by(cost_component, pair) %>%
+  summarise(
+    n_cross = sum(!is.na(threshold)),
+    median = median(threshold, na.rm = TRUE),
+    lower = quantile(threshold, 0.025, na.rm = TRUE),
+    upper = quantile(threshold, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+ggplot(total_cost, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
+  facet_wrap(~ cost_component, scales = "free_y") +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
+  scale_colour_manual(values = c("Avoid deforestation" = "forestgreen",
+                                 "Avoid degradation" = "firebrick",
+                                 "Restoration without avoid" = "steelblue")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "forestgreen",
+                               "Avoid degradation" = "firebrick",
+                               "Restoration without avoid" = "steelblue")) +
+  labs(title = "Bootstrapped Sensitivity of Cost-Efficiency",
+       subtitle = "Mean ± 95% CI across 1000 resamples",
+       x = "Cost Adjustment (%)", y = "Mean Cost per Benefit Unit") +
+  theme_minimal(base_size = 13)
+
+
+
+print(threshold_summary)
+write.csv(eff_summary, "bootstrapped_sensitivity_curves.csv", row.names = F)
+write.csv(threshold_summary, "bootstrapped_crossover_thresholds.csv", row.names = F)
 
 
 
