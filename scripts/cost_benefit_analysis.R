@@ -1372,8 +1372,9 @@ costs.df <- costs.df %>% filter(Scenario %in% c("Avoid deforestation", "Avoid de
 #cat("using", n.cores, "parallel workers\n")
 
 # set paramenters
-set.seed(123)
-n_boot <- 1000
+sample_size <- 200000
+n_subsample <- 100
+n_boot <- 100
 shift_range <- c(seq(-0.95, 5, by = 0.1), 5)
 cost_components <- c("fire_breaks_cost", "logging_cost", "farming_cost", "restoration_cost")
 
@@ -1414,60 +1415,75 @@ find_crossover <- function(df_wide, x1, x2) {
 all_boot_results <- list()
 all_thresholds <- list()
 
-for (b in 1:n_boot) {
-  cat("Bootstrap:", b, "/", n_boot, format(Sys.time(), "%H:%M:%S"), "\n")
-  #flush.console()
-
-  # Resample rows (with replacement)
-  df_boot <- costs.df[sample(1:nrow(costs.df), replace = T), ]
+set.seed(123)
+for (s_index in 1:n_subsample) {
   
-  # Per-cost component loop
-  for (cost_var in cost_components) {
-    scenario_ttcost <- list()
+  cat("subsample", s_index, "/", n_subsample, "\n")
+  
+  df_sub <- costs.df[sample(1:nrow(costs.df), size = sample_size), ]
+  
+  all_boot_results_part <- list()
+  all_thresholds_part <- list()
+  
+  for (b in 1:n_boot) {
+    cat("Bootstrap:", b, "/", n_boot, format(Sys.time(), "%H:%M:%S"), "\n")
+    #flush.console()
     
-    for (s in shift_range) {
-      mult <- 1 + s
-      df_temp <- df_boot
-      df_temp[[cost_var]] <- df_temp[[cost_var]] * mult
+    # Resample rows (with replacement)
+    df_boot <- costs.df[sample(1:nrow(costs.df), replace = T), ]
+    
+    # Per-cost component loop
+    for (cost_var in cost_components) {
+      scenario_ttcost <- list()
       
-      df_temp <- df_temp %>%
-        mutate(total_cost = case_when(
-          Scenario == "Avoid deforestation" ~ farming_cost,
-          Scenario == "Avoid degradation" ~ fire_breaks_cost + logging_cost,
-          Scenario == "Restoration without avoid" ~ restoration_cost + farming_cost
-        ),
-        shift = s,
-        cost_component = cost_var,
-        boot = b)
+      for (s in shift_range) {
+        mult <- 1 + s
+        df_temp <- df_boot
+        df_temp[[cost_var]] <- df_temp[[cost_var]] * mult
+        
+        df_temp <- df_temp %>%
+          mutate(total_cost = case_when(
+            Scenario == "Avoid deforestation" ~ farming_cost,
+            Scenario == "Avoid degradation" ~ fire_breaks_cost + logging_cost,
+            Scenario == "Restoration without avoid" ~ restoration_cost + farming_cost
+          ),
+          shift = s,
+          cost_component = cost_var,
+          boot = b)
+        
+        summary <- df_temp %>%
+          group_by(Scenario, shift, cost_component, boot) %>%
+          summarise(mean_ttcost = mean(total_cost, na.rm = T), .groups = "drop")
+        
+        scenario_ttcost[[as.character(s)]] <- summary
+      }
       
-      summary <- df_temp %>%
-        group_by(Scenario, shift, cost_component, boot) %>%
-        summarise(mean_ttcost = mean(total_cost, na.rm = T), .groups = "drop")
+      # Combine all shifts
+      all_boot_results_part[[paste0("boot", b, "_", cost_var)]] <- bind_rows(scenario_ttcost)
       
-      scenario_ttcost[[as.character(s)]] <- summary
+      # Crossover detection
+      sub <- bind_rows(scenario_ttcost)
+      wide <- sub %>% 
+        dplyr::select(Scenario, shift, mean_ttcost) %>%
+        pivot_wider(names_from = Scenario, values_from = mean_ttcost)
+      
+      
+      cross_df <- bind_rows(
+        data.frame(cost_component = cost_var, boot = b, pair = "adef_restor",
+                   threshold = find_crossover(wide, "Avoid deforestation", "Restoration without avoid")),
+        data.frame(cost_component = cost_var, boot = b, pair = "adeg_restor",
+                   threshold = find_crossover(wide, "Avoid degradation", "Restoration without avoid")),
+        data.frame(cost_component = cost_var, boot = b, pair = "adef_adeg",
+                   threshold = find_crossover(wide, "Avoid deforestation", "Avoid degradation"))
+      )
+      
+      all_thresholds_part[[paste0("boot", b, "_", cost_var)]] <- cross_df
     }
-    
-    # Combine all shifts
-    all_boot_results[[paste0("boot", b, "_", cost_var)]] <- bind_rows(scenario_ttcost)
-    
-    # Crossover detection
-    sub <- bind_rows(scenario_ttcost)
-    wide <- sub %>% 
-      dplyr::select(Scenario, shift, mean_ttcost) %>%
-      pivot_wider(names_from = Scenario, values_from = mean_ttcost)
-    
-    
-    cross_df <- bind_rows(
-      data.frame(cost_component = cost_var, boot = b, pair = "adef_restor",
-                 threshold = find_crossover(wide, "Avoid deforestation", "Restoration without avoid")),
-      data.frame(cost_component = cost_var, boot = b, pair = "adeg_restor",
-                 threshold = find_crossover(wide, "Avoid degradation", "Restoration without avoid")),
-      data.frame(cost_component = cost_var, boot = b, pair = "adef_adeg",
-                 threshold = find_crossover(wide, "Avoid deforestation", "Avoid degradation"))
-    )
-    
-    all_thresholds[[paste0("boot", b, "_", cost_var)]] <- cross_df
   }
+  
+  all_boot_results[[s_index]] <- all_boot_results_part
+  all_thresholds[[s_index]] <- all_thresholds_part
+  
 }
 
 #stopCluster(cl)
