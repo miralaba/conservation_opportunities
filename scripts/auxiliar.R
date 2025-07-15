@@ -379,7 +379,7 @@ gc()
 
 
 
-# candidate areas for restoration scenarios ==============|
+# candidate areas for restoration scenarios ====================================
 #' @description 
 #' 
 # land use land cover from mapbiomas collection 8 [2007, 2010 and 2022]
@@ -748,7 +748,7 @@ pgm.car.restoration.candidates@data$NEED_INCREMENT <- ifelse(pgm.car.restoration
 
 
 
-#### candidate areas for restoration considering app ####
+## candidate areas for restoration considering app
 
 #select pixels based on APPs 
 candidate.areas.water <- converted.area.2010
@@ -1141,6 +1141,777 @@ gc()
 
 #
 
+
+# adding summed benefit to the property data ===================================
+#' @description run this chunk after generating the summed benefits in the
+#' file "script/cost_benefit_analysis.R"
+
+#PGM
+pgm.car.restoration.candidates <- readOGR(dsn = "rasters/PGM/raw/", layer = "pgm_car_after_restoration_2010")
+names(pgm.car.restoration.candidates@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+                                                "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+                                                "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
+                                                "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
+
+
+#calculating biodiversity benefit of avoiding deforestation in each property
+#adding variable for forest cover
+pgm.car.restoration.candidates@data$ADEF_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adef.biodiv.benefit <- crop(pgm.biodiversity.benefit[[c(1,2)]], extent(rural.property))
+  property.adef.biodiv.benefit <- mask(property.adef.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.adef.biodiv.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adef.biodiv.benefit <- as.data.frame(property.adef.biodiv.benefit, xy = TRUE)
+    property.adef.biodiv.benefit <- property.adef.biodiv.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_biodiversity_benefit:PGM_2020_avoiddeforest_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_biodiversity_benefit",
+                                     "PGM_2020_avoiddeforest_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid deforestation"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.adef.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating biodiversity benefit of avoiding degradation in each property
+#adding variable for forest cover
+pgm.car.restoration.candidates@data$ADEG_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adeg.biodiv.benefit <- crop(pgm.biodiversity.benefit[[c(1,3)]], extent(rural.property))
+  property.adeg.biodiv.benefit <- mask(property.adeg.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.adeg.biodiv.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adeg.biodiv.benefit <- as.data.frame(property.adeg.biodiv.benefit, xy = TRUE)
+    property.adeg.biodiv.benefit <- property.adeg.biodiv.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_biodiversity_benefit:PGM_2020_avoiddegrad_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_biodiversity_benefit",
+                                     "PGM_2020_avoiddegrad_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid degradation"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.adeg.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating biodiversity benefit of restoration in each property
+#adding variable for forest cover
+pgm.car.restoration.candidates@data$RESTOR_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.restor.biodiv.benefit <- crop(pgm.biodiversity.benefit[[c(1,4)]], extent(rural.property))
+  property.restor.biodiv.benefit <- mask(property.restor.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.restor.biodiv.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.restor.biodiv.benefit <- as.data.frame(property.restor.biodiv.benefit, xy = TRUE)
+    property.restor.biodiv.benefit <- property.restor.biodiv.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_biodiversity_benefit:PGM_2020_restor_wo_avoid_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_biodiversity_benefit",
+                                     "PGM_2020_restor_wo_avoid_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Restoration without avoid"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.restor.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of avoiding deforestation in each property
+pgm.car.restoration.candidates@data$ADEF_CARBON_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adef.carbon.benefit <- crop(pgm.carbon.benefit[[c(1,2)]], extent(rural.property))
+  property.adef.carbon.benefit <- mask(property.adef.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.adef.carbon.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adef.carbon.benefit <- as.data.frame(property.adef.carbon.benefit, xy = TRUE)
+    property.adef.carbon.benefit <- property.adef.carbon.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_carbon_benefit:PGM_2020_avoiddeforest_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_carbon_benefit",
+                                     "PGM_2020_avoiddeforest_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid deforestation"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.adef.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of avoiding degradation in each property
+pgm.car.restoration.candidates@data$ADEG_CARBON_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adeg.carbon.benefit <- crop(pgm.carbon.benefit[[c(1,3)]], extent(rural.property))
+  property.adeg.carbon.benefit <- mask(property.adeg.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.adeg.carbon.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adeg.carbon.benefit <- as.data.frame(property.adeg.carbon.benefit, xy = TRUE)
+    property.adeg.carbon.benefit <- property.adeg.carbon.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_carbon_benefit:PGM_2020_avoiddegrad_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_carbon_benefit",
+                                     "PGM_2020_avoiddegrad_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid degradation"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.adeg.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of restoration in each property
+pgm.car.restoration.candidates@data$RESTOR_CARBON_BENEFIT <- NA
+
+j=nrow(pgm.car.restoration.candidates@data)
+n=0
+for (i in pgm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.restor.carbon.benefit <- crop(pgm.carbon.benefit[[c(1,4)]], extent(rural.property))
+  property.restor.carbon.benefit <- mask(property.restor.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.restor.carbon.benefit[])))
+  {
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.restor.carbon.benefit <- as.data.frame(property.restor.carbon.benefit, xy = TRUE)
+    property.restor.carbon.benefit <- property.restor.carbon.benefit %>% 
+      pivot_longer(
+        PGM_2020_real_carbon_benefit:PGM_2020_restor_wo_avoid_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "PGM",
+        Scenario = factor(Scenario,
+                          levels = c("PGM_2020_real_carbon_benefit",
+                                     "PGM_2020_restor_wo_avoid_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Restoration without avoid"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.restor.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    pgm.car.restoration.candidates[pgm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(pgm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+
+
+
+
+
+
+#STM
+stm.car.restoration.candidates <- readOGR(dsn = "rasters/STM/raw/", layer = "stm_car_after_restoration_2010")
+names(stm.car.restoration.candidates@data) <- c("COD_IMOVEL","NUM_AREA","COD_ESTADO","NOM_MUNICI","NUM_MODULO","TIPO_IMOVE","SITUACAO","CONDICAO_I",
+                                                "num_area_ha","num_modulo_new","num_area_flag","FOREST_COVER_2007","FOREST_COVER_2007_PP","FOREST_COVER_2010","FOREST_COVER_2010_PP",
+                                                "NEED_INCREMENT","APP_FOREST_COVER_INCREMENT","APP_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_APP",
+                                                "ARL_FOREST_COVER_INCREMENT","ARL_FOREST_COVER_INCREMENT_PP","NEED_INCREMENT_AFTER_ARL")
+
+
+#calculating biodiversity benefit of avoiding deforestation in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$ADEF_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adef.biodiv.benefit <- crop(stm.biodiversity.benefit[[c(1,2)]], extent(rural.property))
+  property.adef.biodiv.benefit <- mask(property.adef.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.adef.biodiv.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adef.biodiv.benefit <- as.data.frame(property.adef.biodiv.benefit, xy = TRUE)
+    property.adef.biodiv.benefit <- property.adef.biodiv.benefit %>% 
+      pivot_longer(
+        STM_2020_real_biodiversity_benefit:STM_2020_avoiddeforest_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_biodiversity_benefit",
+                                     "STM_2020_avoiddeforest_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid deforestation"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.adef.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating biodiversity benefit of avoiding degradation in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$ADEG_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adeg.biodiv.benefit <- crop(stm.biodiversity.benefit[[c(1,3)]], extent(rural.property))
+  property.adeg.biodiv.benefit <- mask(property.adeg.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.adeg.biodiv.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adeg.biodiv.benefit <- as.data.frame(property.adeg.biodiv.benefit, xy = TRUE)
+    property.adeg.biodiv.benefit <- property.adeg.biodiv.benefit %>% 
+      pivot_longer(
+        STM_2020_real_biodiversity_benefit:STM_2020_avoiddegrad_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_biodiversity_benefit",
+                                     "STM_2020_avoiddegrad_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid degradation"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.adeg.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating biodiversity benefit of restoration in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$RESTOR_BIODIVERSITY_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.restor.biodiv.benefit <- crop(stm.biodiversity.benefit[[c(1,4)]], extent(rural.property))
+  property.restor.biodiv.benefit <- mask(property.restor.biodiv.benefit, rural.property)
+  
+  if(all(is.na(property.restor.biodiv.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_BIODIVERSITY_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.restor.biodiv.benefit <- as.data.frame(property.restor.biodiv.benefit, xy = TRUE)
+    property.restor.biodiv.benefit <- property.restor.biodiv.benefit %>% 
+      pivot_longer(
+        STM_2020_real_biodiversity_benefit:STM_2020_restor_wo_avoid_biodiversity_benefit,
+        names_to = "Scenario",
+        values_to = "BBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_biodiversity_benefit",
+                                     "STM_2020_restor_wo_avoid_biodiversity_benefit"),
+                          labels = c("Business as usual",
+                                     "Restoration without avoid"))
+      ) %>% ungroup()
+    
+    biodiv.summation <- property.restor.biodiv.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(BBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_BIODIVERSITY_BENEFIT"] <- (biodiv.summation$sum.benefit - min(biodiv.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of avoiding deforestation in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$ADEF_CARBON_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adef.carbon.benefit <- crop(stm.carbon.benefit[[c(1,2)]], extent(rural.property))
+  property.adef.carbon.benefit <- mask(property.adef.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.adef.carbon.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adef.carbon.benefit <- as.data.frame(property.adef.carbon.benefit, xy = TRUE)
+    property.adef.carbon.benefit <- property.adef.carbon.benefit %>% 
+      pivot_longer(
+        STM_2020_real_carbon_benefit:STM_2020_avoiddeforest_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_carbon_benefit",
+                                     "STM_2020_avoiddeforest_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid deforestation"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.adef.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEF_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of avoiding degradation in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$ADEG_CARBON_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.adeg.carbon.benefit <- crop(stm.carbon.benefit[[c(1,3)]], extent(rural.property))
+  property.adeg.carbon.benefit <- mask(property.adeg.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.adeg.carbon.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.adeg.carbon.benefit <- as.data.frame(property.adeg.carbon.benefit, xy = TRUE)
+    property.adeg.carbon.benefit <- property.adeg.carbon.benefit %>% 
+      pivot_longer(
+        STM_2020_real_carbon_benefit:STM_2020_avoiddegrad_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_carbon_benefit",
+                                     "STM_2020_avoiddegrad_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Avoid degradation"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.adeg.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"ADEG_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+
+
+
+#calculating carbon benefit of restoration in each property
+#adding variable for forest cover
+stm.car.restoration.candidates@data$RESTOR_CARBON_BENEFIT <- NA
+
+j=nrow(stm.car.restoration.candidates@data)
+n=0
+for (i in stm.car.restoration.candidates$COD_IMOVEL) {
+  
+  rural.property <- stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,]
+  
+  property.restor.carbon.benefit <- crop(stm.carbon.benefit[[c(1,4)]], extent(rural.property))
+  property.restor.carbon.benefit <- mask(property.restor.carbon.benefit, rural.property)
+  
+  if(all(is.na(property.restor.carbon.benefit[])))
+  {
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_CARBON_BENEFIT"] <- 0
+    j=j-1
+    n=n+1
+    #cat("\n>there are no forests in property", i, "in 2007 <\n")
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  } 
+  else
+  {
+    
+    property.restor.carbon.benefit <- as.data.frame(property.restor.carbon.benefit, xy = TRUE)
+    property.restor.carbon.benefit <- property.restor.carbon.benefit %>% 
+      pivot_longer(
+        STM_2020_real_carbon_benefit:STM_2020_restor_wo_avoid_carbon_benefit,
+        names_to = "Scenario",
+        values_to = "CBenefit"
+      ) %>% drop_na() %>%
+      group_by(Scenario) %>% 
+      mutate(
+        Cell = row_number(),
+        Region = "STM",
+        Scenario = factor(Scenario,
+                          levels = c("STM_2020_real_carbon_benefit",
+                                     "STM_2020_restor_wo_avoid_carbon_benefit"),
+                          labels = c("Business as usual",
+                                     "Restoration without avoid"))
+      ) %>% ungroup()
+    
+    carb.summation <- property.restor.carbon.benefit %>%
+      group_by(Scenario) %>% 
+      summarise(sum.benefit = sum(CBenefit)) %>% 
+      ungroup()
+    
+    stm.car.restoration.candidates[stm.car.restoration.candidates$COD_IMOVEL==i,"RESTOR_CARBON_BENEFIT"] <- (carb.summation$sum.benefit - min(carb.summation$sum.benefit))[2]
+    j=j-1
+    cat("\n>", j, "out of", nrow(stm.car.restoration.candidates@data), "properties left<\n")
+    
+  }
+  
+}
+
+pgm.car.restoration.candidates.df <- as.data.frame(pgm.car.restoration.candidates@data)
+stm.car.restoration.candidates.df <- as.data.frame(stm.car.restoration.candidates@data)
+car.benefits <- rbind(pgm.car.restoration.candidates.df %>% mutate(Region="PGM"), 
+                      stm.car.restoration.candidates.df %>% mutate(Region="STM"))
+car.benefits <- car.benefits %>% 
+  mutate(
+    size_class = factor(if_else(num_modulo_new <= 4, "small", if_else(num_modulo_new > 15, "large", "medium")),
+                        levels = c("small", "medium", "large")),
+    ADEF_BIODIVERSITY_BENEFIT_HA = ADEF_BIODIVERSITY_BENEFIT/num_area_ha,
+    ADEG_BIODIVERSITY_BENEFIT_HA = ADEG_BIODIVERSITY_BENEFIT/num_area_ha,
+    RESTOR_BIODIVERSITY_BENEFIT_HA = RESTOR_BIODIVERSITY_BENEFIT/num_area_ha,
+    ADEF_CARBON_BENEFIT_HA = ADEF_CARBON_BENEFIT/num_area_ha,
+    ADEG_CARBON_BENEFIT_HA = ADEG_CARBON_BENEFIT/num_area_ha,
+    RESTOR_CARBON_BENEFIT_HA = RESTOR_CARBON_BENEFIT/num_area_ha
+  ) %>% 
+  dplyr::select(c(Region, COD_IMOVEL, num_area_ha, num_modulo_new, size_class, FOREST_COVER_2010_PP,
+                  ADEF_BIODIVERSITY_BENEFIT:RESTOR_CARBON_BENEFIT_HA))
+
+write.csv(car.benefits, "data/car_benefits.csv", row.names = F)
+
+
+
+rm(list=ls()[!ls() %in% c("car.benefits")])
+gc()
+
+
+
+
+
+# Supplementary figures ========================================================
 #Fig S1
 # where is Paragominas and Santarem compared to the Brazilian Amazon? ==========
 blm.states <- c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Mato Grosso")
