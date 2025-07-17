@@ -16,6 +16,8 @@ library(ggalluvial)
 library(ggfittext)
 library(ggforce)
 library(ggpubr)
+library(foreach)
+library(doParallel)
 #library(ggblend)
 
 
@@ -985,6 +987,163 @@ ggarrange(#fig3a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit 
           #widths = c(1.5,1),
           common.legend = T, legend = "bottom", align = "h")
 #
+
+
+# assessing summed benefits by property size AND forest cover ==================
+# to this data go to "script/auxiliar.R" code and execute the commands to
+# generate the summaed benefit at property level, using CAR data
+
+# load data
+car.benefits.raw <- read.csv("data/car_benefits.csv")
+
+# reshape to long format
+car.benefits <- car.benefits.raw %>%
+  pivot_longer(
+    cols = ADEF_BIODIVERSITY_BENEFIT_HA:RESTOR_CARBON_BENEFIT_HA,
+    names_to = "benefit_var",
+    values_to = "benefit"
+  ) %>%
+  mutate(
+    Scenario = case_when(
+      grepl("ADEF", benefit_var) ~ "avoid deforestation",
+      grepl("ADEG", benefit_var) ~ "avoid disturbance",
+      grepl("RESTOR", benefit_var) ~ "restoration"
+    ),
+    benefit_type = case_when(
+      grepl("BIODIVERSITY", benefit_var) ~ "biodiversity",
+      grepl("CARBON", benefit_var) ~ "carbon"
+    )
+  ) %>%
+  dplyr::select(Region, Scenario, benefit_type, benefit, FOREST_COVER_2010_PP, size_class)
+
+# Rename predictors
+colnames(car.benefits)[colnames(car.benefits) == "FOREST_COVER_2010_PP"] <- "forest_cover"
+car.benefits$size_class <- factor(car.benefits$size_class, levels = c("small", "medium", "large"))
+
+# parameters
+n_subsamples <- 100
+sample_size <- 8280
+n_boot <- 100
+forest_seq <- seq(0, 1, length.out = 50)
+
+# Prediction grid
+newdata_grid <- expand.grid(
+  forest_cover = forest_seq,
+  size_class = c("small", "medium", "large")
+)
+
+# parallel setup
+n_cores <- parallel::detectCores() - 3
+cl <- makeCluster(n_cores)
+registerDoParallel(cl)
+cat("Using", n_cores, "cores\n")
+
+# bootstrap loop
+all_results <- list()
+
+set.seed(123)
+for (s in 1:n_subsamples) {
+  cat("Subsample", s, "/", n_subsamples, "\n")
+  
+  df_sub <- car.benefits[sample(1:nrow(car.benefits), sample_size), ]
+  clusterExport(cl, varlist = c("df_sub", "newdata_grid"), envir = environment())
+  
+  boot_res <- foreach(b = 1:n_boot, .combine = rbind, .packages = c("dplyr")) %dopar% {
+    boot_sample <- df_sub[sample(1:nrow(df_sub), replace = TRUE), ]
+    
+    do.call(rbind, 
+            lapply(split(boot_sample, 
+                         list(boot_sample$benefit_type, boot_sample$Scenario)), 
+                   function(subgroup) {
+                     
+                     if (nrow(subgroup) < 50) return(NULL)
+                     
+                     benefit_type <- unique(subgroup$benefit_type)
+                     Scenario <- unique(subgroup$Scenario)
+                     
+                     # Real model
+                     model_real <- lm(benefit ~ forest_cover * size_class, data = subgroup)
+                     preds_real <- cbind(newdata_grid,
+                                         benefit_type = benefit_type,
+                                         Scenario = Scenario,
+                                         boot = b,
+                                         subsample = s,
+                                         type = "real",
+                                         pred = predict(model_real, newdata = newdata_grid))
+                     
+                     # Null model
+                     null_df <- subgroup
+                     null_df$forest_cover <- sample(null_df$forest_cover)
+                     null_df$size_class <- sample(null_df$size_class)
+                     model_null <- lm(benefit ~ forest_cover * size_class, data = null_df)
+                     preds_null <- cbind(newdata_grid,
+                                         benefit_type = benefit_type,
+                                         Scenario = Scenario,
+                                         boot = b,
+                                         subsample = s,
+                                         type = "null",
+                                         pred = predict(model_null, newdata = newdata_grid))
+                     
+                     rbind(preds_real, preds_null)
+                   }))
+  }
+  all_results[[s]] <- boot_res
+}
+stopCluster(cl)
+
+# combine and summarise
+all_data <- bind_rows(all_results)
+
+summary_df <- all_data %>%
+  group_by(benefit_type, Scenario, size_class, forest_cover, type) %>%
+  summarise(
+    mean = mean(pred),
+    lower = quantile(pred, 0.025),
+    upper = quantile(pred, 0.975),
+    .groups = "drop"
+  )
+
+# Compare CI bands
+overlap_df <- summary_df %>%
+  pivot_wider(names_from = type, values_from = c(mean, lower, upper)) %>%
+  mutate(non_overlap = upper_real < lower_null | lower_real > upper_null)
+
+overlap_stats <- overlap_df %>%
+  group_by(benefit_type, Scenario, size_class) %>%
+  summarise(prop_non_overlap = mean(non_overlap, na.rm = TRUE), .groups = "drop")
+
+
+plot_func <- function(benefit_filter, ylimit) {
+  filtered <- summary_df %>% filter(benefit_type == benefit_filter)
+  gg_list <- list()
+  i <- 1
+  for (intv in unique(filtered$Scenario)) {
+    for (cls in levels(filtered$size_class)) {
+      dat <- filtered %>% filter(Scenario == intv, size_class == cls)
+      p <- ggplot(dat, aes(x = forest_cover, y = mean, fill = type, colour = type)) +
+        geom_line(size = 0.7) +
+        geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
+        labs(title = paste0(intv, " | ", cls),
+             y = "Benefit", x = "Forest cover") +
+        coord_cartesian(ylim = ylimit) +
+        theme_minimal(base_size = 11) +
+        scale_colour_manual(values = c("real" = "steelblue", "null" = "firebrick")) +
+        scale_fill_manual(values = c("real" = "steelblue", "null" = "firebrick"))
+      gg_list[[i]] <- p
+      i <- i + 1
+    }
+  }
+  do.call(ggarrange, c(gg_list, ncol = 3, nrow = 3, common.legend = TRUE, legend = "bottom"))
+}
+
+plot_biodiversity <- plot_func("biodiversity", ylimit = c(0, 1))
+plot_carbon <- plot_func("carbon", ylimit = c(0, 150))
+
+ggsave("panel_biodiversity.png", plot_biodiversity, width = 14, height = 10, dpi = 300)
+ggsave("panel_carbon.png", plot_carbon, width = 14, height = 10, dpi = 300)
+
+write.csv(summary_df, "bootstrapped_benefits_by_size_n_forestcover.csv", row.names = FALSE)
+
 
 
 
