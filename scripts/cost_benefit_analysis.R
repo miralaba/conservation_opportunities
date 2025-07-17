@@ -1127,8 +1127,8 @@ plot_func <- function(benefit_filter, ylimit) {
              y = "Benefit", x = "Forest cover") +
         coord_cartesian(ylim = ylimit) +
         theme_minimal(base_size = 11) +
-        scale_colour_manual(values = c("real" = "steelblue", "null" = "firebrick")) +
-        scale_fill_manual(values = c("real" = "steelblue", "null" = "firebrick"))
+        scale_colour_manual(values = c("real" = "#294967", "null" = "gray33")) +
+        scale_fill_manual(values = c("real" = "#294967", "null" = "gray33"))
       gg_list[[i]] <- p
       i <- i + 1
     }
