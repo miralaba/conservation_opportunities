@@ -1202,9 +1202,39 @@ ggarrange(plot_biodiversity_real, plot_biodiversity_null,
           plot_carbon_real, plot_carbon_null,
           ncol = 2, nrow = 2, labels = c("  A", "   ", "  B", "   "),
           widths = c(2,1), common.legend = T, legend = "bottom", align = "v")
+
+
+
+# checking when restoration would give higher benefits 
+# compared to avoidance strategies
+df_wide <- summary_df %>% filter(benefit_type == "benefit_type", size_class == "size_class", type == "real") %>% 
+  dplyr::select(Scenario, forest_cover, mean) %>% 
+  pivot_wider(names_from = Scenario, values_from = mean)
+
+
+diffs <- df_wide[["Scenario 1"]] - df_wide[["Scenario 2"]]
+signs <- sign(diffs)
+changes <- which(diff(signs) != 0)
+#if (length(changes) == 0) return(NA)
+i <- changes[1]
+round(df_wide$forest_cover[i] - diffs[i] * (df_wide$forest_cover[i+1] - df_wide$forest_cover[i]) / (diffs[i+1] - diffs[i]),2)*100
   
 
+#biodiv, small properties, avoid def vs. restor: 5% forest cover
+#biodiv, medium properties, avoid def vs. restor: 48% forest cover
+#biodiv, large properties, avoid def vs. restor: 55% forest cover
 
+#biodiv, small properties, avoid disturb vs. restor: 18% forest cover
+#biodiv, medium properties, avoid disturb vs. restor: 38% forest cover
+#biodiv, large properties, avoid disturb vs. restor: 41% forest cover
+
+#carbon, small properties, avoid def vs. restor: 55% forest cover
+#carbon, medium properties, avoid def vs. restor: 52% forest cover
+#carbon, large properties, avoid def vs. restor: 53% forest cover
+
+#carbon, small properties, avoid disturb vs. restor: 30% forest cover
+#carbon, medium properties, avoid disturb vs. restor: 60% forest cover
+#carbon, large properties, avoid disturb vs. restor: 62% forest cover
 
 # comparing costs ==============================================================
 costs.list <- list.files("models.output/costs/", pattern = ".tif", full.names = T, recursive = T)
