@@ -1033,7 +1033,7 @@ newdata_grid <- expand.grid(
 )
 
 # parallel setup
-n_cores <- parallel::detectCores() - 3
+n_cores <- parallel::detectCores() - 1
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 cat("Using", n_cores, "cores\n")
@@ -1608,6 +1608,13 @@ costs.df <- rbind(pgm.costs.df, stm.costs.df)
 
 costs.df <- costs.df %>% filter(Scenario %in% c("Avoid deforestation", "Avoid degradation", "Restoration without avoid")) %>% droplevels()
 
+costs.df <- costs.df %>% 
+  mutate(Region = factor(Region, levels = c("PGM", "STM")),
+         area_change = factor(area_change, levels = c(0,1), labels = c("Others", "Direct"))) %>% 
+  left_join(costs.principals %>% 
+              filter(Scenario %in% c("Avoid deforestation", "Avoid degradation", "Restoration without avoid")) %>% 
+              droplevels())
+
 
 # Parallel setup
 n_cores <- parallel::detectCores() - 1
@@ -1620,7 +1627,7 @@ cat("Using", n_cores, "parallel workers.\n")
 sample_size <- 200000
 n_subsample <- 100
 n_boot <- 100
-shift_range <- c(seq(-0.95, 5, by = 0.1), 5)
+shift_range <- c(seq(-0.95, 2, by = 0.1), 2)
 cost_components <- c("fire_breaks_cost", "logging_cost", "farming_cost", "restoration_cost")
 
 scenario_costs <- list(
@@ -1647,26 +1654,31 @@ find_crossover <- function(df_wide, x1, x2) {
 
 #bootstrapping
 # Store all outputs
-all_eff <- list()
+all_effs <- list()
 all_thresh <- list()
 
-set.seed(42)  # for reproducibility
+set.seed(123)  # for reproducibility
 
 for (s_index in 1:n_subsamples) {
+  
   cat("Subsample", s_index, "/", n_subsamples, "\n")
   
   df_sub <- df[sample(1:nrow(df), size = sample_size), ]
   
-  clusterExport(cl, varlist = c("df_sub", "shift_range", "cost_components",
-                                "scenario_costs", "scenarios", "find_crossover"),
+  #export required objects to the cluster
+  clusterExport(cl, 
+                varlist = c("df_sub", "shift_range", "cost_components",
+                            "scenario_costs", "scenarios", "find_crossover"),
                 envir = environment())
   
   boot_results <- foreach(b = 1:n_boot, .combine = rbind, .packages = c("dplyr", "tidyr")) %dopar% {
     
+    #resample rows (with replacement)
     df_boot <- df_sub[sample(1:nrow(df_sub), replace = TRUE), ]
-    all_rows <- list()
-    all_thresh <- list()
+    all_effs_part <- list()
+    all_thresh_part <- list()
     
+    #per-cost component loop
     for (cost_var in cost_components) {
       scenario_eff <- list()
       
@@ -1681,7 +1693,7 @@ for (s_index in 1:n_subsamples) {
             Scenario == "Avoid degradation" ~ fire_breaks_cost + logging_cost,
             Scenario == "Restoration without avoid" ~ restoration_cost + farming_cost
           ),
-          efficiency = (((CBenefit_ha-CBenefit_ha.real)/10)/total_cost)*10000,
+          efficiency = (((BBenefit_ha-BBenefit_ha.real)/10)/total_cost)*10000,
           shift = s,
           cost_component = cost_var,
           boot = b,
@@ -1694,36 +1706,37 @@ for (s_index in 1:n_subsamples) {
         scenario_eff[[as.character(s)]] <- summary
       }
       
+      #combine all shifts
       eff_block <- bind_rows(scenario_eff)
-      all_rows[[cost_var]] <- eff_block
+      all_effs_part[[cost_var]] <- eff_block
       
       # Crossover detection
       wide <- eff_block %>%
-        select(Scenario, shift, mean_efficiency) %>%
+        dplyr::select(Scenario, shift, mean_efficiency) %>%
         pivot_wider(names_from = Scenario, values_from = mean_efficiency)
       
       cross_df <- bind_rows(
-        data.frame(cost_component = cost_var, boot = b, subsample = s_index, pair = "adef_restor",
+        data.frame(cost_component = cost_var, boot = b, pair = "adef_restor",
                    threshold = find_crossover(wide, "Avoid deforestation", "Restoration without avoid")),
-        data.frame(cost_component = cost_var, boot = b, subsample = s_index, pair = "adeg_restor",
-                   threshold = find_crossover(wide, "Avoid disturbance", "Restoration without avoid")),
-        data.frame(cost_component = cost_var, boot = b, subsample = s_index, pair = "adef_adeg",
-                   threshold = find_crossover(wide, "Avoid deforestation", "Avoid disturbance"))
+        data.frame(cost_component = cost_var, boot = b, pair = "adeg_restor",
+                   threshold = find_crossover(wide, "Avoid degradation", "Restoration without avoid")),
+        data.frame(cost_component = cost_var, boot = b, pair = "adef_adeg",
+                   threshold = find_crossover(wide, "Avoid deforestation", "Avoid degradation"))
       )
       
-      all_thresh[[cost_var]] <- cross_df
+      all_thresh_part[[cost_var]] <- cross_df
     }
     
     bind_rows(
-      bind_rows(all_rows) %>% mutate(type = "efficiency"),
-      bind_rows(all_thresh) %>% mutate(type = "threshold")
+      bind_rows(all_effs_part) %>% mutate(type = "efficiency"),
+      bind_rows(all_thresh_part) %>% mutate(type = "threshold")
     )
   }
   
   eff_part <- boot_results %>% filter(type == "efficiency") %>% select(-type)
   thresh_part <- boot_results %>% filter(type == "threshold") %>% select(-type)
   
-  all_eff[[s_index]] <- eff_part
+  all_effs[[s_index]] <- eff_part
   all_thresh[[s_index]] <- thresh_part
 }
 
@@ -1731,19 +1744,19 @@ stopCluster(cl)
 
 
 ## Combine everything
-boot_df <- bind_rows(all_boot_results)
-thresh_df <- bind_rows(all_thresholds)
+boot_df <- bind_rows(all_effs)
+thresh_df <- bind_rows(all_thresh)
 
 
 # Total costs summary (mean and 95% CI)
-ttcost_summary <- boot_df %>% 
+eff_summary <- boot_df %>% 
   group_by(cost_component, Scenario, shift) %>%
-  summarise(mean = mean(mean_ttcost, na.rm = T),
-            lower = quantile(mean_ttcost, 0.025, na.rm = T),
-            upper = quantile(mean_ttcost, 0.975, na.rm = T),
+  summarise(mean = mean(mean_efficiency, na.rm = T),
+            lower = quantile(mean_efficiency, 0.025, na.rm = T),
+            upper = quantile(mean_efficiency, 0.975, na.rm = T),
             .groups = "drop")
 
-write.csv(ttcost_summary, "bootstrapped_sensitivity_curves.csv", row.names = F)
+write.csv(eff_summary, "biodiversity_eff_bootstrapped_sensitivity_curves.csv", row.names = F)
 
 
 # Threshold summary
@@ -1758,10 +1771,10 @@ threshold_summary <- thresh_df %>%
   )
 
 print(threshold_summary)
-write.csv(threshold_summary, "bootstrapped_crossover_thresholds.csv", row.names = F)
+write.csv(threshold_summary, "biodiversity_eff_bootstrapped_crossover_thresholds.csv", row.names = F)
 
 
-ggplot(ttcost_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
+ggplot(eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
   geom_line(linewidth = 1) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
   facet_wrap(~ cost_component, scales = "free_y") +
@@ -1772,10 +1785,17 @@ ggplot(ttcost_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = 
   scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF80",
                                "Avoid degradation" = "#3E7B2780",
                                "Restoration without avoid" = "#A9C46C80")) +
-  labs(title = "Bootstrapped Sensitivity of Cost-Efficiency",
-       subtitle = "Mean ± 95% CI across 1000 resamples",
-       x = "Cost Adjustment (%)", y = "Mean Cost per Benefit Unit") +
-  theme_minimal(base_size = 13)
+  labs(#title = "Bootstrapped Sensitivity of Cost-Efficiency",
+       #subtitle = "Mean ± 95% CI across 1000 resamples",
+       x = "Cost Adjustment (%)", y = "Mean biodiversity benefit per unit cost") +
+  theme_classic() +
+  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
+        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(family = "sans", size = 16),
+        legend.position = "bottom")
 
 
 
