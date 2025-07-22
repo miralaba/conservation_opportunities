@@ -1756,7 +1756,7 @@ eff_summary <- boot_df %>%
             upper = quantile(mean_efficiency, 0.975, na.rm = T),
             .groups = "drop")
 
-write.csv(eff_summary, "biodiversity_eff_bootstrapped_sensitivity_curves.csv", row.names = F)
+write.csv(eff_summary, "models.output/biodiversity_eff_bootstrapped_sensitivity_curves.csv", row.names = F)
 
 
 # Threshold summary
@@ -1771,10 +1771,10 @@ threshold_summary <- thresh_df %>%
   )
 
 print(threshold_summary)
-write.csv(threshold_summary, "biodiversity_eff_bootstrapped_crossover_thresholds.csv", row.names = F)
+write.csv(threshold_summary, "models.output/biodiversity_eff_bootstrapped_crossover_thresholds.csv", row.names = F)
 
 
-ggplot(eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
+sensitivity_plot <- ggplot(eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
   geom_line(linewidth = 1) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
   facet_wrap(~ cost_component, scales = "free_y") +
@@ -1785,9 +1785,10 @@ ggplot(eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Sce
   scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF80",
                                "Avoid degradation" = "#3E7B2780",
                                "Restoration without avoid" = "#A9C46C80")) +
+  coord_cartesian(ylim = c(0,250)) +
   labs(#title = "Bootstrapped Sensitivity of Cost-Efficiency",
        #subtitle = "Mean ± 95% CI across 1000 resamples",
-       x = "Cost Adjustment (%)", y = "Mean biodiversity benefit per unit cost") +
+       x = "Cost Adjustment (%)", y = "Mean carbon benefit per unit cost") +
   theme_classic() +
   theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
