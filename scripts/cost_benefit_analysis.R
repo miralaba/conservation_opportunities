@@ -996,6 +996,16 @@ ggarrange(#fig3a + theme(plot.margin = margin(t = 47, r = 7, b = 1, l = 1, unit 
 # load data
 car.benefits.raw <- read.csv("data/car_benefits.csv")
 
+# two-classes property size
+car.benefits.raw <- car.benefits.raw %>% 
+  mutate(
+    size_class = case_when(
+      size_class == "small" ~ "small",
+      size_class == "medium" ~ "medium-large",
+      size_class == "large" ~ "medium-large",
+    )
+  )
+
 # reshape to long format
 car.benefits <- car.benefits.raw %>%
   pivot_longer(
@@ -1005,9 +1015,9 @@ car.benefits <- car.benefits.raw %>%
   ) %>%
   mutate(
     Scenario = case_when(
-      grepl("ADEF", benefit_var) ~ "avoid deforestation",
-      grepl("ADEG", benefit_var) ~ "avoid disturbance",
-      grepl("RESTOR", benefit_var) ~ "restoration"
+      grepl("ADEF", benefit_var) ~ "Avoid deforestation",
+      grepl("ADEG", benefit_var) ~ "Avoid disturbance",
+      grepl("RESTOR", benefit_var) ~ "Restoration only"
     ),
     benefit_type = case_when(
       grepl("BIODIVERSITY", benefit_var) ~ "biodiversity",
@@ -1018,7 +1028,7 @@ car.benefits <- car.benefits.raw %>%
 
 # Rename predictors
 colnames(car.benefits)[colnames(car.benefits) == "FOREST_COVER_2010_PP"] <- "forest_cover"
-car.benefits$size_class <- factor(car.benefits$size_class, levels = c("small", "medium", "large"))
+car.benefits$size_class <- factor(car.benefits$size_class, levels = c("small", "medium-large"))
 
 # parameters
 n_subsamples <- 100
@@ -1029,11 +1039,11 @@ forest_seq <- seq(0, 1, length.out = 50)
 # Prediction grid
 newdata_grid <- expand.grid(
   forest_cover = forest_seq,
-  size_class = c("small", "medium", "large")
+  size_class = c("small", "medium-large")
 )
 
 # parallel setup
-n_cores <- parallel::detectCores() - 1
+n_cores <- parallel::detectCores() - 4
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 cat("Using", n_cores, "cores\n")
@@ -1048,7 +1058,7 @@ for (s in 1:n_subsamples) {
   df_sub <- car.benefits[sample(1:nrow(car.benefits), sample_size), ]
   clusterExport(cl, varlist = c("df_sub", "newdata_grid"), envir = environment())
   
-  boot_res <- foreach(b = 1:n_boot, .combine = rbind, .packages = c("dplyr")) %dopar% {
+  boot_res <- foreach(b = 1:n_boot, .combine = rbind, .packages = c("dplyr", "mgcv")) %dopar% {
     boot_sample <- df_sub[sample(1:nrow(df_sub), replace = TRUE), ]
     
     do.call(rbind, 
@@ -1062,34 +1072,46 @@ for (s in 1:n_subsamples) {
                      Scenario <- unique(subgroup$Scenario)
                      
                      # Real model
-                     model_real <- lm(benefit ~ forest_cover * size_class, data = subgroup)
+                     #model_real <- lm(benefit ~ forest_cover * size_class, data = subgroup)
+                     model_real <- mgcv::gam(benefit ~ size_class + s(forest_cover, by = size_class),
+                                             data = subgroup, method = "REML")
                      preds_real <- cbind(newdata_grid,
                                          benefit_type = benefit_type,
                                          Scenario = Scenario,
                                          boot = b,
                                          subsample = s,
                                          type = "real",
-                                         pred = predict(model_real, newdata = newdata_grid))
+                                         pred = predict(model_real, newdata = newdata_grid, type = "response"))
                      
                      # Null model
                      null_df <- subgroup
                      null_df$forest_cover <- sample(null_df$forest_cover)
                      null_df$size_class <- sample(null_df$size_class)
-                     model_null <- lm(benefit ~ forest_cover * size_class, data = null_df)
+                     #model_null <- lm(benefit ~ forest_cover * size_class, data = null_df)
+                     model_null <- mgcv::gam(benefit ~ size_class + s(forest_cover, by = size_class),
+                                             data = null_df, method = "REML")
                      preds_null <- cbind(newdata_grid,
                                          benefit_type = benefit_type,
                                          Scenario = Scenario,
                                          boot = b,
                                          subsample = s,
                                          type = "null",
-                                         pred = predict(model_null, newdata = newdata_grid))
+                                         pred = predict(model_null, newdata = newdata_grid, type = "response"))
                      
                      rbind(preds_real, preds_null)
                    }))
   }
   all_results[[s]] <- boot_res
 }
+
 stopCluster(cl)
+
+unregister <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+
+unregister()
 
 # combine and summarise
 all_data <- bind_rows(all_results)
@@ -1103,7 +1125,7 @@ summary_df <- all_data %>%
     .groups = "drop"
   )
 
-write.csv(summary_df, "models.output/bootstrapped_benefits_by_size_n_forestcover.csv", row.names = FALSE)
+write.csv(summary_df, "models.output/bootstrapped_benefits_by_size_n_forestcover3.csv", row.names = FALSE)
 
 # Compare CI bands
 overlap_df <- summary_df %>%
@@ -1114,39 +1136,129 @@ overlap_stats <- overlap_df %>%
   group_by(benefit_type, Scenario, size_class) %>%
   summarise(prop_non_overlap = mean(non_overlap, na.rm = TRUE), .groups = "drop")
 
+## checking when restoration would give higher benefits 
+# compared to avoidance strategies
+df_wide <- summary_df %>% filter(benefit_type == "carbon", size_class == "medium-large", type == "real") %>% 
+  dplyr::select(Scenario, forest_cover, mean) %>% 
+  pivot_wider(names_from = Scenario, values_from = mean)
+
+
+diffs <- df_wide[["Avoid disturbance"]] - df_wide[["Restoration only"]]
+signs <- sign(diffs)
+changes <- which(diff(signs) != 0)
+#if (length(changes) == 0) return(NA)
+i <- changes[1]
+round(df_wide$forest_cover[i] - diffs[i] * (df_wide$forest_cover[i+1] - df_wide$forest_cover[i]) / (diffs[i+1] - diffs[i]),2)*100
+
+
+#biodiv, small properties, avoid def vs. restor: 9% forest cover
+#biodiv, small properties, avoid disturb vs. restor: 28% forest cover
+
+#biodiv, medium-large properties, avoid def vs. restor: 43% forest cover
+#biodiv, medium-large properties, avoid disturb vs. restor: 39% forest cover
+
+#carbon, small properties, avoid def vs. restor: 9% forest cover
+#carbon, small properties, avoid disturb vs. restor: 46% forest cover
+
+#carbon, medium-large properties, avoid def vs. restor: 41% forest cover
+#carbon, medium-large properties, avoid disturb vs. restor: 47% forest cover
+
+fig5a <- summary_df %>% filter(benefit_type == "biodiversity", size_class == "medium-large", type == "real") %>% 
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
+  geom_vline(xintercept = 0.43, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  geom_vline(xintercept = 0.39, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  labs(y = expression("Summed biodiversity benefit ∙ ha"^{-1}), x = "Forest cover (%)") +
+  coord_cartesian(ylim = c(0,1)) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_x_continuous(limits = c(0, 1), breaks = c(0, .25, .39, .43, .75, 1), labels = scales::percent_format(accuracy = 1), expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  theme_classic()+
+  theme(axis.title = element_text(family = "sans", size = 20, colour = "gray33"),
+        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        panel.spacing.y = unit(3, "mm"),
+        legend.title = element_blank(),
+        legend.text = element_text(family = "sans", size = 16),
+        legend.position = "bottom")
+
+
+fig5b <- summary_df %>% filter(benefit_type == "carbon", size_class == "medium-large", type == "real") %>% 
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
+  geom_vline(xintercept = 0.41, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  geom_vline(xintercept = 0.47, linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  labs(y = expression("Summed carbon benefit ∙ ha"^{-1}), x = "Forest cover (%)") +
+  coord_cartesian(ylim = c(0,220)) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_x_continuous(limits = c(0, 1), breaks = c(0, .25, .41, .47, .75, 1), labels = scales::percent_format(accuracy = 1), expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  theme_classic()+
+  theme(axis.title = element_text(family = "sans", size = 20, colour = "gray33"),
+        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        panel.spacing.y = unit(3, "mm"),
+        legend.title = element_blank(),
+        legend.text = element_text(family = "sans", size = 16),
+        legend.position = "bottom")
+
+
+### Fig 5 -- res: W: 1655; H: 803 
+ggarrange(fig5a, fig5b,
+          ncol = 2, labels = c("  A", "   B"),
+          common.legend = T, legend = "bottom", align = "v")
+
+
+
+
 
 plot_biodiversity_null <- summary_df %>% filter(benefit_type == "biodiversity", type == "null") %>% 
-  ggplot(aes(x = forest_cover, y = mean, fill = size_class, colour = size_class)) +
-  geom_line(linewidth = 0.7) +
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
-  labs(y = "", x = " ") +
+  labs(y = "", x = "") +
   coord_cartesian(ylim = c(0,1)) +
-  facet_wrap(~Scenario, ncol=1) +
-  scale_colour_manual(values = c("small" = "gray75", "medium" = "gray45", "large" = "gray25")) +
-  scale_fill_manual(values = c("small" = "gray75", "medium" = "gray45", "large" = "gray25")) +
+  facet_wrap(~size_class, ncol=2) +
+  scale_y_continuous(limits = c(0, 1), breaks = c(0,1), expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "gray75", "Avoid disturbance" = "gray45", "Restoration only" = "gray25")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "gray75", "Avoid disturbance" = "gray45", "Restoration only" = "gray25")) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
-        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+  theme(axis.text = element_text(family = "sans", size = 20, colour = "gray33"),
         strip.text = element_blank(),
         strip.background = element_blank(),
         panel.spacing.y = unit(3, "mm"),
         legend.title = element_blank(),
-        legend.text = element_text(family = "sans", size = 16),
         legend.position = "none")
 
 
+vline.df <- data.frame(size_class = factor(c("small", "small", "medium-large", "medium-large"),
+                                           levels = c("small", "medium-large")),
+                       cross.over = c(0.09, 0.28, 0.39, 0.43))
+
 plot_biodiversity_real <- summary_df %>% filter(benefit_type == "biodiversity", type == "real") %>% 
-  ggplot(aes(x = forest_cover, y = mean, fill = size_class, colour = size_class)) +
-  geom_line(linewidth = 0.7) +
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
-  labs(y = "Summed biodiversity benefit per ha", x = "Forest cover") +
+  geom_vline(data=vline.df, aes(xintercept=cross.over),
+             linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  labs(y = expression("Summed biodiversity benefit ∙ ha"^{-1}), x = "") +
   coord_cartesian(ylim = c(0,1)) +
-  facet_wrap(~Scenario, ncol=1, switch="y") +
-  scale_colour_manual(values = c("small" = "#8cc5e3", "medium" = "#3594cc", "large" = "#2066a8")) +
-  scale_fill_manual(values = c("small" = "#8cc5e3", "medium" = "#3594cc", "large" = "#2066a8")) +
+  facet_wrap(~size_class, ncol=2) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
-        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 20, colour = "gray33"),
+        axis.text.y = element_text(family = "sans", size = 16, colour = "gray33"),
+        axis.text.x = element_blank(),
         strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.background = element_blank(),
         strip.placement = "outside",
@@ -1158,37 +1270,45 @@ plot_biodiversity_real <- summary_df %>% filter(benefit_type == "biodiversity", 
 
 
 plot_carbon_null <- summary_df %>% filter(benefit_type == "carbon", type == "null") %>% 
-  ggplot(aes(x = forest_cover, y = mean, fill = size_class, colour = size_class)) +
-  geom_line(linewidth = 0.7) +
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
   coord_cartesian(ylim = c(0,150)) +
-  labs(y = "", x = " ") +
-  facet_wrap(~Scenario, ncol=1) +
-  scale_colour_manual(values = c("small" = "gray75", "medium" = "gray45", "large" = "gray25")) +
-  scale_fill_manual(values = c("small" = "gray75", "medium" = "gray45", "large" = "gray25")) +
+  labs(y = "", x = "Forest cover") +
+  facet_wrap(~size_class, ncol=2) +
+  scale_y_continuous(limits = c(0, 220), breaks = c(0,220), expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "gray75", "Avoid disturbance" = "gray45", "Restoration only" = "gray25")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "gray75", "Avoid disturbance" = "gray45", "Restoration only" = "gray25")) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 20, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.text = element_blank(),
         strip.background = element_blank(),
         panel.spacing.y = unit(3, "mm"),
         legend.title = element_blank(),
-        legend.text = element_text(family = "sans", size = 16),
         legend.position = "none")
 
 
+vline.df <- data.frame(size_class = factor(c("small", "small", "medium-large", "medium-large"),
+                                           levels = c("small", "medium-large")),
+                       cross.over = c(0.09, 0.46, 0.41, 0.47))
+
 plot_carbon_real <- summary_df %>% filter(benefit_type == "carbon", type == "real") %>% 
-  ggplot(aes(x = forest_cover, y = mean, fill = size_class, colour = size_class)) +
-  geom_line(linewidth = 0.7) +
+  ggplot(aes(x = forest_cover, y = mean, fill = Scenario, colour = Scenario)) +
+  geom_line(linewidth = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
-  labs(y = "Summed carbon benefit per ha", x = "Forest cover") +
-  coord_cartesian(ylim = c(0,150)) +
-  facet_wrap(~Scenario, ncol=1, switch="y") +
-  scale_colour_manual(values = c("small" = "#9fc8c8", "medium" = "#54a1a1", "large" = "#1f6f6f")) +
-  scale_fill_manual(values = c("small" = "#9fc8c8", "medium" = "#54a1a1", "large" = "#1f6f6f")) +
+  geom_vline(data=vline.df, aes(xintercept=cross.over),
+             linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  labs(y = expression("Summed carbon benefit ∙ ha"^{-1}), x = "Forest cover") +
+  coord_cartesian(ylim = c(0,220)) +
+  facet_wrap(~size_class, ncol=3) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF", "Avoid disturbance" = "#3E7B27", "Restoration only" = "#A9C46C")) +
   theme_classic()+
-  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 20, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        #axis.text.x = element_blank(),
         strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.background = element_blank(),
         strip.placement = "outside",
@@ -1198,43 +1318,15 @@ plot_carbon_real <- summary_df %>% filter(benefit_type == "carbon", type == "rea
         legend.position = "bottom")
 
 
-ggarrange(plot_biodiversity_real, plot_biodiversity_null,
-          plot_carbon_real, plot_carbon_null,
-          ncol = 2, nrow = 2, labels = c("  A", "   ", "  B", "   "),
-          widths = c(2,1), common.legend = T, legend = "bottom", align = "v")
+### Fig S21 -- res: W: 1272; H: 1272 
+ggarrange(plot_biodiversity_real, #plot_biodiversity_null,
+          plot_carbon_real, #plot_carbon_null,
+          ncol = 1, nrow = 2, labels = c("  A", "   B"),
+          common.legend = T, legend = "bottom", align = "v") #heights = c(2,1), 
 
 
 
-# checking when restoration would give higher benefits 
-# compared to avoidance strategies
-df_wide <- summary_df %>% filter(benefit_type == "benefit_type", size_class == "size_class", type == "real") %>% 
-  dplyr::select(Scenario, forest_cover, mean) %>% 
-  pivot_wider(names_from = Scenario, values_from = mean)
 
-
-diffs <- df_wide[["Scenario 1"]] - df_wide[["Scenario 2"]]
-signs <- sign(diffs)
-changes <- which(diff(signs) != 0)
-#if (length(changes) == 0) return(NA)
-i <- changes[1]
-round(df_wide$forest_cover[i] - diffs[i] * (df_wide$forest_cover[i+1] - df_wide$forest_cover[i]) / (diffs[i+1] - diffs[i]),2)*100
-  
-
-#biodiv, small properties, avoid def vs. restor: 5% forest cover
-#biodiv, medium properties, avoid def vs. restor: 48% forest cover
-#biodiv, large properties, avoid def vs. restor: 55% forest cover
-
-#biodiv, small properties, avoid disturb vs. restor: 18% forest cover
-#biodiv, medium properties, avoid disturb vs. restor: 38% forest cover
-#biodiv, large properties, avoid disturb vs. restor: 41% forest cover
-
-#carbon, small properties, avoid def vs. restor: 55% forest cover
-#carbon, medium properties, avoid def vs. restor: 52% forest cover
-#carbon, large properties, avoid def vs. restor: 53% forest cover
-
-#carbon, small properties, avoid disturb vs. restor: 30% forest cover
-#carbon, medium properties, avoid disturb vs. restor: 60% forest cover
-#carbon, large properties, avoid disturb vs. restor: 62% forest cover
 
 # comparing costs ==============================================================
 costs.list <- list.files("models.output/costs/", pattern = ".tif", full.names = T, recursive = T)
@@ -1759,44 +1851,101 @@ eff_summary <- boot_df %>%
 write.csv(eff_summary, "models.output/biodiversity_eff_bootstrapped_sensitivity_curves.csv", row.names = F)
 
 
-# Threshold summary
-threshold_summary <- thresh_df %>% 
-  group_by(cost_component, pair) %>%
-  summarise(
-    n_cross = sum(!is.na(threshold)),
-    median = median(threshold, na.rm = TRUE),
-    lower = quantile(threshold, 0.025, na.rm = TRUE),
-    upper = quantile(threshold, 0.975, na.rm = TRUE),
-    .groups = "drop"
-  )
+## Threshold summary
+#threshold_summary <- thresh_df %>% 
+#  group_by(cost_component, pair) %>%
+#  summarise(
+#    n_cross = sum(!is.na(threshold)),
+#    median = median(threshold, na.rm = TRUE),
+#    lower = quantile(threshold, 0.025, na.rm = TRUE),
+#    upper = quantile(threshold, 0.975, na.rm = TRUE),
+#    .groups = "drop"
+#  )
+#
+#print(threshold_summary)
+#write.csv(threshold_summary, "models.output/biodiversity_eff_bootstrapped_crossover_thresholds.csv", row.names = F)
 
-print(threshold_summary)
-write.csv(threshold_summary, "models.output/biodiversity_eff_bootstrapped_crossover_thresholds.csv", row.names = F)
+
+## checking when cost components cross over 
+# compared to avoidance strategies
+df_wide <- carb_eff_summary %>% filter(cost_component == "logging_cost") %>% 
+  dplyr::select(Scenario, shift, mean) %>% 
+  pivot_wider(names_from = Scenario, values_from = mean)
 
 
-sensitivity_plot <- ggplot(eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
-  geom_line(linewidth = 1) +
+diffs <- df_wide[["Avoid deforestation"]] - df_wide[["Avoid degradation"]]
+signs <- sign(diffs)
+changes <- which(diff(signs) != 0)
+#if (length(changes) == 0) return(NA)
+i <- changes[1]
+round(df_wide$shift[i] - diffs[i] * (df_wide$shift[i+1] - df_wide$shift[i]) / (diffs[i+1] - diffs[i]),2)*100
+
+
+
+vline.df <- data.frame(cost_component = factor(c("fire_breaks_cost", "restoration_cost", "farming_cost", "farming_cost", "logging_cost"),
+                                           levels = c("fire_breaks_cost", "restoration_cost", "farming_cost", "logging_cost")),
+                       cross.over = c(0, 0, 0, -63, 0))
+
+biodiv_sensit_plot <- ggplot(biodiv_eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
+  geom_line(linewidth = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
-  facet_wrap(~ cost_component, scales = "free_y") +
-  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
-  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF80",
-                                 "Avoid degradation" = "#3E7B2780",
-                                 "Restoration without avoid" = "#A9C46C80")) +
-  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF80",
-                               "Avoid degradation" = "#3E7B2780",
-                               "Restoration without avoid" = "#A9C46C80")) +
-  coord_cartesian(ylim = c(0,250)) +
+  geom_vline(data=vline.df, aes(xintercept=cross.over),
+             linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  facet_wrap(~ cost_component, ncol = 4, scales = "free_y") +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF",
+                                 "Avoid degradation" = "#3E7B27",
+                                 "Restoration without avoid" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF",
+                               "Avoid degradation" = "#3E7B27",
+                               "Restoration without avoid" = "#A9C46C")) +
+  coord_cartesian(ylim = c(0,1.5)) +
   labs(#title = "Bootstrapped Sensitivity of Cost-Efficiency",
        #subtitle = "Mean ± 95% CI across 1000 resamples",
-       x = "Cost Adjustment (%)", y = "Mean carbon benefit per unit cost") +
+       x = "", y = "Mean biodiversity benefit per unit cost") +
   theme_classic() +
-  theme(axis.title = element_text(family = "sans", size = 22, colour = "gray33"),
+  theme(axis.title = element_text(family = "sans", size = 16, colour = "gray33"),
         axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
         strip.background = element_blank(),
         legend.title = element_blank(),
         legend.text = element_text(family = "sans", size = 16),
         legend.position = "bottom")
+
+
+vline.df <- data.frame(cost_component = factor(c("fire_breaks_cost", "restoration_cost", "farming_cost", "farming_cost", "logging_cost", "logging_cost"),
+                                               levels = c("fire_breaks_cost", "restoration_cost", "farming_cost", "logging_cost")),
+                       cross.over = c(0, 0, 0, 57, -42, 0))
+
+carb_sensit_plot <- ggplot(carb_eff_summary, aes(x = shift * 100, y = mean, colour = Scenario, fill = Scenario)) +
+  geom_line(linewidth = 2) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, colour = NA) +
+  geom_vline(data=vline.df, aes(xintercept=cross.over),
+             linetype = "dashed", linewidth = 1.2, colour = "gray33") +
+  facet_wrap(~ cost_component, ncol = 4, scales = "free_y") +
+  scale_colour_manual(values = c("Avoid deforestation" = "#6ECCAF",
+                                 "Avoid degradation" = "#3E7B27",
+                                 "Restoration without avoid" = "#A9C46C")) +
+  scale_fill_manual(values = c("Avoid deforestation" = "#6ECCAF",
+                               "Avoid degradation" = "#3E7B27",
+                               "Restoration without avoid" = "#A9C46C")) +
+  coord_cartesian(ylim = c(0,250)) +
+  labs(#title = "Bootstrapped Sensitivity of Cost-Efficiency",
+    #subtitle = "Mean ± 95% CI across 1000 resamples",
+    x = "Cost Adjustment (%)", y = "Mean carbon benefit per unit cost") +
+  theme_classic() +
+  theme(axis.title = element_text(family = "sans", size = 16, colour = "gray33"),
+        axis.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.text = element_text(family = "sans", size = 16, colour = "gray33"),
+        strip.background = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(family = "sans", size = 16),
+        legend.position = "bottom")
+
+
+### fig S22 -- res: W: 1673; H: 881 
+ggarrange(biodiv_sensit_plot, carb_sensit_plot,
+          ncol = 1, nrow = 2, labels = c("  A", "   B"),
+          common.legend = T, legend = "bottom", align = "v")
 
 
 
