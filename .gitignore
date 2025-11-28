@@ -4,12 +4,14 @@
 .Ruserdata
 *.tif
 *TIFF
-imagens/
-Manuscript2024/
 bib/
+data/raw/
+imagens/
+Manuscript2025/
+models.output/
 rasters/
 old/
-data/raw/
+
 
 #*.grd
 #*.gri
